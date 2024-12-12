@@ -17,6 +17,7 @@ It also assumes that your environment has pre-commit installed and configured.
 - Implement error handling for network failures
 - Create a configuration file for user preferences
 - Add option to specify commit type (e.g., feat, fix, docs)
+- Ask user if they want to commit staged files that have unstaged changes
 
 """
 
