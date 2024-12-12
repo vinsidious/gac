@@ -47,6 +47,7 @@ def run_subprocess(command: List[str], quiet: bool = False) -> str:
     if result.stdout:
         logger.info(f"Command output:\n{result.stdout}")
         return result.stdout
+    return ""
 
 
 def git_status(quiet: bool = False) -> str:
