@@ -31,7 +31,18 @@ pipx install gac
    cd gac
    ```
 
-2. Create and activate a development environment:
+2. Configure hatch to use a local virtual environment:
+
+   Add this to your `pyproject.toml`:
+
+   ```toml
+   [tool.hatch.env]
+   path = "venv"
+   ```
+
+   This will create the virtual environment in the `venv/` directory at your project root instead of hatch's default location.
+
+3. Create and activate a development environment:
 
    ```console
    # Create a new environment
@@ -41,7 +52,7 @@ pipx install gac
    hatch shell
    ```
 
-3. Install in development mode:
+4. Install in development mode:
 
    ```console
    # Install with development dependencies
@@ -90,6 +101,17 @@ gac -f -a
 ## Development Commands
 
 Here are common commands you'll need during development:
+
+### VSCode Integration
+
+The repository includes VSCode settings that:
+
+- Use the local `venv` Python interpreter
+- Configure test discovery with pytest
+- Set up code formatting with black
+- Hide common Python cache directories
+
+If you're using VSCode, these settings will be automatically applied when you open the project.
 
 ### Environment Management
 
