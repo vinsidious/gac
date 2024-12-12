@@ -52,11 +52,13 @@ def run_subprocess(command: List[str]) -> str:
 
 
 def get_staged_filenames() -> List[str]:
+    """Get list of staged filenames."""
     result = run_subprocess(["git", "diff", "--staged", "--name-only"])
     return result.splitlines()
 
 
 def get_staged_python_files() -> List[str]:
+    """Get list of filenames of staged Python files."""
     return [f for f in get_staged_filenames() if f.endswith(".py")]
 
 
