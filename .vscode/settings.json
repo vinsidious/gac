@@ -31,32 +31,19 @@
     ],
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
-    "python.defaultInterpreterPath": ".venv/bin/python",
+    "python.defaultInterpreterPath": "${workspaceFolder}/venv/bin/python",
     "black-formatter.args": [
         "--line-length",
         "100"
     ],
 
     "files.exclude": {
-        ".bumpversion.cfg": true,
-        ".coverage": true,
-        ".github/": true,
         ".git/": true,
-        ".githooks/": true,
-        ".mypy_cache/": true,
-        ".pre-commit-config.yaml": true,
-        "**/.DS_Store": true,
-        "**/.pytest_cache": true,
-        "**/__pycache__": true,
-        "**/*.pyc": true,
-        "_deprecated/": false,
-        ".venv/": false,
-        "archive/": true,
-        "build/": true,
-        "coverage/": false,
+        ".ruff_cache": true,
+        ".pytest_cache": true,
         "dist/": true,
-        "setup.py": true,
-        "src/scoutie.egg-info": true,
+        "src/gac/__pycache__": true,
+        "LICENSE.txt": true
     },
     "search.exclude": {
         "**/node_modules": true,

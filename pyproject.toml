@@ -24,7 +24,24 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = []
+dependencies = [
+    "aisuite",
+    "anthropic",
+    "click",
+    "python-dotenv",
+    "rich",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "isort",
+    "pytest",
+    "pytest-cov",
+    "codecov",
+    "flake8",
+]
+
 
 [project.urls]
 Documentation = "https://github.com/cellwebb/gac#readme"
@@ -49,3 +66,54 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build]
+only-packages = true
+skip-excluded = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gac"]
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/.github",
+    "/docs",
+    "tests/",
+    "*.tests",
+    "*.tests.*",
+]
+
+[tool.hatch.envs.default]
+dependencies = [
+    # Runtime dependencies inherited from project.dependencies
+    # Development dependencies
+    "black",
+    "isort",
+    "pytest",
+    "pytest-cov",
+    "codecov",
+    "flake8",
+]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-cov = "pytest --cov {args:tests}"
+lint = [
+    "black .",
+    "isort .",
+    "flake8 .",
+]
+format = [
+    "black .",
+    "isort .",
+]
+
+[tool.hatch.env]
+path = "venv"
+
+[template.plugins.default]
+tests = true
+src-layout = true

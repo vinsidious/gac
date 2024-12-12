@@ -35,22 +35,21 @@ def run_subprocess(command: List[str]) -> str:
     return result.stdout
 
 
-def get_git_status() -> str:
+def git_status() -> str:
     return run_subprocess(["git", "status"])
 
 
-def get_staged_diff() -> str:
+def git_diff_staged() -> str:
     return run_subprocess(["git", "--no-pager", "diff", "--staged"])
 
 
-def get_staged_files() -> List[str]:
-    result = subprocess.run(
-        ["git", "diff", "--staged", "--name-only"], stdout=subprocess.PIPE, text=True
-    )
-    return result.stdout.splitlines()
-
-
 def get_staged_python_files() -> List[str]:
+    def get_staged_files() -> List[str]:
+        result = subprocess.run(
+            ["git", "diff", "--staged", "--name-only"], stdout=subprocess.PIPE, text=True
+        )
+        return result.stdout.splitlines()
+
     return [f for f in get_staged_files() if f.endswith(".py")]
 
 
@@ -71,12 +70,6 @@ def stage_files(files: List[str]) -> bool:
     result = run_subprocess(["git", "add"] + files)
     logger.info("Files staged.")
     return bool(result)
-
-
-def run_git_push() -> bool:
-    result = run_subprocess(["git", "push"])
-    logger.info("Push complete.")
-    return result != ""
 
 
 def run_black() -> bool:
@@ -144,7 +137,7 @@ def main(test_mode: bool = False, force: bool = False, add_all: bool = False) ->
         stage_files(["."])
         logger.info("All changes staged.")
 
-    staged_files = get_staged_files()
+    staged_files = get_staged_filenames()
     if len(staged_files) == 0:
         logger.info("No staged files to commit.")
         return
@@ -165,7 +158,7 @@ def main(test_mode: bool = False, force: bool = False, add_all: bool = False) ->
             run_isort()
             stage_files(python_files)
 
-        commit_message = send_to_claude(status=get_git_status(), diff=get_staged_diff())
+        commit_message = send_to_claude(status=git_status(), diff=git_diff_staged())
 
     if not commit_message:
         logger.error("Failed to generate commit message.")
@@ -198,7 +191,9 @@ def main(test_mode: bool = False, force: bool = False, add_all: bool = False) ->
             .lower()
         )
     if push and push[0] == "y":
-        run_git_push()
+        run_subprocess(["git", "push"])
+        logger.info("Push complete.")
+        logger.debug(git_status())
     else:
         logger.info("Push aborted.")
     return
