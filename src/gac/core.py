@@ -6,10 +6,15 @@ This script sends the staged diff to Claude for summarization and suggests a com
 It then prompts the user to proceed with the commit, runs pre-commit hooks, and commits the changes.
 
 This script asssumes that your environment has git, black, and isort installed.
-It also assumes that your environment has pre-commit installed and configured."""
+It also assumes that your environment has pre-commit installed and configured.
+
+TODO:
+- Remove test mode and just let it connect to Claude?
+"""
 
 import logging
 import subprocess
+from pdb import run
 from typing import List
 
 import click
@@ -23,75 +28,81 @@ logger = logging.getLogger(__name__)
 MODEL = "anthropic:claude-3-5-haiku-latest"
 
 
-def run_subprocess(command: List[str]) -> str:
+def run_subprocess(command: List[str], quiet: bool = False) -> str:
     logger.info(f"Running command: `{' '.join(command)}`")
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
     if result.returncode != 0:
         logger.error(f"Error running command: `{result.stderr}`")
         return ""
 
     if result.stdout:
-        logger.info(f"Command output:\n{result.stdout}")
-    return result.stdout
+        if not quiet:
+            logger.info(f"Command output:\n{result.stdout}")
+        else:
+            logger.debug(f"Command output:\n{result.stdout}")
+        return result.stdout
+
+    return ""
 
 
-def git_status() -> str:
-    return run_subprocess(["git", "status"])
+def git_status(quiet: bool = False) -> str:
+    return run_subprocess(["git", "status"], quiet=quiet)
 
 
-def git_diff_staged() -> str:
-    return run_subprocess(["git", "--no-pager", "diff", "--staged"])
+def git_diff_staged(quiet: bool = False) -> str:
+    return run_subprocess(["git", "--no-pager", "diff", "--staged"], quiet=quiet)
 
 
-def get_staged_filenames() -> List[str]:
-    result = subprocess.run(
-        ["git", "diff", "--staged", "--name-only"], stdout=subprocess.PIPE, text=True
-    )
-    return result.stdout.splitlines()
+def get_staged_filenames(quiet: bool = True) -> List[str]:
+    result = run_subprocess(["git", "diff", "--staged", "--name-only"], quiet=quiet)
+    return result.splitlines()
 
 
-def get_staged_python_files() -> List[str]:
-    return [f for f in get_staged_filenames() if f.endswith(".py")]
+def get_staged_python_files(quiet: bool = True) -> List[str]:
+    return [f for f in get_staged_filenames(quiet=quiet) if f.endswith(".py")]
 
 
-def commit_changes(message: str) -> bool:
+def commit_changes(message: str, quiet: bool = False) -> None:
     """Commit changes with the given message."""
     try:
-        result = run_subprocess(["git", "commit", "-m", message])
-        if result is None:
-            return False
-        return True
+        run_subprocess(["git", "commit", "-m", message], quiet=quiet)
     except subprocess.CalledProcessError as e:
         logger.error(f"Error committing changes: {e}")
         raise
 
 
-def stage_files(files: List[str]) -> bool:
+def stage_files(files: List[str], quiet: bool = False) -> bool:
     """Stage files for commit."""
-    result = run_subprocess(["git", "add"] + files)
-    logger.info("Files staged.")
+    result = run_subprocess(["git", "add"] + files, quiet=quiet)
+    if not quiet:
+        logger.info("Files staged.")
     return bool(result)
 
 
-def run_black() -> bool:
+def run_black(quiet: bool = False) -> bool:
     """Run black code formatter."""
     python_files = get_staged_python_files()
-    subprocess.run(["black"] + python_files, check=False)
     n_before = len(python_files)
+    run_subprocess(["black"] + python_files, quiet=quiet)
     python_files = get_staged_python_files()
     n_formatted = n_before - len(python_files)
-    logger.info(f"Black formatted {n_formatted} files.")
+
+    if not quiet:
+        logger.info(f"Black formatted {n_formatted} files.")
     return n_formatted > 0
 
 
-def run_isort() -> bool:
+def run_isort(quiet: bool = False) -> bool:
     """Run isort import sorter."""
     python_files = get_staged_python_files()
-    subprocess.run(["isort"] + python_files, check=False)
     n_before = len(python_files)
-    python_files = get_staged_python_files()
-    n_formatted = n_before - len(python_files)
-    logger.info(f"isort sorted {n_formatted} files.")
+    run_subprocess(["isort"] + python_files, quiet=quiet)
+    formatted_files = get_staged_python_files()
+    n_formatted = n_before - len(formatted_files)
+
+    if not quiet:
+        logger.info(f"isort formatted {n_formatted} files.")
     return n_formatted > 0
 
 
@@ -152,10 +163,10 @@ def main(test_mode: bool = False, force: bool = False, add_all: bool = False) ->
  - Final test bullet point for demonstration"""
     else:
         python_files = get_staged_python_files()
+
         if python_files:
             run_black()
             stage_files(python_files)
-
             run_isort()
             stage_files(python_files)
 
@@ -173,6 +184,7 @@ def main(test_mode: bool = False, force: bool = False, add_all: bool = False) ->
             "Do you want to proceed with this commit? (y/n): "
         )
         proceed = click.prompt(prompt, type=str, default="y").strip().lower()
+
     if not proceed or proceed[0] != "y":
         logger.info("Commit aborted.")
         return
