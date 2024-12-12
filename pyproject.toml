@@ -32,6 +32,9 @@ dependencies = [
     "rich",
 ]
 
+[project.scripts]
+gac = "gac.core:cli"
+
 [project.optional-dependencies]
 dev = [
     "black",
