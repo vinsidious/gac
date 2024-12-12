@@ -37,15 +37,15 @@ MODEL = "anthropic:claude-3-5-haiku-latest"
 
 
 def run_subprocess(command: List[str], quiet: bool = False) -> str:
-    logger.log(logging.DEBUG if quiet else logging.INFO, f"Running command: `{' '.join(command)}`")
+    logger.info(f"Running command: `{' '.join(command)}`")
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if result.returncode != 0:
         logger.error(f"Error running command: `{result.stderr}`")
         return ""
+
     if result.stdout:
-        logger.log(logging.DEBUG if quiet else logging.INFO, f"Command output:\n{result.stdout}")
+        logger.info(f"Command output:\n{result.stdout}")
         return result.stdout
-    return ""
 
 
 def git_status(quiet: bool = False) -> str:
@@ -56,12 +56,12 @@ def git_diff_staged(quiet: bool = False) -> str:
     return run_subprocess(["git", "--no-pager", "diff", "--staged"], quiet=quiet)
 
 
-def get_staged_filenames(quiet: bool = True) -> List[str]:
+def get_staged_filenames(quiet: bool = False) -> List[str]:
     result = run_subprocess(["git", "diff", "--staged", "--name-only"], quiet=quiet)
     return result.splitlines()
 
 
-def get_staged_python_files(quiet: bool = True) -> List[str]:
+def get_staged_python_files(quiet: bool = False) -> List[str]:
     return [f for f in get_staged_filenames(quiet=quiet) if f.endswith(".py")]
 
 
@@ -84,33 +84,34 @@ def stage_files(files: List[str], quiet: bool = False) -> bool:
 
 def run_black(quiet: bool = False) -> bool:
     """Run black code formatter."""
-    python_files = get_staged_python_files()
+    python_files = get_staged_python_files(quiet=quiet)
     n_before = len(python_files)
     run_subprocess(["black"] + python_files, quiet=quiet)
-    python_files = get_staged_python_files()
+    python_files = get_staged_python_files(quiet=quiet)
     n_formatted = n_before - len(python_files)
-
-    if not quiet:
-        logger.info(f"Black formatted {n_formatted} files.")
+    logger.info(f"Black formatted {n_formatted} files.")
     return n_formatted > 0
 
 
 def run_isort(quiet: bool = False) -> bool:
     """Run isort import sorter."""
-    python_files = get_staged_python_files()
+    python_files = get_staged_python_files(quiet=quiet)
     n_before = len(python_files)
     run_subprocess(["isort"] + python_files, quiet=quiet)
-    formatted_files = get_staged_python_files()
+    formatted_files = get_staged_python_files(quiet=quiet)
     n_formatted = n_before - len(formatted_files)
-
-    if not quiet:
-        logger.info(f"isort formatted {n_formatted} files.")
+    logger.info(f"isort formatted {n_formatted} files.")
     return n_formatted > 0
 
 
-def send_to_claude(status: str, diff: str, quiet: bool = False) -> str:
+def send_to_claude(*, status: str, diff: str, quiet: bool = False) -> str:
     """Send the git status and staged diff to Claude for summarization."""
     prompt = f"""Analyze this git status and git diff and write ONLY a commit message in the following format. Do not include any other text, explanation, or commentary.
+
+Format:
+[type]: Short summary of changes (50 chars or less)
+ - Bullet point details about the changes
+ - Another bullet point if needed
 
 [feat/fix/docs/refactor/test/chore/other]: <description>
 
@@ -120,67 +121,65 @@ For larger changes, include bullet points:
  - Change 2
  - Change 3
 
-Here is the git status to analyze:
-
+Git Status:
 ```
 {status}
 ```
 
-Here is the diff to analyze:
-
+Git Diff:
 ```
 {diff}
 ```
 """
-    logger.log(logging.DEBUG if quiet else logging.INFO, f"Prompt:\n{prompt}")
-    logger.log(
-        logging.DEBUG if quiet else logging.INFO, f"Prompt length: {len(prompt):,} characters"
-    )
-    logger.log(
-        logging.DEBUG if quiet else logging.INFO,
-        f"Prompt token count: {count_tokens(prompt, MODEL):,}",
-    )
+
+    logger.info(f"Prompt:\n{prompt}")
+    logger.info(f"Prompt length: {len(prompt)} characters")
+    logger.info(f"Prompt token count: {count_tokens(prompt, MODEL):,}")
 
     messages = [{"role": "user", "content": prompt}]
     response = chat(
-        messages,
+        messages=messages,
         model=MODEL,
         system="You are a helpful assistant that writes clear, concise git commit messages. Only output the commit message, nothing else.",
     )
-    logger.log(
-        logging.DEBUG if quiet else logging.INFO,
-        f"Response token count: {count_tokens(response, MODEL):,}",
-    )
+
+    if not quiet:
+        logger.info(f"Response token count: {count_tokens(response, MODEL):,}")
     return response
 
 
-def main(test_mode: bool = False, force: bool = False, add_all: bool = False) -> None:
+def main(
+    test_mode: bool = False, force: bool = False, add_all: bool = False, quiet: bool = False
+) -> None:
     if add_all:
-        stage_files(["."])
+        stage_files(["."], quiet=quiet)
         logger.info("All changes staged.")
 
-    staged_files = get_staged_filenames()
+    staged_files = get_staged_filenames(quiet=quiet)
     if len(staged_files) == 0:
         logger.info("No staged files to commit.")
         return
 
     if test_mode:
-        logger.info("[TEST MODE ENABLED] Using example commit message")
+        if not quiet:
+            logger.info("[TEST MODE ENABLED] Using example commit message")
         commit_message = """[TEST MESSAGE] Example commit format
 [feat]: This is a test commit message to demonstrate formatting
  - This is a test bullet point
- - Another test bullet point to show structure
+ - Another test bullet point
  - Final test bullet point for demonstration"""
     else:
-        python_files = get_staged_python_files()
+        python_files = get_staged_python_files(quiet=quiet)
 
         if python_files:
-            run_black()
-            stage_files(python_files)
-            run_isort()
-            stage_files(python_files)
+            run_black(quiet=quiet)
+            stage_files(python_files, quiet=quiet)
+            run_isort(quiet=quiet)
+            stage_files(python_files, quiet=quiet)
 
-        commit_message = send_to_claude(status=git_status(), diff=git_diff_staged())
+        commit_message = send_to_claude(
+            status=git_status(quiet=quiet), diff=git_diff_staged(quiet=quiet), quiet=quiet
+        )
 
     if not commit_message:
         logger.error("Failed to generate commit message.")
@@ -189,41 +188,38 @@ def main(test_mode: bool = False, force: bool = False, add_all: bool = False) ->
     if force:
         proceed = "y"
     else:
-        prompt = (
-            f"Suggested Commit Message:\n{commit_message}\n\n"
-            "Do you want to proceed with this commit? (y/n): "
-        )
+        prompt = "Do you want to proceed with this commit? (y/n): "
         proceed = click.prompt(prompt, type=str, default="y").strip().lower()
 
     if not proceed or proceed[0] != "y":
-        logger.info("Commit aborted.")
+        if not quiet:
+            logger.info("Commit aborted.")
         return
 
     if test_mode:
-        logger.info("[TEST MODE] Commit simulation completed. No actual commit was made.")
+        if not quiet:
+            logger.info("[TEST MODE] Commit simulation completed. No actual commit was made.")
         return
 
-    commit_changes(commit_message)
+    commit_changes(commit_message, quiet=quiet)
 
     if force:
         push = "y"
     else:
-        push = (
-            click.prompt("Do you want to push these changes? (y/n): ", type=str, default="y")
-            .strip()
-            .lower()
-        )
+        prompt = "Do you want to push these changes? (y/n): "
+        push = click.prompt(prompt, type=str, default="y").strip().lower()
     if push and push[0] == "y":
-        run_subprocess(["git", "push"])
-        logger.info("Push complete.")
-        logger.debug(git_status())
+        run_subprocess(["git", "push"], quiet=quiet)
+        if not quiet:
+            logger.info("Push complete.")
     else:
-        logger.info("Push aborted.")
+        if not quiet:
+            logger.info("Push aborted.")
     return
 
 
 @click.command()
-@click.option("--test", "-t", is_flag=True, help="Run in test mode with example commit messages")
+@click.option("--test", "-t", is_flag=True, help="Run in test mode")
 @click.option(
     "--force",
     "-f",
@@ -232,13 +228,15 @@ def main(test_mode: bool = False, force: bool = False, add_all: bool = False) ->
     help="Force commit without user prompting (yes to all prompts)",
 )
 @click.option("--add-all", "-a", is_flag=True, help="Stage all changes before committing")
-def cli(test: bool, force: bool, add_all: bool) -> None:
+@click.option("--quiet", "-q", is_flag=True, help="Reduce output verbosity")
+def cli(test: bool, force: bool, add_all: bool, quiet: bool) -> None:
+    """Commit staged changes with an AI-generated commit message."""
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.WARNING if quiet else logging.INFO,
         format="%(message)s",
         handlers=[RichHandler(rich_tracebacks=True, markup=True)],
     )
-    main(test_mode=test, force=force, add_all=add_all)
+    main(test_mode=test, force=force, add_all=add_all, quiet=quiet)
 
 
 if __name__ == "__main__":
