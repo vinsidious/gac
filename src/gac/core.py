@@ -23,7 +23,6 @@ It also assumes that your environment has pre-commit installed and configured.
 
 import logging
 import subprocess
-from pdb import run
 from typing import List
 
 import click
@@ -41,8 +40,11 @@ def run_subprocess(command: List[str]) -> str:
     logger.info(f"Running command: `{' '.join(command)}`")
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if result.returncode != 0:
-        logger.error(f"Error running command: `{result.stderr}`")
-        return ""
+        error_msg = f"Command failed with exit code {result.returncode}: {result.stderr}"
+        logger.error(error_msg)
+        raise subprocess.CalledProcessError(
+            result.returncode, command, result.stdout, result.stderr
+        )
     if result.stdout:
         logger.info(f"Command output:\n{result.stdout}")
         return result.stdout
@@ -79,8 +81,8 @@ def run_black() -> bool:
     python_files = get_staged_python_files()
     n_before = len(python_files)
     run_subprocess(["black"] + python_files)
-    python_files = get_staged_python_files()
-    n_formatted = n_before - len(python_files)
+    formatted_files = get_staged_python_files()
+    n_formatted = n_before - len(formatted_files)
     logger.info(f"Black formatted {n_formatted} files.")
     return n_formatted > 0
 
