@@ -43,14 +43,15 @@ def git_diff_staged() -> str:
     return run_subprocess(["git", "--no-pager", "diff", "--staged"])
 
 
-def get_staged_python_files() -> List[str]:
-    def get_staged_files() -> List[str]:
-        result = subprocess.run(
-            ["git", "diff", "--staged", "--name-only"], stdout=subprocess.PIPE, text=True
-        )
-        return result.stdout.splitlines()
+def get_staged_filenames() -> List[str]:
+    result = subprocess.run(
+        ["git", "diff", "--staged", "--name-only"], stdout=subprocess.PIPE, text=True
+    )
+    return result.stdout.splitlines()
 
-    return [f for f in get_staged_files() if f.endswith(".py")]
+
+def get_staged_python_files() -> List[str]:
+    return [f for f in get_staged_filenames() if f.endswith(".py")]
 
 
 def commit_changes(message: str) -> bool:
