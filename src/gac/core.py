@@ -51,15 +51,15 @@ def run_subprocess(command: List[str]) -> str:
     return ""
 
 
-def get_staged_filenames() -> List[str]:
-    """Get list of staged filenames."""
+def get_staged_files() -> List[str]:
+    """Get list of filenames of all staged files."""
     result = run_subprocess(["git", "diff", "--staged", "--name-only"])
     return result.splitlines()
 
 
 def get_staged_python_files() -> List[str]:
     """Get list of filenames of staged Python files."""
-    return [f for f in get_staged_filenames() if f.endswith(".py")]
+    return [f for f in get_staged_files() if f.endswith(".py")]
 
 
 def commit_changes(message: str) -> None:
@@ -152,7 +152,7 @@ def main(
         stage_files(["."])
         logger.info("All changes staged.")
 
-    staged_files = get_staged_filenames()
+    staged_files = get_staged_files()
     if len(staged_files) == 0:
         logger.info("No staged files to commit.")
         return
