@@ -8,8 +8,16 @@ It then prompts the user to proceed with the commit, runs pre-commit hooks, and 
 This script asssumes that your environment has git, black, and isort installed.
 It also assumes that your environment has pre-commit installed and configured.
 
-TODO:
+# TODO:
 - Remove test mode and just let it connect to Claude?
+- Make black and isort optional?
+- How to handle pre-commit/git hooks?
+- Test coverage
+- Add support for custom commit message templates?
+- Implement error handling for network failures
+- Create a configuration file for user preferences
+- Add option to specify commit type (e.g., feat, fix, docs)
+
 """
 
 import logging
@@ -29,20 +37,14 @@ MODEL = "anthropic:claude-3-5-haiku-latest"
 
 
 def run_subprocess(command: List[str], quiet: bool = False) -> str:
-    logger.info(f"Running command: `{' '.join(command)}`")
+    logger.log(logging.DEBUG if quiet else logging.INFO, f"Running command: `{' '.join(command)}`")
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
     if result.returncode != 0:
         logger.error(f"Error running command: `{result.stderr}`")
         return ""
-
     if result.stdout:
-        if not quiet:
-            logger.info(f"Command output:\n{result.stdout}")
-        else:
-            logger.debug(f"Command output:\n{result.stdout}")
+        logger.log(logging.DEBUG if quiet else logging.INFO, f"Command output:\n{result.stdout}")
         return result.stdout
-
     return ""
 
 
@@ -106,7 +108,7 @@ def run_isort(quiet: bool = False) -> bool:
     return n_formatted > 0
 
 
-def send_to_claude(status: str, diff: str) -> str:
+def send_to_claude(status: str, diff: str, quiet: bool = False) -> str:
     """Send the git status and staged diff to Claude for summarization."""
     prompt = f"""Analyze this git status and git diff and write ONLY a commit message in the following format. Do not include any other text, explanation, or commentary.
 
@@ -130,9 +132,14 @@ Here is the diff to analyze:
 {diff}
 ```
 """
-    logger.info(f"Prompt:\n{prompt}")
-    logger.info(f"Prompt length: {len(prompt)} characters")
-    logger.info(f"Prompt token count: {count_tokens(prompt, MODEL):,}")
+    logger.log(logging.DEBUG if quiet else logging.INFO, f"Prompt:\n{prompt}")
+    logger.log(
+        logging.DEBUG if quiet else logging.INFO, f"Prompt length: {len(prompt):,} characters"
+    )
+    logger.log(
+        logging.DEBUG if quiet else logging.INFO,
+        f"Prompt token count: {count_tokens(prompt, MODEL):,}",
+    )
 
     messages = [{"role": "user", "content": prompt}]
     response = chat(
@@ -140,7 +147,10 @@ Here is the diff to analyze:
         model=MODEL,
         system="You are a helpful assistant that writes clear, concise git commit messages. Only output the commit message, nothing else.",
     )
-    logger.info(f"Response token count: {count_tokens(response, MODEL):,}")
+    logger.log(
+        logging.DEBUG if quiet else logging.INFO,
+        f"Response token count: {count_tokens(response, MODEL):,}",
+    )
     return response
 
 
