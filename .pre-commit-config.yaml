@@ -1,0 +1,23 @@
+repos:
+-   repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+    -   id: black
+        language_version: python3
+        exclude: ^(\.venv/|_deprecated/)
+
+-   repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+    -   id: isort
+        args: ["--profile", "black"]
+        exclude: ^(\.venv/|_deprecated/)
+
+-   repo: local
+    hooks:
+    -   id: check-upstream
+        name: check for upstream changes
+        entry: .githooks/check-upstream
+        language: system
+        pass_filenames: false
+        always_run: true

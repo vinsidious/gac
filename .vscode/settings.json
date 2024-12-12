@@ -1,0 +1,68 @@
+{
+    "editor.wordWrap": "on",
+    "git.openDiffOnClick": false,
+
+    // markdown-specific settings
+    "[markdown]": {
+        "editor.wordWrap": "bounded",
+        "editor.wordWrapColumn": 100
+    },
+    "markdownlint.config": {
+        "default": true,
+        "MD013": false
+    },
+
+    // editor-specific settings for python files
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "always"
+        },
+        "editor.wordWrap": "off"
+    },
+
+    // global python extension settings
+    "python.testing.pytestArgs": [
+        ".tests",
+        "--maxfail=3",    // Stop after 3 failures
+        "-v",             // Verbose output
+        "--tb=short"      // Short traceback format
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.defaultInterpreterPath": ".venv/bin/python",
+    "black-formatter.args": [
+        "--line-length",
+        "100"
+    ],
+
+    "files.exclude": {
+        ".bumpversion.cfg": true,
+        ".coverage": true,
+        ".github/": true,
+        ".git/": true,
+        ".githooks/": true,
+        ".mypy_cache/": true,
+        ".pre-commit-config.yaml": true,
+        "**/.DS_Store": true,
+        "**/.pytest_cache": true,
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "_deprecated/": false,
+        ".venv/": false,
+        "archive/": true,
+        "build/": true,
+        "coverage/": false,
+        "dist/": true,
+        "setup.py": true,
+        "src/scoutie.egg-info": true,
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/.venv": false,
+        "**/.pytest_cache": true,
+        "**/__pycache__": true,
+        "**/*.pyc": true
+    }
+}
