@@ -159,6 +159,41 @@ hatch build
 hatch publish
 ```
 
+### Version Management
+
+The project uses `hatch-vcs` for version management, which derives versions from git tags. To release a new version:
+
+1. Update CHANGELOG.md with your changes
+2. Create a new version tag:
+
+   ```console
+   # For alpha releases
+   git tag v0.1.0a1
+
+   # For beta releases
+   git tag v0.1.0b1
+
+   # For release candidates
+   git tag v0.1.0rc1
+
+   # For final releases
+   git tag v0.1.0
+   ```
+
+3. Push the tag:
+
+   ```console
+   git push origin v0.1.0a1
+   ```
+
+4. Build and publish:
+   ```console
+   hatch build
+   hatch publish
+   ```
+
+The version will be automatically derived from the git tag by hatch-vcs.
+
 ## Project Structure
 
 ```plaintext
