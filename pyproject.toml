@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
@@ -30,16 +30,6 @@ dependencies = []
 Documentation = "https://github.com/cellwebb/gac#readme"
 Issues = "https://github.com/cellwebb/gac/issues"
 Source = "https://github.com/cellwebb/gac"
-
-[tool.hatch.version]
-path = "src/gac/__about__.py"
-
-[tool.hatch.envs.types]
-extra-dependencies = [
-  "mypy>=1.0.0",
-]
-[tool.hatch.envs.types.scripts]
-check = "mypy --install-types --non-interactive {args:src/gac tests}"
 
 [tool.coverage.run]
 source_pkgs = ["gac", "tests"]

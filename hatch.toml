@@ -1,0 +1,61 @@
+[version]
+source = "vcs"
+
+[publish]
+directory = "dist"
+
+[build]
+only-packages = true
+skip-excluded = true
+
+[build.targets.wheel]
+packages = ["src/gac"]
+
+[build.targets.sdist]
+exclude = [
+    "/.github",
+    "/docs",
+    "tests/",
+    "*.tests",
+    "*.tests.*",
+]
+
+[envs.default]
+dependencies = [
+    "aisuite",
+    "anthropic",
+    "click",
+    "python-dotenv",
+    "rich",
+]
+ignore = ["mypy"]
+
+[envs.style]
+detached = true
+dependencies = [
+  "flake8",
+  "black",
+  "isort",
+]
+[envs.style.scripts]
+check = [
+  "flake8 .",
+  "black --check --diff .",
+  "isort --check-only --diff .",
+]
+fmt = [
+  "isort .",
+  "black .",
+  "check",
+]
+
+[envs.test]
+dependencies = [
+  "coverage[toml]",
+  "pytest",
+  "pytest-cov",
+  "pytest-mock",
+]
+
+[template]
+readme = {file = "README.md", format = "md"}
