@@ -49,14 +49,6 @@ def run_subprocess(command: List[str]) -> str:
     return ""
 
 
-def git_status() -> str:
-    return run_subprocess(["git", "status"])
-
-
-def git_diff_staged() -> str:
-    return run_subprocess(["git", "--no-pager", "diff", "--staged"])
-
-
 def get_staged_filenames() -> List[str]:
     result = run_subprocess(["git", "diff", "--staged", "--name-only"])
     return result.splitlines()
@@ -177,7 +169,9 @@ def main(
             run_isort()
             stage_files(python_files)
 
-        commit_message = send_to_claude(status=git_status(), diff=git_diff_staged())
+        status = run_subprocess(["git", "status"])
+        diff = run_subprocess(["git", "--no-pager", "diff", "--staged"])
+        commit_message = send_to_claude(status=status, diff=diff)
 
     if not commit_message:
         logger.error("Failed to generate commit message.")
