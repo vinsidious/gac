@@ -25,7 +25,6 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-    "aisuite",
     "anthropic",
     "click",
     "docstring_parser",
@@ -37,6 +36,13 @@ dependencies = [
 gac = "gac.core:cli"
 
 [project.optional-dependencies]
+formatting = [
+    "black",
+    "isort",
+]
+other-providers = [
+    "aisuite",
+]
 dev = [
     "black",
     "bump2version",
@@ -46,7 +52,6 @@ dev = [
     "pytest",
     "pytest-cov",
 ]
-
 
 [project.urls]
 Documentation = "https://github.com/cellwebb/gac#readme"
@@ -101,9 +106,10 @@ exclude = [
 [tool.hatch.envs.default]
 dependencies = [
     # Runtime dependencies inherited from project.dependencies
-    # Development dependencies
+    # Optional formatting dependencies
     "black",
     "isort",
+    # Development dependencies
     "pytest",
     "pytest-cov",
     "codecov",
