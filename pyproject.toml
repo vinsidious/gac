@@ -28,6 +28,7 @@ dependencies = [
     "aisuite",
     "anthropic",
     "click",
+    "docstring_parser",
     "python-dotenv",
     "rich",
 ]
@@ -116,7 +117,7 @@ format = [
 ]
 
 [tool.hatch.env]
-path = "venv"
+path = ".venv"
 
 [template.plugins.default]
 tests = true
