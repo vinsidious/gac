@@ -31,32 +31,21 @@ pipx install gac
    cd gac
    ```
 
-2. Configure hatch to use a local virtual environment:
-
-   Add this to your `pyproject.toml`:
-
-   ```toml
-   [tool.hatch.env]
-   path = "venv"
-   ```
-
-   This will create the virtual environment in the `venv/` directory at your project root instead of hatch's default location.
-
-3. Create and activate a development environment:
+2. Set up with uv:
 
    ```console
-   # Create a new environment
-   hatch env create
+   # Create a virtual environment and install dependencies
+   make setup
 
-   # Activate the environment
-   hatch shell
+   # Alternatively, you can use uv directly:
+   uv venv
+   uv pip install -e ".[dev]"
    ```
 
-4. Install in development mode:
+3. Activate the virtual environment:
 
    ```console
-   # Install with development dependencies
-   pip install -e ".[dev]"
+   source .venv/bin/activate
    ```
 
 ## Configuration
@@ -106,93 +95,83 @@ Here are common commands you'll need during development:
 
 The repository includes VSCode settings that:
 
-- Use the local `venv` Python interpreter
+- Use the local virtual environment Python interpreter
 - Configure test discovery with pytest
 - Set up code formatting with black
 - Hide common Python cache directories
 
 If you're using VSCode, these settings will be automatically applied when you open the project.
 
-### Environment Management
+### Development Tasks with Make
+
+The project includes a Makefile for common development tasks:
 
 ```console
-# Create a new environment
-hatch env create
+# Set up development environment
+make setup
 
-# Activate the environment
-hatch shell
+# Install package
+make install
 
-# List all environments
-hatch env show
+# Install with dev dependencies
+make install-dev
 
-# Run a command in the environment without activating
-hatch run <command>
+# Run tests
+make test
+
+# Run linters
+make lint
+
+# Format code
+make format
+
+# Clean build artifacts
+make clean
+```
+
+### Alternative: Direct uv commands
+
+```console
+# Create virtual environment
+uv venv
+
+# Install package with dev dependencies
+uv pip install -e ".[dev]"
+
+# Update dependencies
+uv pip install -U -e ".[dev]"
 ```
 
 ### Testing and Linting
 
 ```console
 # Run tests
-hatch run test
+pytest
 
 # Run tests with coverage
-hatch run test-cov
+pytest --cov
 
 # Format code
-hatch run format
+black .
+isort .
 
 # Run linters
-hatch run lint
+flake8 .
 ```
 
 ### Building and Publishing
 
 ```console
 # Build the package
-hatch build
+python -m build
 
 # Check build
-hatch clean
-hatch build
+rm -rf dist/
+python -m build
 
 # Publish to PyPI (maintainers only)
-hatch publish
+python -m twine upload dist/*
 ```
-
-### Version Management
-
-The project uses `hatch-vcs` for version management, which derives versions from git tags. To release a new version:
-
-1. Update CHANGELOG.md with your changes
-2. Create a new version tag:
-
-   ```console
-   # For alpha releases
-   git tag v0.1.0a1
-
-   # For beta releases
-   git tag v0.1.0b1
-
-   # For release candidates
-   git tag v0.1.0rc1
-
-   # For final releases
-   git tag v0.1.0
-   ```
-
-3. Push the tag:
-
-   ```console
-   git push origin v0.1.0a1
-   ```
-
-4. Build and publish:
-   ```console
-   hatch build
-   hatch publish
-   ```
-
-The version will be automatically derived from the git tag by hatch-vcs.
 
 ## Project Structure
 
@@ -216,7 +195,7 @@ gac/
 1. Fork the repository
 2. Create a new branch for your feature
 3. Make your changes
-4. Run tests and linting: `hatch run test && hatch run lint`
+4. Run tests and linting: `make test && make lint`
 5. Submit a pull request
 
 ## License
