@@ -38,9 +38,13 @@ MODEL = "anthropic:claude-3-5-haiku-latest"
 
 def run_subprocess(command: List[str]) -> str:
     logger.info(f"Running command: `{' '.join(command)}`")
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    result = subprocess.run(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
     if result.returncode != 0:
-        error_msg = f"Command failed with exit code {result.returncode}: {result.stderr}"
+        error_msg = (
+            f"Command failed with exit code {result.returncode}: {result.stderr}"
+        )
         logger.error(error_msg)
         raise subprocess.CalledProcessError(
             result.returncode, command, result.stdout, result.stderr
@@ -53,6 +57,7 @@ def run_subprocess(command: List[str]) -> str:
 
 def get_staged_files() -> List[str]:
     """Get list of filenames of all staged files."""
+    logger.info("Checking staged files...")
     result = run_subprocess(["git", "diff", "--staged", "--name-only"])
     return result.splitlines()
 
@@ -80,9 +85,11 @@ def stage_files(files: List[str]) -> bool:
 
 def run_black() -> bool:
     """Run black code formatter."""
+    logger.info("Identifying Python files for formatting with black...")
     python_files = get_staged_python_files()
     n_before = len(python_files)
     run_subprocess(["black"] + python_files)
+    logger.info("Checking which files were modified by black...")
     formatted_files = get_staged_python_files()
     n_formatted = n_before - len(formatted_files)
     logger.info(f"Black formatted {n_formatted} files.")
@@ -91,9 +98,11 @@ def run_black() -> bool:
 
 def run_isort() -> bool:
     """Run isort import sorter."""
+    logger.info("Identifying Python files for import sorting with isort...")
     python_files = get_staged_python_files()
     n_before = len(python_files)
     run_subprocess(["isort"] + python_files)
+    logger.info("Checking which files were modified by isort...")
     formatted_files = get_staged_python_files()
     n_formatted = n_before - len(formatted_files)
     logger.info(f"isort formatted {n_formatted} files.")
@@ -152,6 +161,7 @@ def main(
         stage_files(["."])
         logger.info("All changes staged.")
 
+    logger.info("Checking for staged files to commit...")
     staged_files = get_staged_files()
     if len(staged_files) == 0:
         logger.info("No staged files to commit.")
@@ -165,16 +175,21 @@ def main(
  - Another test bullet point
  - Final test bullet point for demonstration"""
     else:
+        logger.info("Checking for Python files to format...")
         python_files = get_staged_python_files()
 
         if python_files:
             run_black()
+            logger.info("Re-staging Python files after black formatting...")
             stage_files(python_files)
             run_isort()
+            logger.info("Re-staging Python files after isort formatting...")
             stage_files(python_files)
 
+        logger.info("Preparing to generate commit message...")
         status = run_subprocess(["git", "status"])
         diff = run_subprocess(["git", "--no-pager", "diff", "--staged"])
+        logger.info("Sending diff to Claude for commit message generation...")
         commit_message = send_to_claude(status=status, diff=diff)
 
     if not commit_message:
@@ -192,7 +207,9 @@ def main(
         return
 
     if test_mode:
-        logger.info("[TEST MODE] Commit simulation completed. No actual commit was made.")
+        logger.info(
+            "[TEST MODE] Commit simulation completed. No actual commit was made."
+        )
         return
 
     commit_changes(commit_message)
@@ -219,7 +236,9 @@ def main(
     is_flag=True,
     help="Force commit without user prompting (yes to all prompts)",
 )
-@click.option("--add-all", "-a", is_flag=True, help="Stage all changes before committing")
+@click.option(
+    "--add-all", "-a", is_flag=True, help="Stage all changes before committing"
+)
 @click.option("--quiet", "-q", is_flag=True, help="Reduce output verbosity")
 def cli(test: bool, force: bool, add_all: bool, quiet: bool) -> None:
     """Commit staged changes with an AI-generated commit message."""
