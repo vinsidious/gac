@@ -37,7 +37,7 @@ MODEL = "anthropic:claude-3-5-haiku-latest"
 
 
 def run_subprocess(command: List[str]) -> str:
-    logger.info(f"Running command: `{' '.join(command)}`")
+    logger.debug(f"Running command: `{' '.join(command)}`")
     result = subprocess.run(
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
@@ -50,14 +50,14 @@ def run_subprocess(command: List[str]) -> str:
             result.returncode, command, result.stdout, result.stderr
         )
     if result.stdout:
-        logger.info(f"Command output:\n{result.stdout}")
+        logger.debug(f"Command output:\n{result.stdout}")
         return result.stdout
     return ""
 
 
 def get_staged_files() -> List[str]:
     """Get list of filenames of all staged files."""
-    logger.info("Checking staged files...")
+    logger.debug("Checking staged files...")
     result = run_subprocess(["git", "diff", "--staged", "--name-only"])
     return result.splitlines()
 
@@ -85,11 +85,11 @@ def stage_files(files: List[str]) -> bool:
 
 def run_black() -> bool:
     """Run black code formatter."""
-    logger.info("Identifying Python files for formatting with black...")
+    logger.debug("Identifying Python files for formatting with black...")
     python_files = get_staged_python_files()
     n_before = len(python_files)
     run_subprocess(["black"] + python_files)
-    logger.info("Checking which files were modified by black...")
+    logger.debug("Checking which files were modified by black...")
     formatted_files = get_staged_python_files()
     n_formatted = n_before - len(formatted_files)
     logger.info(f"Black formatted {n_formatted} files.")
@@ -98,11 +98,11 @@ def run_black() -> bool:
 
 def run_isort() -> bool:
     """Run isort import sorter."""
-    logger.info("Identifying Python files for import sorting with isort...")
+    logger.debug("Identifying Python files for import sorting with isort...")
     python_files = get_staged_python_files()
     n_before = len(python_files)
     run_subprocess(["isort"] + python_files)
-    logger.info("Checking which files were modified by isort...")
+    logger.debug("Checking which files were modified by isort...")
     formatted_files = get_staged_python_files()
     n_formatted = n_before - len(formatted_files)
     logger.info(f"isort formatted {n_formatted} files.")
@@ -161,7 +161,7 @@ def main(
         stage_files(["."])
         logger.info("All changes staged.")
 
-    logger.info("Checking for staged files to commit...")
+    logger.debug("Checking for staged files to commit...")
     staged_files = get_staged_files()
     if len(staged_files) == 0:
         logger.info("No staged files to commit.")
@@ -175,26 +175,29 @@ def main(
  - Another test bullet point
  - Final test bullet point for demonstration"""
     else:
-        logger.info("Checking for Python files to format...")
+        logger.debug("Checking for Python files to format...")
         python_files = get_staged_python_files()
 
         if python_files:
             run_black()
-            logger.info("Re-staging Python files after black formatting...")
+            logger.debug("Re-staging Python files after black formatting...")
             stage_files(python_files)
             run_isort()
-            logger.info("Re-staging Python files after isort formatting...")
+            logger.debug("Re-staging Python files after isort formatting...")
             stage_files(python_files)
 
-        logger.info("Preparing to generate commit message...")
+        logger.info("Generating commit message...")
         status = run_subprocess(["git", "status"])
         diff = run_subprocess(["git", "--no-pager", "diff", "--staged"])
-        logger.info("Sending diff to Claude for commit message generation...")
         commit_message = send_to_claude(status=status, diff=diff)
 
     if not commit_message:
         logger.error("Failed to generate commit message.")
         return
+
+    print("\n=== Suggested Commit Message ===")
+    print(f"{commit_message}")
+    print("===============================\n")
 
     if force:
         proceed = "y"
@@ -240,10 +243,14 @@ def main(
     "--add-all", "-a", is_flag=True, help="Stage all changes before committing"
 )
 @click.option("--quiet", "-q", is_flag=True, help="Reduce output verbosity")
-def cli(test: bool, force: bool, add_all: bool, quiet: bool) -> None:
+@click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity")
+def cli(test: bool, force: bool, add_all: bool, quiet: bool, verbose: bool) -> None:
     """Commit staged changes with an AI-generated commit message."""
+    log_level = (
+        logging.WARNING if quiet else (logging.DEBUG if verbose else logging.INFO)
+    )
     logging.basicConfig(
-        level=logging.WARNING if quiet else logging.INFO,
+        level=log_level,
         format="%(message)s",
         handlers=[RichHandler(rich_tracebacks=True, markup=True)],
     )
