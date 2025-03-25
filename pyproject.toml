@@ -40,7 +40,7 @@ formatting = [
     "black",
     "isort",
 ]
-other-providers = [
+providers = [
     "aisuite",
 ]
 dev = [
@@ -105,11 +105,8 @@ exclude = [
 
 [tool.hatch.envs.default]
 dependencies = [
-    # Runtime dependencies inherited from project.dependencies
-    # Optional formatting dependencies
     "black",
     "isort",
-    # Development dependencies
     "pytest",
     "pytest-cov",
     "codecov",

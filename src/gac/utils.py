@@ -81,20 +81,22 @@ def count_tokens(
     test_mode: bool = False,
 ) -> int:
     """Count tokens using Anthropic's API."""
+    if test_mode:
+        return 10
+
+    # Ensure model has provider prefix
     if ":" not in model:
-        raise ValueError(f"Invalid model: {model}")
+        model = f"anthropic:{model}"
+
     provider, model_name = model.split(":")
     if not provider or not model_name:
         raise ValueError(f"Invalid model: {model}")
-
-    if test_mode:
-        return 10
 
     if provider == "anthropic":
         if isinstance(messages, str):
             system_message = "You are a helpful assistant."
             messages = [{"role": "user", "content": messages}]
-        elif messages[0]["role"] == "system":
+        elif isinstance(messages, list) and messages and messages[0].get("role") == "system":
             system_message = messages[0]["content"]
             messages = messages[1:]
         else:

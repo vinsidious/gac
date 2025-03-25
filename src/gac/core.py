@@ -28,23 +28,17 @@ from typing import List
 import click
 from rich.logging import RichHandler
 
+from .config import get_config
 from .utils import chat, count_tokens
 
 logger = logging.getLogger(__name__)
 
 
-MODEL = "anthropic:claude-3-5-haiku-latest"
-
-
 def run_subprocess(command: List[str]) -> str:
     logger.debug(f"Running command: `{' '.join(command)}`")
-    result = subprocess.run(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-    )
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     if result.returncode != 0:
-        error_msg = (
-            f"Command failed with exit code {result.returncode}: {result.stderr}"
-        )
+        error_msg = f"Command failed with exit code {result.returncode}: {result.stderr}"
         logger.error(error_msg)
         raise subprocess.CalledProcessError(
             result.returncode, command, result.stdout, result.stderr
@@ -67,6 +61,13 @@ def get_staged_python_files() -> List[str]:
     return [f for f in get_staged_files() if f.endswith(".py")]
 
 
+def get_existing_staged_python_files() -> List[str]:
+    """Get list of filenames of staged Python files that exist on disk."""
+    import os
+
+    return [f for f in get_staged_python_files() if os.path.exists(f)]
+
+
 def commit_changes(message: str) -> None:
     """Commit changes with the given message."""
     try:
@@ -86,7 +87,10 @@ def stage_files(files: List[str]) -> bool:
 def run_black() -> bool:
     """Run black code formatter."""
     logger.debug("Identifying Python files for formatting with black...")
-    python_files = get_staged_python_files()
+    python_files = get_existing_staged_python_files()
+    if not python_files:
+        logger.info("No existing Python files to format with black.")
+        return False
     n_before = len(python_files)
     run_subprocess(["black"] + python_files)
     logger.debug("Checking which files were modified by black...")
@@ -99,7 +103,10 @@ def run_black() -> bool:
 def run_isort() -> bool:
     """Run isort import sorter."""
     logger.debug("Identifying Python files for import sorting with isort...")
-    python_files = get_staged_python_files()
+    python_files = get_existing_staged_python_files()
+    if not python_files:
+        logger.info("No existing Python files to format with isort.")
+        return False
     n_before = len(python_files)
     run_subprocess(["isort"] + python_files)
     logger.debug("Checking which files were modified by isort...")
@@ -111,6 +118,9 @@ def run_isort() -> bool:
 
 def send_to_claude(status: str, diff: str) -> str:
     """Send the git status and staged diff to Claude for summarization."""
+    config = get_config()
+    model = config["model"]
+
     prompt = f"""Analyze this git status and git diff and write ONLY a commit message in the following format. Do not include any other text, explanation, or commentary.
 
 Format:
@@ -139,16 +149,16 @@ Git Diff:
 
     logger.info(f"Prompt:\n{prompt}")
     logger.info(f"Prompt length: {len(prompt)} characters")
-    logger.info(f"Prompt token count: {count_tokens(prompt, MODEL):,}")
+    logger.info(f"Prompt token count: {count_tokens(prompt, model):,}")
 
     messages = [{"role": "user", "content": prompt}]
     response = chat(
         messages=messages,
-        model=MODEL,
+        model=model,
         system="You are a helpful assistant that writes clear, concise git commit messages. Only output the commit message, nothing else.",
     )
 
-    logger.info(f"Response token count: {count_tokens(response, MODEL):,}")
+    logger.info(f"Response token count: {count_tokens(response, model):,}")
     return response
 
 
@@ -156,7 +166,10 @@ def main(
     test_mode: bool = False,
     force: bool = False,
     add_all: bool = False,
+    no_format: bool = False,
 ) -> None:
+    config = get_config()
+
     if add_all:
         stage_files(["."])
         logger.info("All changes staged.")
@@ -178,7 +191,8 @@ def main(
         logger.debug("Checking for Python files to format...")
         python_files = get_staged_python_files()
 
-        if python_files:
+        # Only run formatting if enabled and there are Python files
+        if python_files and config["use_formatting"] and not no_format:
             run_black()
             logger.debug("Re-staging Python files after black formatting...")
             stage_files(python_files)
@@ -210,9 +224,7 @@ def main(
         return
 
     if test_mode:
-        logger.info(
-            "[TEST MODE] Commit simulation completed. No actual commit was made."
-        )
+        logger.info("[TEST MODE] Commit simulation completed. No actual commit was made.")
         return
 
     commit_changes(commit_message)
@@ -239,22 +251,21 @@ def main(
     is_flag=True,
     help="Force commit without user prompting (yes to all prompts)",
 )
-@click.option(
-    "--add-all", "-a", is_flag=True, help="Stage all changes before committing"
-)
+@click.option("--add-all", "-a", is_flag=True, help="Stage all changes before committing")
 @click.option("--quiet", "-q", is_flag=True, help="Reduce output verbosity")
 @click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity")
-def cli(test: bool, force: bool, add_all: bool, quiet: bool, verbose: bool) -> None:
+@click.option("--no-format", "-nf", is_flag=True, help="Disable formatting")
+def cli(
+    test: bool, force: bool, add_all: bool, quiet: bool, verbose: bool, no_format: bool
+) -> None:
     """Commit staged changes with an AI-generated commit message."""
-    log_level = (
-        logging.WARNING if quiet else (logging.DEBUG if verbose else logging.INFO)
-    )
+    log_level = logging.WARNING if quiet else (logging.DEBUG if verbose else logging.INFO)
     logging.basicConfig(
         level=log_level,
         format="%(message)s",
         handlers=[RichHandler(rich_tracebacks=True, markup=True)],
     )
-    main(test_mode=test, force=force, add_all=add_all)
+    main(test_mode=test, force=force, add_all=add_all, no_format=no_format)
 
 
 if __name__ == "__main__":
