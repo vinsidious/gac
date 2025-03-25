@@ -38,6 +38,7 @@ gac = "gac.core:cli"
 [project.optional-dependencies]
 dev = [
     "black",
+    "bump2version",
     "codecov",
     "flake8",
     "isort",
