@@ -14,39 +14,9 @@ A CLI tool (pronounced like "gak") that uses large language models to generate m
 
 ## Installation
 
-### For Users
-
-The recommended way to install `gac` is using `pipx`:
-
 ```console
 pipx install gac
 ```
-
-### For Developers
-
-1. Clone the repository:
-
-   ```console
-   git clone https://github.com/cellwebb/gac.git
-   cd gac
-   ```
-
-2. Set up with uv:
-
-   ```console
-   # Create a virtual environment and install dependencies
-   make setup
-
-   # Alternatively, you can use uv directly:
-   uv venv
-   uv pip install -e ".[dev]"
-   ```
-
-3. Activate the virtual environment:
-
-   ```console
-   source .venv/bin/activate
-   ```
 
 ## Configuration
 
@@ -87,92 +57,6 @@ Example:
 gac -f -a
 ```
 
-## Development Commands
-
-Here are common commands you'll need during development:
-
-### VSCode Integration
-
-The repository includes VSCode settings that:
-
-- Use the local virtual environment Python interpreter
-- Configure test discovery with pytest
-- Set up code formatting with black
-- Hide common Python cache directories
-
-If you're using VSCode, these settings will be automatically applied when you open the project.
-
-### Development Tasks with Make
-
-The project includes a Makefile for common development tasks:
-
-```console
-# Set up development environment
-make setup
-
-# Install package
-make install
-
-# Install with dev dependencies
-make install-dev
-
-# Run tests
-make test
-
-# Run linters
-make lint
-
-# Format code
-make format
-
-# Clean build artifacts
-make clean
-```
-
-### Alternative: Direct uv commands
-
-```console
-# Create virtual environment
-uv venv
-
-# Install package with dev dependencies
-uv pip install -e ".[dev]"
-
-# Update dependencies
-uv pip install -U -e ".[dev]"
-```
-
-### Testing and Linting
-
-```console
-# Run tests
-pytest
-
-# Run tests with coverage
-pytest --cov
-
-# Format code
-black .
-isort .
-
-# Run linters
-flake8 .
-```
-
-### Building and Publishing
-
-```console
-# Build the package
-python -m build
-
-# Check build
-rm -rf dist/
-python -m build
-
-# Publish to PyPI (maintainers only)
-python -m twine upload dist/*
-```
-
 ## Project Structure
 
 ```plaintext
@@ -183,7 +67,6 @@ gac/
 │       ├── core.py
 │       └── utils.py
 ├── tests/
-├── venv/
 ├── .gitignore
 ├── LICENSE.txt
 ├── README.md
@@ -192,12 +75,14 @@ gac/
 
 ## Contributing
 
+For development instructions, see [DEVELOPMENT.md](DEVELOPMENT.md).
+
 1. Fork the repository
 2. Create a new branch for your feature
 3. Make your changes
-4. Run tests and linting: `make test && make lint`
+4. Run tests and linting
 5. Submit a pull request
 
 ## License
 
-`gac` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
+MIT
