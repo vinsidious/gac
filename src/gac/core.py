@@ -190,15 +190,24 @@ def main(
     else:
         logger.debug("Checking for Python files to format...")
         python_files = get_staged_python_files()
+        existing_python_files = get_existing_staged_python_files()
 
         # Only run formatting if enabled and there are Python files
-        if python_files and config["use_formatting"] and not no_format:
+        if existing_python_files and config["use_formatting"] and not no_format:
             run_black()
             logger.debug("Re-staging Python files after black formatting...")
-            stage_files(python_files)
+            existing_python_files = get_existing_staged_python_files()
+            if existing_python_files:
+                stage_files(existing_python_files)
+            else:
+                logger.info("No existing Python files to re-stage after black.")
             run_isort()
             logger.debug("Re-staging Python files after isort formatting...")
-            stage_files(python_files)
+            existing_python_files = get_existing_staged_python_files()
+            if existing_python_files:
+                stage_files(existing_python_files)
+            else:
+                logger.info("No existing Python files to re-stage after isort.")
 
         logger.info("Generating commit message...")
         status = run_subprocess(["git", "status"])
