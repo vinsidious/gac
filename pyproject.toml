@@ -38,11 +38,11 @@ gac = "gac.core:cli"
 [project.optional-dependencies]
 dev = [
     "black",
+    "codecov",
+    "flake8",
     "isort",
     "pytest",
     "pytest-cov",
-    "codecov",
-    "flake8",
 ]
 
 
