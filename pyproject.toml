@@ -57,6 +57,19 @@ Documentation = "https://github.com/cellwebb/gac#readme"
 Issues = "https://github.com/cellwebb/gac/issues"
 Source = "https://github.com/cellwebb/gac"
 
+[tool.bumpversion]
+current_version = "0.2.0"
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)((?P<release>[a-z]+)(?P<build>\\d+))?"
+serialize = [
+    "{major}.{minor}.{patch}{release}{build}",
+    "{major}.{minor}.{patch}"
+]
+
+[[tool.bumpversion.files]]
+filename = "src/gac/__about__.py"
+search = "__version__ = \"{current_version}\""
+replace = "__version__ = \"{new_version}\""
+
 [tool.black]
 line-length = 100
 target-version = ["py311"]
