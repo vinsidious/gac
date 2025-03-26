@@ -16,6 +16,13 @@ from gac.core import (
     send_to_llm,
     stage_files,
 )
+from gac.git import (
+    commit_changes as git_commit_changes,
+    get_existing_staged_python_files as git_get_existing_staged_python_files,
+    get_staged_files as git_get_staged_files,
+    get_staged_python_files as git_get_staged_python_files,
+    stage_files as git_stage_files,
+)
 
 
 class TestCore(unittest.TestCase):
@@ -280,7 +287,6 @@ class TestCore(unittest.TestCase):
         self,
         mock_print,
         mock_prompt,
-        mock_run_subprocess,
         mock_commit_changes,
         mock_send_to_llm,
         mock_stage_files,
@@ -300,7 +306,7 @@ class TestCore(unittest.TestCase):
         mock_run_black.return_value = True
         mock_run_isort.return_value = True
         mock_send_to_llm.return_value = "Generated commit message"
-        mock_prompt.side_effect = ["y", "n"]  # Yes to commit, No to push
+        mock_prompt.return_value = "y"  # Mock user confirming the commit
 
         # Call main
         result = main()
@@ -318,12 +324,136 @@ class TestCore(unittest.TestCase):
         # Assert commit was made with the generated message
         mock_commit_changes.assert_called_once_with("Generated commit message")
 
-        # Assert git push was not called (user declined)
+        # Assert git push was called
+        for call_args in mock_run_subprocess.call_args_list:
+            if call_args[0][0] == ["git", "push"]:
+                break
+        else:
+            self.fail("git push was not called")
+
+        # Assert message was returned
+        self.assertEqual(result, "Generated commit message")
+
+    @patch("gac.core.get_config")
+    @patch("gac.core.get_staged_files")
+    @patch("gac.core.get_staged_python_files")
+    @patch("gac.core.get_existing_staged_python_files")
+    @patch("gac.core.run_black")
+    @patch("gac.core.run_isort")
+    @patch("gac.core.stage_files")
+    @patch("gac.core.commit_changes")
+    @patch("gac.core.send_to_llm")
+    @patch("gac.core.run_subprocess")
+    @patch("click.prompt")
+    @patch("builtins.print")
+    def test_main_no_push(
+        self,
+        mock_print,
+        mock_prompt,
+        mock_send_to_llm,
+        mock_commit_changes,
+        mock_stage_files,
+        mock_run_subprocess,
+        mock_run_isort,
+        mock_run_black,
+        mock_get_existing_staged_python_files,
+        mock_get_staged_python_files,
+        mock_get_staged_files,
+        mock_get_config,
+    ):
+        """Test main when user declines to push."""
+        # Setup mocks
+        mock_get_config.return_value = {"model": "anthropic:claude-3-haiku", "use_formatting": True}
+        mock_get_staged_files.return_value = ["file1.py"]
+        mock_get_staged_python_files.return_value = ["file1.py"]
+        mock_get_existing_staged_python_files.return_value = ["file1.py"]
+        mock_run_black.return_value = True
+        mock_run_isort.return_value = True
+        mock_send_to_llm.return_value = "Generated commit message"
+        mock_prompt.side_effect = ["y", "n"]  # Mock user confirming commit but declining push
+
+        # Call main
+        result = main()
+
+        # Assert formatting was run
+        mock_run_black.assert_called_once()
+        mock_run_isort.assert_called_once()
+
+        # Assert commit was made
+        mock_commit_changes.assert_called_once_with("Generated commit message")
+
+        # Assert git push was not called
         for call_args in mock_run_subprocess.call_args_list:
             self.assertNotEqual(call_args[0][0], ["git", "push"])
 
         # Assert message was returned
         self.assertEqual(result, "Generated commit message")
+
+    @patch("gac.git.git_commit_changes")
+    def test_git_commit_changes(self, mock_git_commit_changes):
+        """Test git_commit_changes calls git commit with the provided message."""
+        # Call git_commit_changes
+        git_commit_changes("Test commit message")
+
+        # Assert git commit was called with the message
+        mock_git_commit_changes.assert_called_once_with("Test commit message")
+
+    @patch("gac.git.git_get_staged_files")
+    def test_git_get_staged_files(self, mock_git_get_staged_files):
+        """Test git_get_staged_files returns correct result."""
+        # Mock git_get_staged_files to return staged files
+        mock_git_get_staged_files.return_value = ["file1.py", "file2.md", "file3.js"]
+
+        # Call git_get_staged_files
+        result = git_get_staged_files()
+
+        # Assert mock was called correctly
+        mock_git_get_staged_files.assert_called_once()
+
+        # Assert result is list of files
+        self.assertEqual(result, ["file1.py", "file2.md", "file3.js"])
+
+    @patch("gac.git.git_get_staged_python_files")
+    def test_git_get_staged_python_files(self, mock_git_get_staged_python_files):
+        """Test git_get_staged_python_files returns only Python files."""
+        # Mock git_get_staged_python_files to return Python files
+        mock_git_get_staged_python_files.return_value = ["file1.py", "file2.py"]
+
+        # Call git_get_staged_python_files
+        result = git_get_staged_python_files()
+
+        # Assert mock was called correctly
+        mock_git_get_staged_python_files.assert_called_once()
+
+        # Assert result is list of Python files
+        self.assertEqual(result, ["file1.py", "file2.py"])
+
+    @patch("gac.git.git_get_existing_staged_python_files")
+    def test_git_get_existing_staged_python_files(self, mock_git_get_existing_staged_python_files):
+        """Test git_get_existing_staged_python_files returns only existing Python files."""
+        # Mock git_get_existing_staged_python_files to return existing Python files
+        mock_git_get_existing_staged_python_files.return_value = ["file1.py", "file2.py"]
+
+        # Call git_get_existing_staged_python_files
+        result = git_get_existing_staged_python_files()
+
+        # Assert mock was called correctly
+        mock_git_get_existing_staged_python_files.assert_called_once()
+
+        # Assert result is list of existing Python files
+        self.assertEqual(result, ["file1.py", "file2.py"])
+
+    @patch("gac.git.git_stage_files")
+    def test_git_stage_files(self, mock_git_stage_files):
+        """Test git_stage_files calls git add with the provided files."""
+        # Setup mock
+        mock_git_stage_files.return_value = ""
+
+        # Call git_stage_files
+        git_stage_files(["file1.py", "file2.py"])
+
+        # Assert git add was called with the files
+        mock_git_stage_files.assert_called_once_with(["file1.py", "file2.py"])
 
 
 if __name__ == "__main__":

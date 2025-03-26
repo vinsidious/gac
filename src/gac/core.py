@@ -18,112 +18,26 @@ It also assumes that your environment has pre-commit installed and configured.
 
 import logging
 import os
-import subprocess
-from typing import List, Optional
+from typing import Optional
 
 import click
 from dotenv import load_dotenv
 from rich.logging import RichHandler
 
-from .config import get_config
-from .utils import chat, count_tokens
+from gac.ai_utils import chat, count_tokens
+from gac.config import get_config
+from gac.git import (
+    commit_changes,
+    get_existing_staged_python_files,
+    get_staged_files,
+    get_staged_python_files,
+    stage_files,
+)
+from gac.utils import run_subprocess
 
-# Load environment variables from .env file if it exists
 load_dotenv()
 
-# Set up logger
 logger = logging.getLogger(__name__)
-
-
-def run_subprocess(command: List[str]) -> str:
-    """
-    Run a subprocess command and return its output.
-
-    Args:
-        command: List of command arguments
-
-    Returns:
-        The command output as a string
-
-    Raises:
-        CalledProcessError: If the command fails
-    """
-    logger.debug(f"Running command: `{' '.join(command)}`")
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    if result.returncode != 0:
-        error_msg = f"Command failed with exit code {result.returncode}: {result.stderr}"
-        logger.error(error_msg)
-        raise subprocess.CalledProcessError(
-            result.returncode, command, result.stdout, result.stderr
-        )
-    if result.stdout:
-        logger.debug(f"Command output:\n{result.stdout}")
-        return result.stdout
-    return ""
-
-
-def get_staged_files() -> List[str]:
-    """
-    Get list of filenames of all staged files.
-
-    Returns:
-        List of staged file paths
-    """
-    logger.debug("Checking staged files...")
-    result = run_subprocess(["git", "diff", "--staged", "--name-only"])
-    return result.splitlines()
-
-
-def get_staged_python_files() -> List[str]:
-    """
-    Get list of filenames of staged Python files.
-
-    Returns:
-        List of staged Python file paths
-    """
-    return [f for f in get_staged_files() if f.endswith(".py")]
-
-
-def get_existing_staged_python_files() -> List[str]:
-    """
-    Get list of filenames of staged Python files that exist on disk.
-
-    Returns:
-        List of existing staged Python file paths
-    """
-    return [f for f in get_staged_python_files() if os.path.exists(f)]
-
-
-def commit_changes(message: str) -> None:
-    """
-    Commit changes with the given message.
-
-    Args:
-        message: The commit message to use
-
-    Raises:
-        Exception: If the commit fails
-    """
-    try:
-        run_subprocess(["git", "commit", "-m", message])
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Error committing changes: {e}")
-        raise
-
-
-def stage_files(files: List[str]) -> bool:
-    """
-    Stage files for commit.
-
-    Args:
-        files: List of files to stage
-
-    Returns:
-        True if successful, False otherwise
-    """
-    result = run_subprocess(["git", "add"] + files)
-    logger.info("Files staged.")
-    return bool(result)
 
 
 def run_black() -> bool:
@@ -217,10 +131,10 @@ Git Diff:
 
     messages = [{"role": "user", "content": prompt}]
     response = chat(
-        messages=messages,
+        messages=[{"role": "user", "content": prompt}],
         model=model,
         temperature=0.7,
-        system="You are a helpful assistant that writes clear, concise git commit messages. Only output the commit message, nothing else.",
+        test_mode=False,
     )
 
     response_token_count = count_tokens(response, model)
