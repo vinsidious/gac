@@ -43,19 +43,19 @@ clean:
 
 # Version bumping
 bump-patch:
-	bump patch
+	bump-my-version show --increment patch new_version
 
 bump-minor:
-	bump minor
+	bump-my-version show --increment minor new_version
 
 bump-major:
-	bump major
+	bump-my-version show --increment major new_version
 
 bump-alpha:
-	bump release --new-version=a
+	bump-my-version show --new-version=a
 
 bump-beta:
-	bump release --new-version=b
+	bump-my-version show --new-version=b
 
 bump-rc:
-	bump release --new-version=rc
+	bump-my-version show --new-version=rc
