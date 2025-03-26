@@ -43,13 +43,13 @@ clean:
 
 # Version bumping
 bump-patch:
-	bump-my-version show --increment patch new_version
+	bump-my-version bump patch new_version
 
 bump-minor:
-	bump-my-version show --increment minor new_version
+	bump-my-version bump minor new_version
 
 bump-major:
-	bump-my-version show --increment major new_version
+	bump-my-version bump major new_version
 
 bump-alpha:
 	bump-my-version show --new-version=a
