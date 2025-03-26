@@ -65,4 +65,4 @@ jobs:
       - name: Run flake8
         run: |
           pip install flake8
-          flake8 src tests
+          flake8 --max-line-length=100 src tests
