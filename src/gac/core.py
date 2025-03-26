@@ -212,7 +212,7 @@ def main(
 
     print("\n=== Suggested Commit Message ===")
     print(f"{commit_message}")
-    print("===============================\n")
+    print("================================\n")
 
     if force:
         proceed = "y"
