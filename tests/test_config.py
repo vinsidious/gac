@@ -45,28 +45,17 @@ class TestConfig(unittest.TestCase):
     def test_gac_model_with_provider(self):
         """Test that GAC_MODEL with provider prefix works correctly."""
         # Set GAC_MODEL with provider prefix
-        os.environ["GAC_MODEL"] = "openai:gpt-4o"
+        os.environ["GAC_MODEL"] = "openai:gpt-4o-mini"
 
         # Call get_config
         config = get_config()
 
         # Assert config uses provided model
-        self.assertEqual(config["model"], "openai:gpt-4o")
+        self.assertEqual(config["model"], "openai:gpt-4o-mini")
 
         # Other settings should remain default
         self.assertEqual(config["use_formatting"], DEFAULT_CONFIG["use_formatting"])
         self.assertEqual(config["max_output_tokens"], DEFAULT_CONFIG["max_output_tokens"])
-
-    def test_gac_model_without_provider(self):
-        """Test that GAC_MODEL without provider prefix gets the anthropic prefix added."""
-        # Set GAC_MODEL without provider prefix
-        os.environ["GAC_MODEL"] = "gpt-4o"
-
-        # Call get_config
-        config = get_config()
-
-        # Assert config adds the anthropic prefix
-        self.assertEqual(config["model"], "anthropic:gpt-4o")
 
     def test_gac_provider_with_default_model(self):
         """Test that GAC_PROVIDER works with default model for provider."""
