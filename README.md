@@ -2,6 +2,9 @@
 
 [![PyPI - Version](https://img.shields.io/pypi/v/gac.svg)](https://pypi.org/project/gac)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/gac.svg)](https://pypi.org/project/gac)
+[![Code Coverage](https://img.shields.io/badge/coverage-94%25-brightgreen.svg)](https://github.com/cellwebb/gac)
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](https://github.com/cellwebb/gac)
+[![License](https://img.shields.io/github/license/cellwebb/gac.svg)](https://github.com/cellwebb/gac/blob/main/LICENSE)
 
 A CLI tool (pronounced like "gak") that uses large language models to generate meaningful commit messages based on your staged changes.
 
