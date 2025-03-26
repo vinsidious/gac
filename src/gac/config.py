@@ -31,8 +31,6 @@ def get_config() -> Dict[str, Any]:
 
     The function checks for:
     - GAC_MODEL: Fully qualified model ID (provider:model)
-    - GAC_PROVIDER: Provider name (used with default or custom model name)
-    - GAC_MODEL_NAME: Specific model name for the chosen provider
     - GAC_USE_FORMATTING: Whether to format Python files
     - GAC_MAX_TOKENS: Maximum output tokens
 
@@ -43,8 +41,6 @@ def get_config() -> Dict[str, Any]:
 
     # Handle model selection with precedence:
     # 1. GAC_MODEL (full provider:model)
-    # 2. GAC_PROVIDER + GAC_MODEL_NAME
-    # 3. GAC_PROVIDER + default model for provider
     if os.environ.get("GAC_MODEL"):
         model = os.environ.get("GAC_MODEL")
         # Ensure model has provider prefix
@@ -55,24 +51,6 @@ def get_config() -> Dict[str, Any]:
             model = f"anthropic:{model}"
         config["model"] = model
         logger.debug(f"Using model from GAC_MODEL: {model}")
-    elif os.environ.get("GAC_PROVIDER"):
-        provider = os.environ.get("GAC_PROVIDER")
-
-        # Get model name (either custom or default for the provider)
-        model_name = os.environ.get("GAC_MODEL_NAME")
-        if not model_name:
-            if provider in PROVIDER_MODELS:
-                model_name = PROVIDER_MODELS[provider]
-                logger.debug(f"Using default model for {provider}: {model_name}")
-            else:
-                logger.warning(
-                    f"Unknown provider '{provider}'. Using default model from PROVIDER_MODELS."
-                )
-                provider = "anthropic"
-                model_name = PROVIDER_MODELS[provider]
-
-        config["model"] = f"{provider}:{model_name}"
-        logger.debug(f"Using model: {config['model']}")
 
     # Handle formatting preference
     if os.environ.get("GAC_USE_FORMATTING") is not None:
