@@ -50,12 +50,3 @@ bump-minor:
 
 bump-major:
 	bump-my-version bump major
-
-bump-alpha:
-	bump-my-version show --new-version=a
-
-bump-beta:
-	bump-my-version show --new-version=b
-
-bump-rc:
-	bump-my-version show --new-version=rc
