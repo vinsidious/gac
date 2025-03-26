@@ -101,6 +101,15 @@ def main(
             "Proceed with caution to avoid potential issues in the released version."
         )
 
+    # Run tests before release
+    if not test_mode:
+        logger.info("Running tests before release...")
+        test_result = run_subprocess(["python", "-m", "pytest", "tests/", "-v"])
+        if test_result is None or "FAILED" in test_result:
+            logger.error("Tests failed. Please fix the issues before proceeding with the release.")
+            return
+        logger.info("All tests passed successfully!")
+
     # Get the latest tag
     latest_tag = get_latest_tag()
     if not latest_tag:
