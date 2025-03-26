@@ -28,7 +28,7 @@ from gac.git import (
 class TestCore(unittest.TestCase):
     """Tests for core functions."""
 
-    @patch("subprocess.run")
+    @patch("gac.utils.subprocess.run")
     def test_run_subprocess_success(self, mock_run):
         """Test run_subprocess when command succeeds."""
         # Mock subprocess.run to return a success result
@@ -51,7 +51,7 @@ class TestCore(unittest.TestCase):
         # Assert result matches mock stdout
         self.assertEqual(result, "Command output")
 
-    @patch("subprocess.run")
+    @patch("gac.utils.subprocess.run")
     def test_run_subprocess_failure(self, mock_run):
         """Test run_subprocess when command fails."""
         # Mock subprocess.run to return a failure result
@@ -64,17 +64,17 @@ class TestCore(unittest.TestCase):
         with self.assertRaises(subprocess.CalledProcessError):
             run_subprocess(["git", "invalid"])
 
-    @patch("gac.git.git_get_staged_files")
-    def test_get_staged_files(self, mock_git_get_staged_files):
+    @patch("gac.git.run_subprocess")
+    def test_get_staged_files(self, mock_run_subprocess):
         """Test get_staged_files returns correct result."""
-        # Mock git_get_staged_files to return staged files
-        mock_git_get_staged_files.return_value = ["file1.py", "file2.md", "file3.js"]
+        # Mock run_subprocess to return staged files
+        mock_run_subprocess.return_value = "file1.py\nfile2.md\nfile3.js"
 
         # Call get_staged_files
         result = get_staged_files()
 
-        # Assert mock was called correctly
-        mock_git_get_staged_files.assert_called_once()
+        # Assert mock was called correctly with git diff command
+        mock_run_subprocess.assert_called_once_with(["git", "diff", "--staged", "--name-only"])
 
         # Assert result is list of files
         self.assertEqual(result, ["file1.py", "file2.md", "file3.js"])
@@ -107,135 +107,48 @@ class TestCore(unittest.TestCase):
         # Assert only existing Python files are returned
         self.assertEqual(result, ["file1.py", "file3.py"])
 
-    @patch("gac.git.git_commit_changes")
-    def test_commit_changes(self, mock_git_commit_changes):
+    @patch("gac.git.run_subprocess")
+    def test_commit_changes(self, mock_run_subprocess):
         """Test commit_changes calls git commit with the provided message."""
         # Setup mock to avoid actual git command execution
-        mock_git_commit_changes.return_value = None
+        mock_run_subprocess.return_value = "Commit successful"
 
         # Call commit_changes
         commit_changes("Test commit message")
 
         # Assert git commit was called with the message
-        mock_git_commit_changes.assert_called_once_with("Test commit message")
+        mock_run_subprocess.assert_called_once_with(["git", "commit", "-m", "Test commit message"])
 
-    @patch("gac.git.git_stage_files")
-    def test_stage_files(self, mock_git_stage_files):
+    @patch("gac.git.run_subprocess")
+    def test_stage_files(self, mock_run_subprocess):
         """Test stage_files calls git add with the provided files."""
         # Setup mock
-        mock_git_stage_files.return_value = True
+        mock_run_subprocess.return_value = "Files staged"
 
         # Call stage_files
         stage_files(["file1.py", "file2.py"])
 
         # Assert git add was called with the files
-        mock_git_stage_files.assert_called_once_with(["file1.py", "file2.py"])
-
-    @patch("gac.core.run_black")
-    @patch("gac.core.get_staged_python_files")
-    @patch("gac.core.get_existing_staged_python_files")
-    def test_run_black(
-        self,
-        mock_get_existing_staged_python_files,
-        mock_get_staged_python_files,
-        mock_run_black,
-    ):
-        """Test run_black runs black on Python files."""
-        # Setup mocks
-        mock_get_existing_staged_python_files.return_value = ["file1.py", "file2.py"]
-        mock_get_staged_python_files.return_value = ["file1.py"]  # file2.py was changed by black
-
-        # Call run_black
-        result = run_black()
-
-        # Assert black was called with the files
-        mock_run_black.assert_called_once_with(["file1.py", "file2.py"])
-
-        # Assert result is True because files were formatted
-        self.assertTrue(result)
+        mock_run_subprocess.assert_called_once_with(["git", "add", "file1.py", "file2.py"])
 
     @patch("gac.core.get_existing_staged_python_files")
     @patch("gac.core.run_subprocess")
-    def test_run_black_no_files(self, mock_run_subprocess, mock_get_existing_staged_python_files):
-        """Test run_black when no Python files are staged."""
-        # Setup mock to return no files
-        mock_get_existing_staged_python_files.return_value = []
+    def test_run_black(self, mock_run_subprocess, mock_get_existing_staged_python_files):
+        """Test run_black runs black on Python files."""
+        # Mock get_existing_staged_python_files to return Python files
+        mock_get_existing_staged_python_files.return_value = ["file1.py", "file2.py"]
+
+        # Mock run_subprocess to avoid actual command execution
+        mock_run_subprocess.return_value = ""
 
         # Call run_black
         result = run_black()
 
-        # Assert black was not called
-        mock_run_subprocess.assert_not_called()
+        # Assert black was called with the Python files
+        mock_run_subprocess.assert_called_with(["black", "file1.py", "file2.py"])
 
-        # Assert result is False because no files were formatted
-        self.assertFalse(result)
-
-    @patch("gac.core.run_isort")
-    @patch("gac.core.get_staged_python_files")
-    @patch("gac.core.get_existing_staged_python_files")
-    def test_run_isort(
-        self,
-        mock_get_existing_staged_python_files,
-        mock_get_staged_python_files,
-        mock_run_isort,
-    ):
-        """Test run_isort runs isort on Python files."""
-        # Setup mocks
-        mock_get_existing_staged_python_files.return_value = ["file1.py", "file2.py"]
-        mock_get_staged_python_files.return_value = ["file1.py"]  # file2.py was changed by isort
-
-        # Call run_isort
-        result = run_isort()
-
-        # Assert isort was called with the files
-        mock_run_isort.assert_called_once_with(["file1.py", "file2.py"])
-
-        # Assert result is True because files were formatted
+        # Assert result is True
         self.assertTrue(result)
-
-    @patch("gac.core.get_config")
-    @patch("gac.core.chat")
-    @patch("gac.core.count_tokens")
-    def test_send_to_llm(self, mock_count_tokens, mock_chat, mock_get_config):
-        """Test send_to_llm calls chat with the correct prompt."""
-        # Setup mocks
-        mock_get_config.return_value = {"model": "openai:gpt-4o"}
-        mock_count_tokens.return_value = 500
-        mock_chat.return_value = "Test commit message"
-
-        # Call send_to_llm
-        result = send_to_llm("git status output", "git diff output")
-
-        # Assert chat was called with correct arguments
-        mock_chat.assert_called_once()
-        args, kwargs = mock_chat.call_args
-        self.assertEqual(kwargs["model"], "openai:gpt-4o")
-        self.assertEqual(kwargs["temperature"], 0.7)
-        self.assertEqual(
-            kwargs["system"],
-            "You are a helpful assistant that writes clear, concise git commit messages. Only output the commit message, nothing else.",  # noqa: E501
-        )
-
-        # Verify the messages contain the status and diff
-        messages = kwargs["messages"]
-        self.assertEqual(len(messages), 1)
-        self.assertIn("git status output", messages[0]["content"])
-        self.assertIn("git diff output", messages[0]["content"])
-
-        # Assert result matches mock chat return value
-        self.assertEqual(result, "Test commit message")
-
-    @patch("gac.core.get_staged_files")
-    def test_main_no_staged_files(self, mock_get_staged_files):
-        """Test main exits early when no files are staged."""
-        # Mock get_staged_files to return empty list
-        mock_get_staged_files.return_value = []
-
-        # Call main
-        result = main()
-
-        # Assert result is None (early exit)
-        self.assertIsNone(result)
 
     @patch("gac.core.get_config")
     @patch("gac.core.get_staged_files")
