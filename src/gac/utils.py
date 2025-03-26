@@ -6,7 +6,6 @@ import time
 from typing import Any, Dict, List, Optional, Union
 
 import aisuite as ai
-from aisuite.utils import count_tokens as aisuite_count_tokens
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -103,7 +102,7 @@ def count_tokens(
     test_mode: bool = False,
 ) -> int:
     """
-    Count tokens using aisuite's provider-agnostic token counter.
+    Count tokens in messages.
 
     Args:
         messages: A string, message object, or list of message dictionaries.
@@ -112,35 +111,22 @@ def count_tokens(
 
     Returns:
         The number of tokens in the input.
-
-    Raises:
-        Exception: Any error that occurs during token counting.
     """
     if test_mode:
         return 10
 
-    try:
-        # Use aisuite's token counting utility
-        return aisuite_count_tokens(messages, model)
-    except Exception as e:
-        logger.error(f"Error counting tokens: {e}")
-        # Fallback to a conservative estimate if token counting fails
-        if isinstance(messages, str):
-            # Rough approximation: 1 token ≈ 4 characters
-            estimated_tokens = len(messages) // 4
-            logger.warning(f"Using fallback token estimation: {estimated_tokens}")
-            return estimated_tokens
-        elif isinstance(messages, list):
-            # Sum up tokens for each message
-            total = 0
-            for msg in messages:
-                if isinstance(msg, dict) and "content" in msg:
-                    total += len(msg["content"]) // 4
-            logger.warning(f"Using fallback token estimation: {total}")
-            return total
-        elif isinstance(messages, dict) and "content" in messages:
-            # Single message as a dictionary
-            estimated_tokens = len(messages["content"]) // 4
-            logger.warning(f"Using fallback token estimation: {estimated_tokens}")
-            return estimated_tokens
-        return 0
+    # Simple estimation method
+    if isinstance(messages, str):
+        # Rough approximation: 1 token ≈ 4 characters
+        return len(messages) // 4
+    elif isinstance(messages, list):
+        # Sum up tokens for each message
+        total = 0
+        for msg in messages:
+            if isinstance(msg, dict) and "content" in msg:
+                total += len(msg["content"]) // 4
+        return total
+    elif isinstance(messages, dict) and "content" in messages:
+        # Single message as a dictionary
+        return len(messages["content"]) // 4
+    return 0

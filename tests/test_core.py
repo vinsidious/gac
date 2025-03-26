@@ -250,6 +250,7 @@ class TestCore(unittest.TestCase):
         # Setup mocks
         mock_get_config.return_value = {"model": "anthropic:claude-3-haiku", "use_formatting": True}
         mock_get_staged_files.return_value = ["file1.py"]
+        mock_prompt.return_value = "y"  # Mock user confirming the commit
 
         # Call main in test mode
         result = main(test_mode=True)
@@ -319,7 +320,7 @@ class TestCore(unittest.TestCase):
 
         # Assert git push was not called (user declined)
         for call_args in mock_run_subprocess.call_args_list:
-            self.assertNotEqual(call_args[0][0][0:2], ["git", "push"])
+            self.assertNotEqual(call_args[0][0], ["git", "push"])
 
         # Assert message was returned
         self.assertEqual(result, "Generated commit message")

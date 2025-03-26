@@ -25,11 +25,11 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-    "aisuite>=0.1.10",
-    "click>=8.0.0",
-    "docstring_parser>=0.14.0",
-    "python-dotenv>=0.15.0",
-    "rich>=12.0.0",
+    "aisuite>=0.1.7",
+    "click>=8.1.8",
+    "docstring_parser>=0.16",
+    "python-dotenv>=1.1.0",
+    "rich>=13.9.4",
 ]
 
 [project.scripts]
@@ -37,25 +37,25 @@ gac = "gac.core:cli"
 
 [project.optional-dependencies]
 formatting = [
-    "black>=22.0.0",
-    "isort>=5.0.0",
+    "black>=25.1.0",
+    "isort>=6.0.1",
 ]
 providers = [
     "aisuite[anthropic,openai,groq,mistral]",
 ]
 dev = [
-    "black>=22.0.0",
+    "black>=25.1.0",
     "bump2version>=1.0.0",
-    "codecov>=2.0.0",
-    "flake8>=6.0.0",
-    "isort>=5.0.0",
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
+    "codecov>=2.1.13",
+    "flake8>=7.1.2",
+    "isort>=6.0.1",
+    "pytest>=8.3.5",
+    "pytest-cov>=6.0.0",
 ]
 all = [
     "aisuite[all]",
-    "black>=22.0.0",
-    "isort>=5.0.0",
+    "black>=25.1.0",
+    "isort>=6.0.1",
 ]
 
 [project.urls]
@@ -110,12 +110,13 @@ exclude = [
 
 [tool.hatch.envs.default]
 dependencies = [
-    "black>=22.0.0",
-    "isort>=5.0.0",
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "codecov>=2.0.0",
-    "flake8>=6.0.0",
+    "aisuite[all]",
+    "black>=25.1.0",
+    "isort>=6.0.1",
+    "pytest>=8.3.5",
+    "pytest-cov>=6.0.0",
+    "codecov>=2.1.13",
+    "flake8>=7.1.2",
 ]
 
 [tool.hatch.envs.default.scripts]
