@@ -7,7 +7,8 @@ A CLI tool (pronounced like "gak") that uses large language models to generate m
 
 ## Features
 
-- Automatically generates meaningful commit messages using Claude AI
+- Automatically generates meaningful commit messages using various LLM providers
+- Supports multiple AI providers (Anthropic Claude, OpenAI, Groq, Mistral, and more)
 - Formats Python files with `black` and `isort` before committing
 - Interactive prompts for commit and push actions
 - Supports various flags for different workflows
@@ -20,13 +21,40 @@ pipx install gac
 
 ## Configuration
 
-1. Set up your Claude API key:
+### API Keys
 
-   ```console
-   export CLAUDE_API_KEY=your_api_key_here
-   ```
+Set up your API keys for the provider you want to use:
 
-   For permanent configuration, add this to your shell profile (~/.zshrc, ~/.bashrc, etc.)
+```console
+# For Anthropic Claude (default)
+export ANTHROPIC_API_KEY=your_api_key_here
+
+# For OpenAI
+export OPENAI_API_KEY=your_api_key_here
+
+# For Groq
+export GROQ_API_KEY=your_api_key_here
+
+# For Mistral
+export MISTRAL_API_KEY=your_api_key_here
+```
+
+For permanent configuration, add this to your shell profile (~/.zshrc, ~/.bashrc, etc.)
+
+### Provider Configuration
+
+You can specify which LLM provider and model to use:
+
+```console
+# Set provider (anthropic, openai, groq, mistral, aws, etc.)
+export GAC_PROVIDER=anthropic
+
+# Optionally, set a specific model name for the provider
+export GAC_MODEL_NAME=claude-3-5-sonnet-20240620
+
+# Or set a fully qualified model
+export GAC_MODEL=openai:gpt-4o
+```
 
 ## Usage
 
@@ -49,6 +77,7 @@ gac
 - `--test`: Run in test mode with example commit messages
 - `--force, -f`: Skip all prompts (auto-yes)
 - `--add-all, -a`: Stage all changes before committing
+- `--no-format, -nf`: Disable automatic code formatting
 
 Example:
 

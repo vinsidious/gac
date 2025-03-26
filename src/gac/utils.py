@@ -1,114 +1,146 @@
 """Utility functions for AI agents."""
 
 import json
+import logging
 import time
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import aisuite as ai
-import anthropic
+from aisuite.utils import count_tokens as aisuite_count_tokens
 
+# Set up logging
+logger = logging.getLogger(__name__)
+
+# Default maximum output tokens
 MAX_OUTPUT_TOKENS = 8192
 
 
 def chat(
     messages: List[Dict[str, str]],
-    model: str = "anthropic:claude-3-5-haiku-latest",
+    model: str = "anthropic:claude-3-5-sonnet-20240620",
     temperature: float = 1.0,
     save_conversation_path: Optional[str] = None,
     test_mode: bool = False,
-    *args,
+    system: Optional[str] = None,
     **kwargs,
 ) -> str:
-    """Chat with the AI model."""
+    """
+    Chat with an AI model using aisuite as a provider-agnostic interface.
+
+    Args:
+        messages: List of message dictionaries with 'role' and 'content' keys.
+        model: The model identifier in the format "provider:model_name".
+        temperature: Controls randomness in the response (0.0 to 1.0).
+        save_conversation_path: Optional path to save the conversation history.
+        test_mode: If True, returns a test response without making an API call.
+        system: Optional system message to set the behavior of the assistant.
+        **kwargs: Additional keyword arguments to pass to the AI provider.
+
+    Returns:
+        The model's response as a string.
+
+    Raises:
+        Exception: Any error that occurs during the API call.
+    """
     if test_mode:
         return "test_response"
 
     try:
+        logger.debug(f"Starting chat with model {model}, temperature {temperature}")
         start_time = time.time()
 
-        # Handle Anthropic models directly
-        if model and model.startswith("anthropic:"):
-            model_name = model.replace("anthropic:", "")
-            client = anthropic.Anthropic()
-            # Convert messages to Anthropic format
-            anthropic_messages = []
-            for msg in messages:
-                role = "assistant" if msg["role"] == "assistant" else "user"
-                anthropic_messages.append({"role": role, "content": msg["content"]})
+        # Check for existing system message in the messages list
+        has_system_message = messages and messages[0].get("role") == "system"
 
-            response = client.messages.create(
-                model=model_name,
-                messages=anthropic_messages,
-                temperature=temperature,
-                max_tokens=MAX_OUTPUT_TOKENS,
-            )
-            reply = response.content[0].text
-        else:
-            # Use aisuite for other models
-            client = ai.Client()
-            response = client.chat.completions.create(
-                messages=messages,
-                model=model,
-                temperature=temperature,
-                *args,
-                **kwargs,
-            )
-            reply = response.choices[0].message.content.strip()
+        # If system parameter is provided and there's no system message, add it
+        if system and not has_system_message:
+            system_message = {"role": "system", "content": system}
+            messages = [system_message] + messages
+            logger.debug(f"Added system message: {system}")
 
+        # Initialize the aisuite client
+        client = ai.Client()
+
+        # Make the request through aisuite's unified interface
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=kwargs.pop("max_tokens", MAX_OUTPUT_TOKENS),
+            **kwargs,
+        )
+
+        # Extract the response content
+        reply = response.choices[0].message.content
+        end_time = time.time()
+        logger.debug(f"Received response in {end_time - start_time:.2f} seconds")
+
+        # Save conversation history if requested
         if save_conversation_path:
-            with open(save_conversation_path, "w") as f:
-                json.dump(
-                    {
-                        "messages": messages,
-                        "response": reply,
-                        "model": model,
-                        "temperature": temperature,
-                        "time": time.time() - start_time,
-                    },
-                    f,
-                    indent=2,
-                )
+            save_data = {
+                "messages": messages,
+                "response": reply,
+                "model": model,
+                "temperature": temperature,
+                "time": end_time - start_time,
+            }
+            try:
+                with open(save_conversation_path, "w") as f:
+                    json.dump(save_data, f, indent=2)
+                logger.debug(f"Saved conversation to {save_conversation_path}")
+            except Exception as e:
+                logger.warning(f"Failed to save conversation: {e}")
 
         return reply
     except Exception as e:
-        print(f"Error in chat: {e}")
+        logger.error(f"Error in chat: {str(e)}")
         raise
 
 
 def count_tokens(
-    messages: Union[str, List[Dict[str, str]]],
+    messages: Union[str, List[Dict[str, str]], Dict[str, Any]],
     model: str,
     test_mode: bool = False,
 ) -> int:
-    """Count tokens using Anthropic's API."""
+    """
+    Count tokens using aisuite's provider-agnostic token counter.
+
+    Args:
+        messages: A string, message object, or list of message dictionaries.
+        model: The model identifier in the format "provider:model_name".
+        test_mode: If True, returns a fixed value without making an API call.
+
+    Returns:
+        The number of tokens in the input.
+
+    Raises:
+        Exception: Any error that occurs during token counting.
+    """
     if test_mode:
         return 10
 
-    # Ensure model has provider prefix
-    if ":" not in model:
-        model = f"anthropic:{model}"
-
-    provider, model_name = model.split(":")
-    if not provider or not model_name:
-        raise ValueError(f"Invalid model: {model}")
-
-    if provider == "anthropic":
+    try:
+        # Use aisuite's token counting utility
+        return aisuite_count_tokens(messages, model)
+    except Exception as e:
+        logger.error(f"Error counting tokens: {e}")
+        # Fallback to a conservative estimate if token counting fails
         if isinstance(messages, str):
-            system_message = "You are a helpful assistant."
-            messages = [{"role": "user", "content": messages}]
-        elif isinstance(messages, list) and messages and messages[0].get("role") == "system":
-            system_message = messages[0]["content"]
-            messages = messages[1:]
-        else:
-            system_message = "You are a helpful assistant."
-
-        token_client = anthropic.Anthropic()
-        response = token_client.beta.messages.count_tokens(
-            betas=["token-counting-2024-11-01"],
-            model=model_name,
-            system=system_message,
-            messages=messages,
-        )
-        return response.input_tokens
-    else:
-        raise ValueError(f"Cannot count tokens for model: {model}")
+            # Rough approximation: 1 token ≈ 4 characters
+            estimated_tokens = len(messages) // 4
+            logger.warning(f"Using fallback token estimation: {estimated_tokens}")
+            return estimated_tokens
+        elif isinstance(messages, list):
+            # Sum up tokens for each message
+            total = 0
+            for msg in messages:
+                if isinstance(msg, dict) and "content" in msg:
+                    total += len(msg["content"]) // 4
+            logger.warning(f"Using fallback token estimation: {total}")
+            return total
+        elif isinstance(messages, dict) and "content" in messages:
+            # Single message as a dictionary
+            estimated_tokens = len(messages["content"]) // 4
+            logger.warning(f"Using fallback token estimation: {estimated_tokens}")
+            return estimated_tokens
+        return 0

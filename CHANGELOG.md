@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD024-->
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -7,7 +9,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-<!-- New changes go here -->
+### Added
+
+- Multi-provider support via aisuite integration
+- Support for multiple AI providers:
+  - Anthropic Claude (default)
+  - OpenAI GPT models
+  - Groq LLaMA models
+  - Mistral AI
+  - AWS Bedrock
+  - Azure OpenAI
+  - Google Vertex AI
+- New configuration options via environment variables:
+  - `GAC_PROVIDER` - Set provider (anthropic, openai, groq, etc.)
+  - `GAC_MODEL_NAME` - Set specific model for selected provider
+  - `GAC_MODEL` - Set fully qualified model (provider:model)
+- Command-line model selection with `--model` or `-m` flag
+- Environment variables loading from .env file
+- Provider-agnostic token counting
+- Multi-provider example scripts
+- Improved error handling and logging
+
+### Changed
+
+- Refactored utils.py to use aisuite instead of directly using Anthropic
+- Updated configuration to support multiple providers
+- Renamed functions for provider neutrality (e.g., `send_to_claude` → `send_to_llm`)
+- Updated dependencies in pyproject.toml
+- Improved documentation with multi-provider examples
+- Enhanced testing for provider configuration
 
 ## [0.1.0] - 2025-03-24
 
