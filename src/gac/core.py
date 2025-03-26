@@ -149,6 +149,9 @@ def main(
     force: bool = False,
     add_all: bool = False,
     no_format: bool = False,
+    quiet: bool = False,
+    verbose: bool = False,
+    model: Optional[str] = None,
 ) -> Optional[str]:
     """
     Main function to generate and apply a commit message.
@@ -158,11 +161,26 @@ def main(
         force: If True, skip user confirmation prompts
         add_all: If True, stage all changes before committing
         no_format: If True, skip code formatting
+        quiet: If True, reduce output verbosity
+        verbose: If True, increase output verbosity
+        model: Override default model (format: provider:model)
 
     Returns:
         The commit message if successful, None otherwise
     """
     config = get_config()
+
+    # Set logging level
+    if verbose:
+        logger.setLevel(logging.DEBUG)
+    elif quiet:
+        logger.setLevel(logging.ERROR)
+    else:
+        logger.setLevel(logging.INFO)
+
+    # Override model if specified
+    if model:
+        os.environ["GAC_MODEL"] = model
 
     if add_all:
         stage_files(["."])
@@ -274,12 +292,16 @@ def cli(
         handlers=[RichHandler(rich_tracebacks=True, markup=True)],
     )
 
-    # Override model if specified on command line
-    if model:
-        os.environ["GAC_MODEL"] = model
-
     # Run the main function
-    main(test_mode=test, force=force, add_all=add_all, no_format=no_format)
+    main(
+        test_mode=test,
+        force=force,
+        add_all=add_all,
+        no_format=no_format,
+        quiet=quiet,
+        verbose=verbose,
+        model=model,
+    )
 
 
 if __name__ == "__main__":
