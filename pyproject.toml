@@ -26,8 +26,10 @@ classifiers = [
 ]
 dependencies = [
     "aisuite>=0.1.7",
+    "black>=25.1.0",
     "click>=8.1.8",
     "docstring_parser>=0.16",
+    "isort>=6.0.1",
     "python-dotenv>=1.1.0",
     "rich>=13.9.4",
 ]
@@ -36,26 +38,18 @@ dependencies = [
 gac = "gac.core:cli"
 
 [project.optional-dependencies]
-formatting = [
-    "black>=25.1.0",
-    "isort>=6.0.1",
-]
 providers = [
     "aisuite[anthropic,openai,groq,mistral]",
 ]
 dev = [
-    "black>=25.1.0",
     "bump2version>=1.0.0",
     "codecov>=2.1.13",
     "flake8>=7.1.2",
-    "isort>=6.0.1",
     "pytest>=8.3.5",
     "pytest-cov>=6.0.0",
 ]
 all = [
     "aisuite[all]",
-    "black>=25.1.0",
-    "isort>=6.0.1",
 ]
 
 [project.urls]
