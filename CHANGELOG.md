@@ -9,21 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-03-26
+
 ### Added
 
-- None
+- 🚀 Logging verbosity and model override options in the CLI
+- 🔧 Pre-release test validation in auto_release script
+- 🔍 Auto-release script for version management
 
 ### Changed
 
-- None
+- 🔄 Update Python version requirements from 3.8 to 3.10
+- 🚧 Simplify model configuration logic
+- 📦 Update project configuration and dependencies
+- 💡 Enhance CI workflow to support Python 3.12 and 3.13
+- 🔧 Migrate from bump2version to bump-my-version
+- 🛠️ Update default provider models and configuration
+- 📝 Reorder and update README badges
+
+### Removed
+
+- 🗑️ Remove deprecated setup.cfg and .bumpversion.cfg files
+- ❌ Remove Python 3.8 and 3.9 from supported versions
 
 ### Fixed
 
-- None
+- 🐛 Update test_config.py model tests
+- 🔧 Update Flake8 configuration and linting
 
-### Security
+### Chore
 
-- None
+- 📝 Update dependencies and documentation
+- 🔍 Enhance project configuration and CI workflows
 
 ## [0.2.0] - 2025-03-26
 
@@ -104,6 +121,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VSCode integration and settings
 - Comprehensive documentation in README.md
 
-[0.1.0a1]: https://github.com/cellwebb/gac/releases/tag/v0.1.0a1
-[0.1.0]: https://github.com/cellwebb/gac/releases/tag/v0.1.0
+[0.3.0]: https://github.com/cellwebb/gac/releases/tag/v0.3.0
 [0.2.0]: https://github.com/cellwebb/gac/releases/tag/v0.2.0
+[0.1.0]: https://github.com/cellwebb/gac/releases/tag/v0.1.0
