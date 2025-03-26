@@ -29,15 +29,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provider-agnostic token counting
 - Multi-provider example scripts
 - Improved error handling and logging
+- GitHub Actions CI workflow with multiple Python versions
+- Codecov integration for test coverage reporting
 
 ### Changed
 
-- Refactored utils.py to use aisuite instead of directly using Anthropic
-- Updated configuration to support multiple providers
-- Renamed functions for provider neutrality (e.g., `send_to_claude` → `send_to_llm`)
-- Updated dependencies in pyproject.toml
-- Improved documentation with multi-provider examples
-- Enhanced testing for provider configuration
+- Refactored core logic to support multiple AI providers
+- Updated configuration to support dynamic model and provider selection
+- Renamed functions for provider neutrality
+- Enhanced configuration loading from environment variables
+- Improved modularization of project components
+- Updated project dependencies in pyproject.toml
+- Migrated to aisuite for multi-provider support
+- Expanded logging and error handling mechanisms
+
+### Deprecated
+
+- None
+
+### Removed
+
+- Direct dependency on Anthropic library
+- Hardcoded references to specific AI providers
+
+### Fixed
+
+- Improved token counting across different providers
+- Enhanced error handling in configuration and AI interaction
+- Fixed test coverage and added comprehensive test suite
+
+### Security
+
+- Added environment variable support for securely managing API keys
+- Enhanced configuration validation
 
 ## [0.1.0] - 2025-03-24
 
