@@ -26,11 +26,13 @@ from rich.logging import RichHandler
 
 from gac.ai_utils import chat, count_tokens
 from gac.config import get_config
-from gac.git import git_commit_changes as commit_changes
-from gac.git import git_get_existing_staged_python_files as get_existing_staged_python_files
-from gac.git import git_get_staged_files as get_staged_files
-from gac.git import git_get_staged_python_files as get_staged_python_files
-from gac.git import git_stage_files as stage_files
+from gac.git import (
+    commit_changes,
+    get_existing_staged_python_files,
+    get_staged_files,
+    get_staged_python_files,
+    stage_files,
+)
 from gac.utils import run_subprocess
 
 load_dotenv()

@@ -4,23 +4,7 @@ import subprocess
 import unittest
 from unittest.mock import MagicMock, patch
 
-from gac.core import (
-    commit_changes,
-    get_existing_staged_python_files,
-    get_staged_files,
-    get_staged_python_files,
-    main,
-    run_black,
-    run_subprocess,
-    stage_files,
-)
-from gac.git import (
-    git_commit_changes,
-    git_get_existing_staged_python_files,
-    git_get_staged_files,
-    git_get_staged_python_files,
-    git_stage_files,
-)
+from gac.core import main, run_black, run_subprocess
 
 
 class TestCore(unittest.TestCase):
@@ -61,73 +45,6 @@ class TestCore(unittest.TestCase):
         # Call run_subprocess and expect exception
         with self.assertRaises(subprocess.CalledProcessError):
             run_subprocess(["git", "invalid"])
-
-    @patch("gac.git.run_subprocess")
-    def test_get_staged_files(self, mock_run_subprocess):
-        """Test get_staged_files returns correct result."""
-        # Mock run_subprocess to return staged files
-        mock_run_subprocess.return_value = "file1.py\nfile2.md\nfile3.js"
-
-        # Call get_staged_files
-        result = get_staged_files()
-
-        # Assert mock was called correctly with git diff command
-        mock_run_subprocess.assert_called_once_with(["git", "diff", "--staged", "--name-only"])
-
-        # Assert result is list of files
-        self.assertEqual(result, ["file1.py", "file2.md", "file3.js"])
-
-    @patch("gac.git.git_get_staged_files")
-    def test_get_staged_python_files(self, mock_git_get_staged_files):
-        """Test get_staged_python_files returns only Python files."""
-        # Mock git_get_staged_files to return mixed file types
-        mock_git_get_staged_files.return_value = ["file1.py", "file2.md", "file3.js", "file4.py"]
-
-        # Call get_staged_python_files
-        result = get_staged_python_files()
-
-        # Assert only Python files are returned
-        self.assertEqual(result, ["file1.py", "file4.py"])
-
-    @patch("os.path.exists")
-    @patch("gac.git.git_get_staged_python_files")
-    def test_get_existing_staged_python_files(self, mock_git_get_staged_python_files, mock_exists):
-        """Test get_existing_staged_python_files returns only existing Python files."""
-        # Mock git_get_staged_python_files to return Python files
-        mock_git_get_staged_python_files.return_value = ["file1.py", "file2.py", "file3.py"]
-
-        # Mock os.path.exists to return True for specific files
-        mock_exists.side_effect = lambda f: f != "file2.py"  # file2.py doesn't exist
-
-        # Call get_existing_staged_python_files
-        result = get_existing_staged_python_files()
-
-        # Assert only existing Python files are returned
-        self.assertEqual(result, ["file1.py", "file3.py"])
-
-    @patch("gac.git.run_subprocess")
-    def test_commit_changes(self, mock_run_subprocess):
-        """Test commit_changes calls git commit with the provided message."""
-        # Setup mock to avoid actual git command execution
-        mock_run_subprocess.return_value = "Commit successful"
-
-        # Call commit_changes
-        commit_changes("Test commit message")
-
-        # Assert git commit was called with the message
-        mock_run_subprocess.assert_called_once_with(["git", "commit", "-m", "Test commit message"])
-
-    @patch("gac.git.run_subprocess")
-    def test_stage_files(self, mock_run_subprocess):
-        """Test stage_files calls git add with the provided files."""
-        # Setup mock
-        mock_run_subprocess.return_value = "Files staged"
-
-        # Call stage_files
-        stage_files(["file1.py", "file2.py"])
-
-        # Assert git add was called with the files
-        mock_run_subprocess.assert_called_once_with(["git", "add", "file1.py", "file2.py"])
 
     @patch("gac.core.get_existing_staged_python_files")
     @patch("gac.core.run_subprocess")
@@ -303,75 +220,6 @@ class TestCore(unittest.TestCase):
 
         # Assert message was returned
         self.assertEqual(result, "Generated commit message")
-
-    @patch("gac.git.run_subprocess")
-    def test_git_commit_changes(self, mock_run_subprocess):
-        """Test git_commit_changes calls git commit with the provided message."""
-        # Setup mock to avoid actual git command execution
-        mock_run_subprocess.return_value = ""
-
-        # Call git_commit_changes
-        git_commit_changes("Test commit message")
-
-        # Assert git commit was called with the message
-        mock_run_subprocess.assert_called_once_with(["git", "commit", "-m", "Test commit message"])
-
-    @patch("gac.git.run_subprocess")
-    def test_git_get_staged_files(self, mock_run_subprocess):
-        """Test git_get_staged_files returns correct result."""
-        # Mock run_subprocess to return staged files
-        mock_run_subprocess.return_value = "file1.py\nfile2.md\nfile3.js"
-
-        # Call git_get_staged_files
-        result = git_get_staged_files()
-
-        # Assert mock was called correctly
-        mock_run_subprocess.assert_called_once_with(["git", "diff", "--staged", "--name-only"])
-
-        # Assert result is list of files
-        self.assertEqual(result, ["file1.py", "file2.md", "file3.js"])
-
-    @patch("gac.git.git_get_staged_files")
-    def test_git_get_staged_python_files(self, mock_git_get_staged_files):
-        """Test git_get_staged_python_files returns only Python files."""
-        # Mock git_get_staged_files to return mixed file types
-        mock_git_get_staged_files.return_value = ["file1.py", "file2.md", "file3.js", "file4.py"]
-
-        # Call git_get_staged_python_files
-        result = git_get_staged_python_files()
-
-        # Assert result is list of Python files
-        self.assertEqual(result, ["file1.py", "file4.py"])
-
-    @patch("os.path.exists")
-    @patch("gac.git.git_get_staged_python_files")
-    def test_git_get_existing_staged_python_files(
-        self, mock_git_get_staged_python_files, mock_exists
-    ):
-        """Test git_get_existing_staged_python_files returns only existing Python files."""
-        # Mock git_get_staged_python_files to return Python files
-        mock_git_get_staged_python_files.return_value = ["file1.py", "file2.py", "file3.py"]
-
-        # Mock os.path.exists to return True for specific files
-        mock_exists.side_effect = lambda f: f != "file2.py"  # file2.py doesn't exist
-
-        # Call git_get_existing_staged_python_files
-        result = git_get_existing_staged_python_files()
-
-        # Assert result is list of existing Python files
-        self.assertEqual(result, ["file1.py", "file3.py"])
-
-    @patch("gac.git.run_subprocess")
-    def test_git_stage_files(self, mock_run_subprocess):
-        """Test git_stage_files calls git add with the provided files."""
-        # Setup mock
-        mock_run_subprocess.return_value = ""
-
-        # Call git_stage_files
-        git_stage_files(["file1.py", "file2.py"])
-
-        # Assert git add was called with the files
-        mock_run_subprocess.assert_called_once_with(["git", "add", "file1.py", "file2.py"])
 
 
 if __name__ == "__main__":

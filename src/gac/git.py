@@ -11,7 +11,7 @@ from gac.utils import run_subprocess
 logger = logging.getLogger(__name__)
 
 
-def git_get_staged_files() -> List[str]:
+def get_staged_files() -> List[str]:
     """
     Get list of filenames of all staged files.
 
@@ -23,27 +23,27 @@ def git_get_staged_files() -> List[str]:
     return result.splitlines()
 
 
-def git_get_staged_python_files() -> List[str]:
+def get_staged_python_files() -> List[str]:
     """
     Get list of filenames of staged Python files.
 
     Returns:
         List of staged Python file paths
     """
-    return [f for f in git_get_staged_files() if f.endswith(".py")]
+    return [f for f in get_staged_files() if f.endswith(".py")]
 
 
-def git_get_existing_staged_python_files() -> List[str]:
+def get_existing_staged_python_files() -> List[str]:
     """
     Get list of filenames of staged Python files that exist on disk.
 
     Returns:
         List of existing staged Python file paths
     """
-    return [f for f in git_get_staged_python_files() if os.path.exists(f)]
+    return [f for f in get_staged_python_files() if os.path.exists(f)]
 
 
-def git_commit_changes(message: str) -> None:
+def commit_changes(message: str) -> None:
     """
     Commit changes with the given message.
 
@@ -64,7 +64,7 @@ def git_commit_changes(message: str) -> None:
         raise
 
 
-def git_stage_files(files: List[str]) -> bool:
+def stage_files(files: List[str]) -> bool:
     """
     Stage files for commit.
 

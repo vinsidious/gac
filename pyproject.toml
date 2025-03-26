@@ -42,7 +42,7 @@ providers = [
     "aisuite[anthropic,openai,groq,mistral]",
 ]
 dev = [
-    "bump-my-version>=1.1.1",
+    "bump-my-version",
     "codecov>=2.1.13",
     "flake8>=7.1.2",
     "pytest>=8.3.5",
@@ -119,7 +119,7 @@ exclude = [
 dependencies = [
     "aisuite[all]",
     "black>=25.1.0",
-    "bump-my-version>=1.1.1",
+    "bump-my-version",
     "isort>=6.0.1",
     "pytest>=8.3.5",
     "pytest-cov>=6.0.0",
