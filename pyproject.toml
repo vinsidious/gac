@@ -19,6 +19,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -94,6 +95,8 @@ exclude_lines = [
 
 [tool.flake8]
 max-line-length = 100
+exclude = [".git", "__pycache__", ".venv", "venv", "build", "dist"]
+per-file-ignores = { "__init__.py" = ["F401"], "tests/*.py" = ["E501"] }
 
 [tool.hatch.version]
 source = "vcs"
