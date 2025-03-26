@@ -97,31 +97,28 @@ def send_to_llm(status: str, diff: str) -> str:
     model = config["model"]
     # fmt: off
     # flake8: noqa: E501
-    prompt = f"""Analyze this git status and git diff and write ONLY a commit message in the following format. Do not include any other text, explanation, or commentary.
-
-Format:
-[type]: Short summary of changes (50 chars or less)
- - Bullet point details about the changes
- - Another bullet point if needed
-
-[feat/fix/docs/refactor/test/chore/other]: <description>
-
-For larger changes, include bullet points:
-[category]: Main description
- - Change 1
- - Change 2
- - Change 3
-
-Git Status:
-```
-{status}
-```
-
-Git Diff:
-```
-{diff}
-```
-"""
+    prompt = (
+        "Analyze this git status and git diff and write ONLY a commit message in the following format. "
+        "Do not include any other text, explanation, or commentary.\n\n"
+        "Format:\n"
+        "[type]: Short summary of changes (50 chars or less)\n"
+        " - Bullet point details about the changes\n"
+        " - Another bullet point if needed\n\n"
+        "[feat/fix/docs/refactor/test/chore/other]: <description>\n\n"
+        "For larger changes, include bullet points:\n"
+        "[category]: Main description\n"
+        " - Change 1\n"
+        " - Change 2\n"
+        " - Change 3\n\n"
+        "Git Status:\n"
+        "```\n"
+        + status
+        + "\n```\n\n"
+        "Git Diff:\n"
+        "```\n"
+        + diff
+        + "\n```"
+    )
     # fmt: on
 
     logger.info(f"Using model: {model}")
