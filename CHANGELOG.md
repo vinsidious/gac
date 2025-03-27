@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2025-03-27
+
 ### Added
 
 - 🌟 Enhanced project description retrieval feature to improve context for commit messages
@@ -147,6 +149,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VSCode integration and settings
 - Comprehensive documentation in README.md
 
+[0.4.1]: https://github.com/cellwebb/gac/releases/tag/v0.4.1
 [0.3.0]: https://github.com/cellwebb/gac/releases/tag/v0.3.0
 [0.2.0]: https://github.com/cellwebb/gac/releases/tag/v0.2.0
 [0.1.0]: https://github.com/cellwebb/gac/releases/tag/v0.1.0
