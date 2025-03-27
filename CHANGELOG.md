@@ -14,7 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated CI workflow to use Python 3.13 🐍
 - Switched from `bumpversion` to `bump-my-version` for version management
 - Enhanced test coverage configuration and reporting 📊
-- Updated project configuration to support Python 3.13
 
 ### Added ✨
 
