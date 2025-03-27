@@ -52,10 +52,10 @@ bump:
 	echo "New version: $$NEW_VERSION"
 
 bump-patch: VERSION=patch
-bump-patch: bump
+bump-patch: bump --commit --tag --push
 
 bump-minor: VERSION=minor
-bump-minor: bump
+bump-minor: bump --commit --tag --push
 
 bump-major: VERSION=major
-bump-major: bump
+bump-major: bump --commit --tag --push
