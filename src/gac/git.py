@@ -87,3 +87,31 @@ def stage_files(files: List[str]) -> bool:
     except subprocess.CalledProcessError as e:
         logger.error(f"Error staging files: {e}")
         return False
+
+
+def get_project_description() -> str:
+    """
+    Get the Git project description if available.
+
+    Returns:
+        Git project description or empty string if not available
+    """
+    try:
+        # Get the git directory path
+        git_dir = run_subprocess(["git", "rev-parse", "--git-dir"]).strip()
+
+        # Check for a local description file
+        description_file = os.path.join(git_dir, "description")
+        if os.path.exists(description_file):
+            with open(description_file, "r") as f:
+                description = f.read().strip()
+                # Check if it's the default description
+                if (
+                    description
+                    != "Unnamed repository; edit this file 'description' to name the repository."
+                ):
+                    return description
+        return ""
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        logger.debug("Failed to get project description, possibly not in a git repository")
+        return ""

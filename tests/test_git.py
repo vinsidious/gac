@@ -2,11 +2,12 @@
 
 import subprocess
 import unittest
-from unittest.mock import patch
+from unittest.mock import mock_open, patch
 
 from gac.git import (
     commit_changes,
     get_existing_staged_python_files,
+    get_project_description,
     get_staged_files,
     get_staged_python_files,
     stage_files,
@@ -123,6 +124,29 @@ class TestGit(unittest.TestCase):
 
         # Assert result is False
         self.assertFalse(result)
+
+    @patch("os.path.exists")
+    @patch("builtins.open", new_callable=mock_open, read_data="Project description from file")
+    @patch("gac.git.run_subprocess")
+    def test_get_project_description(self, mock_run_subprocess, mock_file, mock_exists):
+        """Test get_project_description reads from .git/description file."""
+        # Mock git rev-parse to return git directory
+        mock_run_subprocess.return_value = "/path/to/.git"
+
+        # Mock os.path.exists to return True for description file
+        mock_exists.return_value = True
+
+        # Call get_project_description
+        result = get_project_description()
+
+        # Assert git directory was requested
+        mock_run_subprocess.assert_called_with(["git", "rev-parse", "--git-dir"])
+
+        # Assert description file was checked
+        mock_exists.assert_called_once()
+
+        # Assert result is the file content
+        self.assertEqual(result, "Project description from file")
 
 
 if __name__ == "__main__":

@@ -29,6 +29,7 @@ from gac.config import get_config
 from gac.git import (
     commit_changes,
     get_existing_staged_python_files,
+    get_project_description,
     get_staged_files,
     get_staged_python_files,
     stage_files,
@@ -144,7 +145,14 @@ def send_to_llm(status: str, diff: str, one_liner: bool = False) -> str:
     token_count = count_tokens(prompt, model)
     logger.info(f"Prompt token count: {token_count:,}")
 
+    # Get project description and include it in context if available
+    project_description = get_project_description()
     system = "You are a helpful assistant that writes clear, concise git commit messages. Only output the commit message, nothing else."
+
+    # Add project description to system message if available
+    if project_description:
+        system = f"You are a helpful assistant that writes clear, concise git commit messages for the following project: '{project_description}'. Only output the commit message, nothing else."
+
     messages = [{"role": "user", "content": prompt}]
     response = chat(
         messages=messages,
