@@ -43,10 +43,19 @@ clean:
 
 # Version bumping
 bump-patch:
-	bump-my-version bump patch
+	@NEW_VERSION=$(shell bump-my-version show) && \
+	echo "## [$NEW_VERSION] - $(date +%Y-%m-%d)" >> CHANGELOG.md && \
+	bump-my-version bump patch && \
+	echo "New version: $NEW_VERSION"
 
 bump-minor:
-	bump-my-version bump minor
+	@NEW_VERSION=$(shell bump-my-version show) && \
+	echo "## [$NEW_VERSION] - $(date +%Y-%m-%d)" >> CHANGELOG.md && \
+	bump-my-version bump minor && \
+	echo "New version: $NEW_VERSION"
 
 bump-major:
-	bump-my-version bump major
+	@NEW_VERSION=$(shell bump-my-version show) && \
+	echo "## [$NEW_VERSION] - $(date +%Y-%m-%d)" >> CHANGELOG.md && \
+	bump-my-version bump major && \
+	echo "New version: $NEW_VERSION"
