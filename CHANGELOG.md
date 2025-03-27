@@ -13,8 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 🔧 Updated CI workflow to use Python 3.13
 - 🛠️ Switched from `bumpversion` to `bump-my-version` for version management
-- 💡 Enhanced `send_to_llm()` function with optional one-liner commit message generation
 - 📊 Updated coverage configuration and test reporting
+- 💡 Enhanced `send_to_llm()` function with optional one-liner commit message generation
 
 ### Added
 
@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - 🐛 Improved error handling and import configurations in various project files
+- 📝 Updated `.env.example` with GAC configuration details
 
 ## [0.3.0] - 2025-03-26
 
