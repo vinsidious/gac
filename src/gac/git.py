@@ -128,7 +128,7 @@ def get_project_description() -> str:
                 # Check if it's the default description
                 if (
                     file_content
-                    != "Unnamed repository; edit this file 'description' to name the repository."
+                    != "Unnamed repository; edit this file 'description' to name the repository."  # noqa: E501 W503
                 ):
                     description = file_content
 
