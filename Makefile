@@ -1,4 +1,4 @@
-.PHONY: setup install install-dev test lint format clean bump-patch bump-minor bump-major bump-alpha bump-beta bump-rc
+.PHONY: setup install install-dev test lint format clean bump bump-patch bump-minor bump-major bump-alpha bump-beta bump-rc
 
 # Create virtual environment and install dependencies
 setup:
@@ -42,20 +42,17 @@ clean:
 	find . -type f -name "*.pyc" -delete
 
 # Version bumping
-bump-patch:
+bump:
 	@NEW_VERSION=$(shell bump-my-version show) && \
 	echo "## [$NEW_VERSION] - $(date +%Y-%m-%d)" >> CHANGELOG.md && \
-	bump-my-version bump patch && \
+	bump-my-version bump $(VERSION) && \
 	echo "New version: $NEW_VERSION"
 
-bump-minor:
-	@NEW_VERSION=$(shell bump-my-version show) && \
-	echo "## [$NEW_VERSION] - $(date +%Y-%m-%d)" >> CHANGELOG.md && \
-	bump-my-version bump minor && \
-	echo "New version: $NEW_VERSION"
+bump-patch: VERSION=patch
+bump-patch: bump
 
-bump-major:
-	@NEW_VERSION=$(shell bump-my-version show) && \
-	echo "## [$NEW_VERSION] - $(date +%Y-%m-%d)" >> CHANGELOG.md && \
-	bump-my-version bump major && \
-	echo "New version: $NEW_VERSION"
+bump-minor: VERSION=minor
+bump-minor: bump
+
+bump-major: VERSION=major
+bump-major: bump
