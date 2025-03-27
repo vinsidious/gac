@@ -9,7 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+### Changed
+
+- 🔧 Updated CI workflow to use Python 3.13
+- 🛠️ Switched from `bumpversion` to `bump-my-version` for version management
+- 💡 Enhanced `send_to_llm()` function with optional one-liner commit message generation
+- 📊 Updated coverage configuration and test reporting
+
+### Added
+
+- ✅ Added Codecov test results upload to CI workflow
+- 📝 Created `conftest.py` to improve test configuration and module importing
+
+### Removed
+
+- 🗑️ Deleted `run_tests.sh` and `run_tests.py` scripts
+- 🧹 Removed redundant configuration references
+
+### Fixed
+
+- 🐛 Improved error handling and import configurations in various project files
 
 ## [0.3.0] - 2025-03-26
 
