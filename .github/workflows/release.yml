@@ -24,12 +24,12 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install bumpversion
+          pip install bump-my-version
 
       # Bump version and create tag
       - name: Bump version and create tag
         run: |
-          bumpversion patch
+          bump-my-version patch
           git push --follow-tags
 
       # Create a release
