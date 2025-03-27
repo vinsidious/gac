@@ -129,9 +129,12 @@ class TestGit(unittest.TestCase):
     @patch("builtins.open", new_callable=mock_open, read_data="Project description from file")
     @patch("gac.git.run_subprocess")
     def test_get_project_description(self, mock_run_subprocess, mock_file, mock_exists):
-        """Test get_project_description reads from .git/description file."""
-        # Mock git rev-parse to return git directory
-        mock_run_subprocess.return_value = "/path/to/.git"
+        """Test get_project_description returns repo name and description."""
+        # Mock git commands to return expected values
+        mock_run_subprocess.side_effect = [
+            "/path/to/.git",  # git rev-parse --git-dir
+            "https://github.com/user/test-repo.git",  # git config --get remote.origin.url
+        ]
 
         # Mock os.path.exists to return True for description file
         mock_exists.return_value = True
@@ -139,14 +142,10 @@ class TestGit(unittest.TestCase):
         # Call get_project_description
         result = get_project_description()
 
-        # Assert git directory was requested
-        mock_run_subprocess.assert_called_with(["git", "rev-parse", "--git-dir"])
-
-        # Assert description file was checked
-        mock_exists.assert_called_once()
-
-        # Assert result is the file content
-        self.assertEqual(result, "Project description from file")
+        # Assert result contains both repo name and description
+        self.assertEqual(
+            result, "Repository: test-repo; Description: Project description from file"
+        )
 
 
 if __name__ == "__main__":

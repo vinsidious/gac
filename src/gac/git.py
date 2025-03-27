@@ -91,27 +91,55 @@ def stage_files(files: List[str]) -> bool:
 
 def get_project_description() -> str:
     """
-    Get the Git project description if available.
+    Get the Git project description and repo name if available.
 
     Returns:
-        Git project description or empty string if not available
+        String containing repo name and description, or empty string if not available
     """
     try:
         # Get the git directory path
         git_dir = run_subprocess(["git", "rev-parse", "--git-dir"]).strip()
 
+        # Try to get the repository name from remote URL
+        repo_name = ""
+        try:
+            remote_url = run_subprocess(["git", "config", "--get", "remote.origin.url"]).strip()
+            if remote_url:
+                # Extract repo name from remote URL
+                # Handle different URL formats (HTTPS or SSH)
+                if "github.com" in remote_url:
+                    if remote_url.endswith(".git"):
+                        remote_url = remote_url[:-4]  # Remove .git suffix
+                    repo_name = remote_url.split("/")[-1]
+        except subprocess.CalledProcessError:
+            # If we can't get the remote URL, try to get it from the directory name
+            try:
+                repo_dir = run_subprocess(["git", "rev-parse", "--show-toplevel"]).strip()
+                repo_name = os.path.basename(repo_dir)
+            except subprocess.CalledProcessError:
+                pass
+
         # Check for a local description file
+        description = ""
         description_file = os.path.join(git_dir, "description")
         if os.path.exists(description_file):
             with open(description_file, "r") as f:
-                description = f.read().strip()
+                file_content = f.read().strip()
                 # Check if it's the default description
                 if (
-                    description
+                    file_content
                     != "Unnamed repository; edit this file 'description' to name the repository."
                 ):
-                    return description
-        return ""
+                    description = file_content
+
+        # Combine repo name and description
+        result = []
+        if repo_name:
+            result.append(f"Repository: {repo_name}")
+        if description:
+            result.append(f"Description: {description}")
+
+        return "; ".join(result)
     except (subprocess.CalledProcessError, FileNotFoundError, OSError):
         logger.debug("Failed to get project description, possibly not in a git repository")
         return ""
