@@ -9,17 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- 🌟 Enhanced project description retrieval feature to improve context for commit messages
+- 📝 Added option for generating one-liner commit messages
+- ✅ Added Codecov test results upload to CI workflow
+- 📝 Created `conftest.py` to improve test configuration and module importing
+
 ### Changed
 
 - 🔧 Updated CI workflow to use Python 3.13
 - 🛠️ Switched from `bumpversion` to `bump-my-version` for version management
 - 📊 Updated coverage configuration and test reporting
 - 💡 Enhanced `send_to_llm()` function with optional one-liner commit message generation
-
-### Added
-
-- ✅ Added Codecov test results upload to CI workflow
-- 📝 Created `conftest.py` to improve test configuration and module importing
+- 📉 Reduced default max output tokens from 8192 to 512
+- 🔍 Updated multi-provider examples with latest model names
 
 ### Removed
 
