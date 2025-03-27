@@ -21,7 +21,7 @@ PROVIDER_MODELS = {
 DEFAULT_CONFIG = {
     "model": "anthropic:claude-3-5-haiku-latest",  # Default model with provider prefix
     "use_formatting": True,  # Format Python files with black and isort
-    "max_output_tokens": 8192,  # Maximum tokens in model output
+    "max_output_tokens": 512,  # Maximum tokens in model output
 }
 
 
