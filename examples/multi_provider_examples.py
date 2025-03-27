@@ -92,10 +92,10 @@ def demonstrate_command_line() -> None:
 
     # List of examples to show
     examples = [
-        "gac -m anthropic:claude-3-haiku",
-        "gac -m openai:gpt-4o",
-        "gac -m groq:llama3-70b-8192",
-        "gac -m mistral:mistral-large-latest",
+        "gac -m anthropic:claude-3-5-haiku",
+        "gac -m openai:gpt-4o-mini",
+        "gac -m groq:gemma-7b-it",
+        "gac -m mistral:mistral-small-latest",
     ]
 
     for example in examples:
