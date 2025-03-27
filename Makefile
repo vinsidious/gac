@@ -43,7 +43,8 @@ clean:
 
 # Version bumping
 bump:
-	@NEW_VERSION=$(shell bump-my-version show) && \
+	@git diff --exit-code || (echo "Git working directory is not clean" && exit 1)
+	@NEW_VERSION=$(shell bump-my-version show | grep "current_version" | cut -d "'" -f4) && \
 	echo "## [$NEW_VERSION] - $(date +%Y-%m-%d)" >> CHANGELOG.md && \
 	bump-my-version bump $(VERSION) && \
 	echo "New version: $NEW_VERSION"
