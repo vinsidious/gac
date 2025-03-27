@@ -82,13 +82,14 @@ def run_isort() -> bool:
     return n_formatted > 0
 
 
-def send_to_llm(status: str, diff: str) -> str:
+def send_to_llm(status: str, diff: str, one_liner: bool = False) -> str:
     """
     Send the git status and staged diff to an LLM for summarization.
 
     Args:
         status: Output of git status
         diff: Output of git diff --staged
+        one_liner: If True, request a single-line commit message
 
     Returns:
         The generated commit message
@@ -97,28 +98,45 @@ def send_to_llm(status: str, diff: str) -> str:
     model = config["model"]
     # fmt: off
     # flake8: noqa: E501
-    prompt = (
-        "Analyze this git status and git diff and write ONLY a commit message in the following format. "
-        "Do not include any other text, explanation, or commentary.\n\n"
-        "Format:\n"
-        "[type]: Short summary of changes (50 chars or less)\n"
-        " - Bullet point details about the changes\n"
-        " - Another bullet point if needed\n\n"
-        "[feat/fix/docs/refactor/test/chore/other]: <description>\n\n"
-        "For larger changes, include bullet points:\n"
-        "[category]: Main description\n"
-        " - Change 1\n"
-        " - Change 2\n"
-        " - Change 3\n\n"
-        "Git Status:\n"
-        "```\n"
-        + status
-        + "\n```\n\n"
-        "Git Diff:\n"
-        "```\n"
-        + diff
-        + "\n```"
-    )
+    if one_liner:
+        prompt = (
+            "Analyze this git status and git diff and write ONLY a commit message as a single line. "
+            "Do not include any other text, explanation, or commentary.\n\n"
+            "Format:\n"
+            "[type]: Short summary of changes (50 chars or less)\n\n"
+            "[feat/fix/docs/refactor/test/chore/other]: <description>\n\n"
+            "Git Status:\n"
+            "```\n"
+            + status
+            + "\n```\n\n"
+            "Git Diff:\n"
+            "```\n"
+            + diff
+            + "\n```"
+        )
+    else:
+        prompt = (
+            "Analyze this git status and git diff and write ONLY a commit message in the following format. "
+            "Do not include any other text, explanation, or commentary.\n\n"
+            "Format:\n"
+            "[type]: Short summary of changes (50 chars or less)\n"
+            " - Bullet point details about the changes\n"
+            " - Another bullet point if needed\n\n"
+            "[feat/fix/docs/refactor/test/chore/other]: <description>\n\n"
+            "For larger changes, include bullet points:\n"
+            "[category]: Main description\n"
+            " - Change 1\n"
+            " - Change 2\n"
+            " - Change 3\n\n"
+            "Git Status:\n"
+            "```\n"
+            + status
+            + "\n```\n\n"
+            "Git Diff:\n"
+            "```\n"
+            + diff
+            + "\n```"
+        )
     # fmt: on
 
     logger.info(f"Using model: {model}")
@@ -149,6 +167,7 @@ def main(
     quiet: bool = False,
     verbose: bool = False,
     model: Optional[str] = None,
+    one_liner: bool = False,
 ) -> Optional[str]:
     """
     Main function to generate and apply a commit message.
@@ -161,6 +180,7 @@ def main(
         quiet: If True, reduce output verbosity
         verbose: If True, increase output verbosity
         model: Override default model (format: provider:model)
+        one_liner: If True, generate a single-line commit message
 
     Returns:
         The commit message if successful, None otherwise
@@ -221,7 +241,7 @@ def main(
         logger.info("Generating commit message...")
         status = run_subprocess(["git", "status"])
         diff = run_subprocess(["git", "--no-pager", "diff", "--staged"])
-        commit_message = send_to_llm(status=status, diff=diff)
+        commit_message = send_to_llm(status=status, diff=diff, one_liner=one_liner)
 
     if not commit_message:
         logger.error("Failed to generate commit message.")
@@ -277,8 +297,16 @@ def main(
 @click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity")
 @click.option("--no-format", "-nf", is_flag=True, help="Disable formatting")
 @click.option("--model", "-m", help="Override default model (format: provider:model)")
+@click.option("--one-liner", "-o", is_flag=True, help="Generate a single-line commit message")
 def cli(
-    test: bool, force: bool, add_all: bool, quiet: bool, verbose: bool, no_format: bool, model: str
+    test: bool,
+    force: bool,
+    add_all: bool,
+    quiet: bool,
+    verbose: bool,
+    no_format: bool,
+    model: str,
+    one_liner: bool,
 ) -> None:
     """Commit staged changes with an AI-generated commit message."""
     # Configure logging based on verbosity options
@@ -298,6 +326,7 @@ def cli(
         quiet=quiet,
         verbose=verbose,
         model=model,
+        one_liner=one_liner,
     )
 
 
