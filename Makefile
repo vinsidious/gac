@@ -45,6 +45,7 @@ clean:
 bump:
 	@git diff --exit-code || (echo "Git working directory is not clean" && exit 1)
 	@NEW_VERSION=$$(bump-my-version show | grep "current_version" | cut -d "'" -f4) && \
+	python scripts/auto_changelog.py && \
 	python scripts/prep_changelog_for_release.py CHANGELOG.md $$NEW_VERSION && \
 	git add CHANGELOG.md && \
 	git commit -m "Update CHANGELOG.md for version $$NEW_VERSION" && \
