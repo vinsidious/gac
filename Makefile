@@ -45,8 +45,9 @@ clean:
 bump:
 	@git diff --exit-code || (echo "Git working directory is not clean" && exit 1)
 	@NEW_VERSION=$(shell bump-my-version show | grep "current_version" | cut -d "'" -f4) && \
-	echo "## [$NEW_VERSION] - $(date +%Y-%m-%d)" >> CHANGELOG.md && \
 	bump-my-version bump $(VERSION) && \
+	NEW_HEADER="## [$NEW_VERSION] - $(date +%Y-%m-%d)" && \
+	sed -i '' 's/## \[Unreleased\]/## \[Unreleased\]\n\n$NEW_HEADER/' CHANGELOG.md && \
 	echo "New version: $NEW_VERSION"
 
 bump-patch: VERSION=patch
