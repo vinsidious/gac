@@ -20,7 +20,7 @@ class TestConfig(unittest.TestCase):
             "GAC_PROVIDER",
             "GAC_MODEL_NAME",
             "GAC_USE_FORMATTING",
-            "GAC_MAX_TOKENS",
+            "GAC_MAX_OUTPUT_TOKENS",
         ]:
             if var in os.environ:
                 del os.environ[var]
@@ -89,15 +89,15 @@ class TestConfig(unittest.TestCase):
             config["use_formatting"]
         )  # Should be False because "invalid".lower() != "true"
 
-    def test_gac_max_tokens_valid(self):
-        """Test that valid GAC_MAX_TOKENS value is used."""
-        os.environ["GAC_MAX_TOKENS"] = "4096"
+    def test_gac_max_output_tokens_valid(self):
+        """Test that valid GAC_MAX_OUTPUT_TOKENS value is used."""
+        os.environ["GAC_MAX_OUTPUT_TOKENS"] = "4096"
         config = get_config()
         self.assertEqual(config["max_output_tokens"], 4096)
 
-    def test_gac_max_tokens_invalid(self):
-        """Test that invalid GAC_MAX_TOKENS value is ignored."""
-        os.environ["GAC_MAX_TOKENS"] = "not_a_number"
+    def test_gac_max_output_tokens_invalid(self):
+        """Test that invalid GAC_MAX_OUTPUT_TOKENS value is ignored."""
+        os.environ["GAC_MAX_OUTPUT_TOKENS"] = "not_a_number"
         config = get_config()
         self.assertEqual(config["max_output_tokens"], DEFAULT_CONFIG["max_output_tokens"])
 

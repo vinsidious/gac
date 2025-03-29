@@ -345,7 +345,10 @@ class TestCore(unittest.TestCase):
     def test_send_to_llm(self, mock_count_tokens, mock_chat, mock_get_config):
         """Test send_to_llm function."""
         # Setup mocks
-        mock_get_config.return_value = {"model": "anthropic:claude-3-haiku"}
+        mock_get_config.return_value = {
+            "model": "anthropic:claude-3-haiku",
+            "max_input_tokens": 1000,  # Add this to avoid KeyError
+        }
         mock_count_tokens.return_value = 100
         mock_chat.return_value = "Generated commit message"
 

@@ -22,6 +22,7 @@ DEFAULT_CONFIG = {
     "model": "anthropic:claude-3-5-haiku-latest",  # Default model with provider prefix
     "use_formatting": True,  # Format Python files with black and isort
     "max_output_tokens": 512,  # Maximum tokens in model output
+    "max_input_tokens": 1000,  # Maximum tokens in input prompt
 }
 
 
@@ -33,6 +34,7 @@ def get_config() -> Dict[str, Any]:
     - GAC_MODEL: Fully qualified model ID (provider:model)
     - GAC_USE_FORMATTING: Whether to format Python files
     - GAC_MAX_TOKENS: Maximum output tokens
+    - GAC_MAX_INPUT_TOKENS: Maximum input tokens
 
     Returns:
         Dict: The configuration dictionary
@@ -58,21 +60,18 @@ def get_config() -> Dict[str, Any]:
         config["use_formatting"] = use_formatting
         logger.debug(f"Code formatting {'enabled' if use_formatting else 'disabled'}")
 
-    # Handle token limit
-    if os.environ.get("GAC_MAX_TOKENS"):
+    # Handle token limits
+    if os.environ.get("GAC_MAX_OUTPUT_TOKENS"):
         try:
-            # Remove any comments and whitespace
-            max_tokens_value = os.environ.get("GAC_MAX_TOKENS").split("#", 1)[0].strip()
-            max_tokens = int(max_tokens_value)
-            if max_tokens < 1:
-                raise ValueError("GAC_MAX_TOKENS must be a positive integer")
-            config["max_output_tokens"] = max_tokens
-            logger.debug(f"Using max tokens: {max_tokens}")
-        except ValueError as e:
-            logger.warning(
-                f"Invalid GAC_MAX_TOKENS value: {max_tokens_value}. "
-                f"Using default: {config['max_output_tokens']}. Error: {str(e)}"
-            )
+            config["max_output_tokens"] = int(os.environ["GAC_MAX_OUTPUT_TOKENS"])
+        except ValueError:
+            logger.warning("Invalid GAC_MAX_OUTPUT_TOKENS value, using default")
+
+    if os.environ.get("GAC_MAX_INPUT_TOKENS"):
+        try:
+            config["max_input_tokens"] = int(os.environ["GAC_MAX_INPUT_TOKENS"])
+        except ValueError:
+            logger.warning("Invalid GAC_MAX_INPUT_TOKENS value, using default")
 
     return config
 
