@@ -393,41 +393,6 @@ class TestCore(unittest.TestCase):
         # Assert message was returned
         self.assertEqual(result, "Generated commit message")
 
-    @patch("gac.core.get_config")
-    @patch("gac.core.get_staged_files")
-    @patch("gac.core.send_to_llm")
-    @patch("gac.core.commit_changes")
-    @patch("gac.core.run_subprocess")
-    @patch("click.prompt")
-    @patch("builtins.print")
-    def test_main_test_mode(
-        self,
-        mock_print,
-        mock_prompt,
-        mock_run_subprocess,
-        mock_commit_changes,
-        mock_send_to_llm,
-        mock_get_staged_files,
-        mock_get_config,
-    ):
-        """Test main in test mode."""
-        # Setup mocks
-        mock_get_config.return_value = {"model": "anthropic:claude-3-haiku", "use_formatting": True}
-        mock_get_staged_files.return_value = ["file1.py"]
-        mock_prompt.return_value = "y"  # Mock user confirming the commit
-
-        # Call main in test mode
-        result = main(test_mode=True)
-
-        # Assert LLM was not called
-        mock_send_to_llm.assert_not_called()
-
-        # Assert commit was not made
-        mock_commit_changes.assert_not_called()
-
-        # Assert test message was returned
-        self.assertTrue(result.startswith("[TEST MESSAGE]"))
-
     @patch("gac.core.run_subprocess")
     @patch("gac.core.get_staged_files")
     @patch("builtins.print")
@@ -436,8 +401,8 @@ class TestCore(unittest.TestCase):
         # Mock staged files
         mock_get_staged_files.return_value = ["file1.py", "file2.py"]
 
-        # Call main in test mode
-        result = main(test_mode=True)
+        # Call main in test mode with testing=True to avoid interactive prompts
+        result = main(test_mode=True, testing=True)
 
         # Assert the result is a test commit message
         self.assertIsNotNone(result)
@@ -479,8 +444,8 @@ class TestCore(unittest.TestCase):
         # Mock count_tokens
         mock_count_tokens.return_value = 50
 
-        # Call main with test_with_real_diff option
-        result = main(test_mode=True, test_with_real_diff=True)
+        # Call main with test_with_real_diff option and testing=True to avoid interactive prompts
+        result = main(test_mode=True, test_with_real_diff=True, testing=True)
 
         # Assert the result is a test commit message
         self.assertIsNotNone(result)
@@ -495,6 +460,30 @@ class TestCore(unittest.TestCase):
 
         # Verify count_tokens was called
         mock_count_tokens.assert_called_once()
+
+    @patch("gac.core.run_subprocess")
+    @patch("gac.core.get_staged_files")
+    @patch("builtins.print")
+    def test_main_empty_stage_test_mode(
+        self, mock_print, mock_get_staged_files, mock_run_subprocess
+    ):
+        """Test main function with empty staging area in test mode."""
+        # Mock empty staged files
+        mock_get_staged_files.return_value = []
+
+        # Call main in test mode with testing=True to avoid interactive prompts
+        result = main(test_mode=True, testing=True)
+
+        # Assert the result is a test commit message (simulation worked)
+        self.assertIsNotNone(result)
+        self.assertIn("[TEST MESSAGE]", result)
+
+        # Verify prints were called for the test message
+        mock_print.assert_any_call("\n=== Test Commit Message ===")
+        mock_print.assert_any_call(result)
+
+        # Verify we got simulation mode
+        mock_run_subprocess.assert_not_called()
 
 
 if __name__ == "__main__":

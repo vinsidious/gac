@@ -206,6 +206,7 @@ def main(
     one_liner: bool = False,
     show_prompt: bool = False,
     test_with_real_diff: bool = False,
+    testing: bool = False,  # Used only during test suite runs
 ):
     """
     Main function to generate and apply a commit message.
@@ -221,6 +222,7 @@ def main(
         one_liner: If True, generate a single-line commit message
         show_prompt: If True, display the prompt sent to the LLM
         test_with_real_diff: If True, use the actual git diff in test mode
+        testing: If True, skip interactive prompts (used for automated testing)
 
     Returns:
         The commit message if successful, None otherwise
@@ -245,10 +247,14 @@ def main(
 
     logger.debug("Checking for staged files to commit...")
     staged_files = get_staged_files()
+
+    # Track if we're in simulation mode (for test mode with no real files)
+    simulation_mode = False
+
     if len(staged_files) == 0:
         if test_mode:
             logger.info("No staged files found in test mode")
-            if not force:
+            if not force and not testing:
                 prompt = "Would you like a simulated test experience? (y/n)"
                 proceed = click.prompt(prompt, type=str, default="y").strip().lower()
                 if not proceed or proceed[0] != "y":
@@ -257,6 +263,7 @@ def main(
 
             # Create simulated data for test experience
             logger.info("Using simulated files for test experience")
+            simulation_mode = True
             status = "M app.py\nA utils.py\nA README.md"
             diff = """diff --git a/app.py b/app.py
 index 1234567..abcdefg 100644
@@ -306,10 +313,11 @@ index 0000000..1234567
             logger.info("No staged files to commit.")
             return None
 
+    # Generate commit message (real or test)
     if test_mode:
         logger.info("[TEST MODE ENABLED] Using test commit message")
 
-        if test_with_real_diff:
+        if test_with_real_diff and not simulation_mode:
             logger.info("Using real git diff in test mode")
             status = run_subprocess(["git", "status"])
             diff = run_subprocess(["git", "--no-pager", "diff", "--staged"])
@@ -378,35 +386,68 @@ index 0000000..1234567
         print(f"{commit_message}")
         print("================================\n")
 
-        if force:
-            proceed = "y"
+    # Process commit confirmation for both real and test modes
+    if force or testing:
+        proceed = "y"
+    else:
+        if test_mode and simulation_mode:
+            prompt = "Would you like to simulate proceeding with this commit? (y/n)"
         else:
             prompt = "Do you want to proceed with this commit? (y/n)"
-            proceed = click.prompt(prompt, type=str, default="y").strip().lower()
+        proceed = click.prompt(prompt, type=str, default="y").strip().lower()
 
-        if not proceed or proceed[0] != "y":
-            logger.info("Commit aborted.")
-            return None
+    if not proceed or proceed[0] != "y":
+        logger.info("Commit aborted.")
+        return None
 
-        if test_mode:
+    # Handle test mode or real commit
+    if test_mode:
+        if simulation_mode:
+            logger.info("[SIMULATION] This is a simulated commit (no actual files committed)")
+
+            # Simulate the push prompt as well
+            if force or testing:
+                push = "y"
+            else:
+                prompt = "Would you like to simulate pushing these changes? (y/n)"
+                push = click.prompt(prompt, type=str, default="y").strip().lower()
+
+            if push and push[0] == "y":
+                logger.info("[SIMULATION] Push simulated successfully")
+            else:
+                logger.info("[SIMULATION] Push simulation aborted")
+        else:
             logger.info("[TEST MODE] Commit simulation completed. No actual commit was made.")
-            return commit_message
 
-        commit_changes(commit_message)
-        logger.info("Changes committed successfully.")
+            # Only show push prompt in test mode if not in simulation mode
+            if force or testing:
+                push = "y"
+            else:
+                prompt = "Do you want to push these changes? (y/n)"
+                push = click.prompt(prompt, type=str, default="y").strip().lower()
 
-        if force:
-            push = "y"
-        else:
-            prompt = "Do you want to push these changes? (y/n)"
-            push = click.prompt(prompt, type=str, default="y")
-            push = push.strip().lower()
+            if push and push[0] == "y":
+                logger.info("[TEST MODE] Push simulation completed. No actual push was made.")
+            else:
+                logger.info("Push aborted.")
 
-        if push and push[0] == "y":
-            run_subprocess(["git", "push"])
-            logger.info("Push complete.")
-        else:
-            logger.info("Push aborted.")
+        return commit_message
+
+    # Real commit process
+    commit_changes(commit_message)
+    logger.info("Changes committed successfully.")
+
+    if force or testing:
+        push = "y"
+    else:
+        prompt = "Do you want to push these changes? (y/n)"
+        push = click.prompt(prompt, type=str, default="y").strip().lower()
+
+    if push and push[0] == "y":
+        run_subprocess(["git", "push"])
+        logger.info("Push complete.")
+    else:
+        logger.info("Push aborted.")
 
     return commit_message
 
