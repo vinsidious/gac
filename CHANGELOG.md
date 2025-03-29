@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
-- fix release workflow to use pip install -e instead of requirements.txt
+- fix release workflow to use pip install -e ".[dev]" instead of requirements.txt
 
 ## [0.4.0] - 2025-03-29
 
