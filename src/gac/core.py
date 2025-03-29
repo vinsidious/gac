@@ -99,6 +99,7 @@ def send_to_llm(
     one_liner: bool = False,
     show_prompt: bool = False,
     hint: str = "",
+    force: bool = False,
 ) -> str:
     """
     Send the git status and staged diff to an LLM for summarization.
@@ -109,6 +110,7 @@ def send_to_llm(
         one_liner: If True, request a single-line commit message
         show_prompt: If True, display the prompt sent to the LLM
         hint: Optional context to include in the prompt (like "JIRA-123")
+        force: If True, skip confirmation prompts
 
     Returns:
         The generated commit message
@@ -125,13 +127,16 @@ def send_to_llm(
 
     # Check if token count exceeds the limit
     if token_count > config["max_input_tokens"]:
-        logger.warning(f"Warning: Prompt exceeds token limit ({token_count} > {config['max_input_tokens']})")
-        if not click.confirm(
-            f"The prompt is {token_count:,} tokens, which exceeds the limit of {config['max_input_tokens']:,}. Continue anyway?",
-            default=False,
-        ):
-            logger.info("Operation cancelled by user")
-            return ""
+        logger.warning(
+            f"Warning: Prompt exceeds token limit ({token_count} > {config['max_input_tokens']})"
+        )
+        if not force:
+            if not click.confirm(
+                f"The prompt is {token_count:,} tokens, which exceeds the limit of {config['max_input_tokens']:,}. Continue anyway?",
+                default=False,
+            ):
+                logger.info("Operation cancelled by user")
+                return ""
 
     if show_prompt:
         print("\n=== LLM Prompt ===")
@@ -323,6 +328,7 @@ index 0000000..1234567
             one_liner=one_liner,
             show_prompt=show_prompt,
             hint=hint,
+            force=force,
         )
 
         if not commit_message:

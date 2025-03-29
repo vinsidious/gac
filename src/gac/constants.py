@@ -18,7 +18,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "model": "anthropic:claude-3-5-haiku-latest",  # Default model with provider prefix
     "use_formatting": True,  # Format Python files with black and isort
     "max_output_tokens": 512,  # Maximum tokens in model output
-    "max_input_tokens": 1000,  # Maximum tokens in input prompt
+    "max_input_tokens": 4096,  # Maximum tokens in input prompt
 }
 
 # Environment variable names

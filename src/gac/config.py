@@ -88,22 +88,35 @@ def validate_config(config: Dict[str, Any]) -> bool:
     """
     # Check for required API keys
     provider = config.get("provider", "anthropic")
-    api_key_env = API_KEY_ENV_VARS.get(provider)
-
-    if api_key_env and not os.environ.get(api_key_env):
-        logger.warning(f"Warning: {api_key_env} is not set")
-        return False
+    if provider not in API_KEY_ENV_VARS:
+        raise ConfigError(f"Invalid provider: '{provider}'. Supported providers: {', '.join(API_KEY_ENV_VARS.keys())}")
+    
+    api_key_env = API_KEY_ENV_VARS[provider]
+    if not os.environ.get(api_key_env):
+        raise ConfigError(f"API key not set: {api_key_env}")
 
     # Check model format
     model = config.get("model")
-    if model and ":" not in model:
-        logger.warning(f"Warning: Model '{model}' should be in format 'provider:model_name'")
-        return False
-
+    if not model:
+        raise ConfigError("Model configuration is required")
+    
+    if ":" not in model:
+        raise ConfigError(f"Invalid model format: '{model}'. Model string must be in format 'provider:model_name'")
+    
     # Check token limits
-    if config["max_output_tokens"] <= 0 or config["max_input_tokens"] <= 0:
-        logger.warning("Token limits must be positive integers")
-        return False
+    if config["max_output_tokens"] <= 0:
+        raise ConfigError(f"max_output_tokens must be a positive integer (got {config['max_output_tokens']})")
+    
+    if config["max_input_tokens"] <= 0:
+        raise ConfigError(f"max_input_tokens must be a positive integer (got {config['max_input_tokens']})")
+    
+    if config["max_input_tokens"] > 8192:
+        logger.warning("max_input_tokens is set very high (>8192). This might cause issues with some models")
+    
+    # Check formatting option
+    use_formatting = config.get("use_formatting")
+    if use_formatting not in [True, False]:
+        raise ConfigError(f"use_formatting must be a boolean value (got {use_formatting})")
 
     return True
 
