@@ -23,7 +23,7 @@ jobs:
       # Install dependencies
       - name: Install dependencies
         run: |
-          pip install -e .
+          pip install -e ".[dev]"
           pip install bump-my-version
 
       # Bump version and create tag
