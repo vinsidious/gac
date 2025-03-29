@@ -124,9 +124,9 @@ def send_to_llm(
     logger.info(f"Prompt token count: {token_count:,}")
 
     if show_prompt:
-        logger.info("\n=== LLM Prompt ===")
-        logger.info(prompt)
-        logger.info("==================")
+        print("\n=== LLM Prompt ===")
+        print(prompt)
+        print("==================")
 
     # Get project description and include it in context if available
     project_description = get_project_description()
@@ -170,10 +170,8 @@ def main(
     # Set logging level
     if verbose:
         logger.setLevel(logging.DEBUG)
-    elif quiet:
-        logger.setLevel(logging.ERROR)
     else:
-        logger.setLevel(logging.INFO)
+        logger.setLevel(logging.ERROR)
 
     # Override model if specified
     if model:
@@ -267,9 +265,9 @@ index 0000000..1234567
             logger.info(f"Test prompt token count: {token_count:,}")
 
             if show_prompt:
-                logger.info("\n=== Test LLM Prompt ===")
-                logger.info(prompt)
-                logger.info("=======================")
+                print("\n=== Test LLM Prompt ===")
+                print(prompt)
+                print("=======================")
 
         # Generate appropriate test message
         if one_liner:

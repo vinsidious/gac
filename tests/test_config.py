@@ -32,7 +32,7 @@ class TestConfig(unittest.TestCase):
         os.environ.update(self.original_env)
 
     def test_default_config(self):
-        """Test default configuration when no env vars are set."""
+        """Test that get_config returns default configuration when no env vars are set."""
         # Call get_config
         config = get_config()
 
