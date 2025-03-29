@@ -26,6 +26,7 @@ from rich.logging import RichHandler
 
 from gac.ai_utils import chat, count_tokens
 from gac.config import get_config
+from gac.formatting.formatters import run_black, run_isort
 from gac.git import (
     commit_changes,
     get_existing_staged_python_files,
@@ -34,7 +35,6 @@ from gac.git import (
     get_staged_python_files,
     stage_files,
 )
-from gac.formatting.formatters import run_black, run_isort
 from gac.utils import run_subprocess
 
 load_dotenv()
@@ -43,18 +43,7 @@ logger = logging.getLogger(__name__)
 
 
 def build_prompt(status: str, diff: str, one_liner: bool = False, hint: str = "") -> str:
-    """
-    Build the prompt for the LLM based on git status and diff.
-
-    Args:
-        status: Output of git status
-        diff: Output of git diff --staged
-        one_liner: If True, request a single-line commit message
-        hint: Optional context to include in the prompt (like "JIRA-123")
-
-    Returns:
-        The formatted prompt string
-    """
+    """Build LLM prompt from git status and diff."""
     # fmt: off
     # flake8: noqa: E501
     hint_text = f"\nPlease consider this context from the user: {hint}\n" if hint else ""
@@ -175,26 +164,7 @@ def main(
     testing: bool = False,  # Used only during test suite runs
     hint: str = "",
 ):
-    """
-    Main function to generate and apply a commit message.
-
-    Args:
-        test_mode: If True, use a test message without calling an LLM
-        force: If True, skip user confirmation prompts
-        add_all: If True, stage all changes before committing
-        no_format: If True, skip code formatting
-        quiet: If True, reduce output verbosity
-        verbose: If True, increase output verbosity
-        model: Override default model (format: provider:model)
-        one_liner: If True, generate a single-line commit message
-        show_prompt: If True, display the prompt sent to the LLM
-        test_with_real_diff: If True, use the actual git diff in test mode
-        testing: If True, skip interactive prompts (used for automated testing)
-        hint: Optional context to include in the prompt (like "JIRA-123")
-
-    Returns:
-        The commit message if successful, None otherwise
-    """
+    """Generate and apply a commit message."""
     config = get_config()
 
     # Set logging level
@@ -450,7 +420,7 @@ def cli(
     test_with_diff: bool,
     hint: str,
 ) -> None:
-    """Commit staged changes with an AI-generated commit message."""
+    """Commit staged changes with AI-generated message."""
     # Configure logging based on verbosity options
     log_level = logging.WARNING if quiet else (logging.DEBUG if verbose else logging.INFO)
     logging.basicConfig(

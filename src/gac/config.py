@@ -61,14 +61,16 @@ def get_config() -> Dict[str, Any]:
     # Handle token limit
     if os.environ.get("GAC_MAX_TOKENS"):
         try:
-            max_tokens = int(os.environ.get("GAC_MAX_TOKENS"))
+            # Remove any comments and whitespace
+            max_tokens_value = os.environ.get("GAC_MAX_TOKENS").split("#", 1)[0].strip()
+            max_tokens = int(max_tokens_value)
             if max_tokens < 1:
                 raise ValueError("GAC_MAX_TOKENS must be a positive integer")
             config["max_output_tokens"] = max_tokens
             logger.debug(f"Using max tokens: {max_tokens}")
         except ValueError as e:
             logger.warning(
-                f"Invalid GAC_MAX_TOKENS value: {os.environ.get('GAC_MAX_TOKENS')}. "
+                f"Invalid GAC_MAX_TOKENS value: {max_tokens_value}. "
                 f"Using default: {config['max_output_tokens']}. Error: {str(e)}"
             )
 
@@ -76,7 +78,7 @@ def get_config() -> Dict[str, Any]:
 
 
 def validate_config() -> bool:
-    """Validate the current configuration."""
+    """Validate current configuration."""
     config = get_config()
 
     # Check for required API keys
