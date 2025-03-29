@@ -246,8 +246,65 @@ def main(
     logger.debug("Checking for staged files to commit...")
     staged_files = get_staged_files()
     if len(staged_files) == 0:
-        logger.info("No staged files to commit.")
-        return None
+        if test_mode:
+            logger.info("No staged files found in test mode")
+            if not force:
+                prompt = "Would you like a simulated test experience? (y/n)"
+                proceed = click.prompt(prompt, type=str, default="y").strip().lower()
+                if not proceed or proceed[0] != "y":
+                    logger.info("Test simulation cancelled")
+                    return None
+
+            # Create simulated data for test experience
+            logger.info("Using simulated files for test experience")
+            status = "M app.py\nA utils.py\nA README.md"
+            diff = """diff --git a/app.py b/app.py
+index 1234567..abcdefg 100644
+--- a/app.py
++++ b/app.py
+@@ -10,7 +10,9 @@ def main():
+     # Process command-line arguments
+     args = parse_args()
+     
+-    # Configure logging
++    # Configure logging with improved format
++    logging.basicConfig(level=logging.INFO)
++    logger.info("Starting application")
+     
+     # Load configuration
+     config = load_config(args.config)
+diff --git a/utils.py b/utils.py
+new file mode 100644
+index 0000000..fedcba9
+--- /dev/null
++++ b/utils.py
+@@ -0,0 +1,8 @@
++def parse_args():
++    \"\"\"Parse command line arguments.\"\"\"
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--config", help="Path to config file")
++    return parser.parse_args()
++
++def load_config(path):
++    \"\"\"Load configuration from file.\"\"\"
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..1234567
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,3 @@
++# Sample Project
++
++This is a sample project for testing commit messages.
+"""
+            # Set simulated files to match the diff
+            staged_files = ["app.py", "utils.py", "README.md"]
+            # If test_with_real_diff was set, inform that we're using simulation instead
+            if test_with_real_diff:
+                logger.info("Using simulated diff instead of real diff (no staged files)")
+        else:
+            logger.info("No staged files to commit.")
+            return None
 
     if test_mode:
         logger.info("[TEST MODE ENABLED] Using test commit message")
