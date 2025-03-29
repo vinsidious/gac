@@ -20,8 +20,12 @@ def get_staged_files() -> List[str]:
     """
     logger.debug("Checking staged files...")
     result = run_subprocess(["git", "status", "-s"])
-    # Filter for only staged files (M prefix) and extract filenames
-    return [line.split()[1] for line in result.splitlines() if line.startswith("M ")]
+    # Filter for all staged files (M, A, D, R prefixes) and extract filenames
+    return [
+        line.split()[1]
+        for line in result.splitlines()
+        if line[0] in "MARD"  # Modified, Added, Deleted, Renamed
+    ]
 
 
 def get_staged_python_files() -> List[str]:
@@ -70,7 +74,8 @@ def stage_files(files: List[str]) -> bool:
     Stage files for commit.
 
     Args:
-        files: List of files to stage
+        files: List of files to stage (e.g., ["file1.py", "file2.py"])
+               To stage all files, use ["*"]
 
     Returns:
         True if successful, False otherwise
@@ -84,7 +89,8 @@ def stage_files(files: List[str]) -> bool:
     try:
         result = run_subprocess(["git", "add"] + files)
         logger.info("Files staged.")
-        return bool(result)
+        # Check if git add was successful by looking for error output
+        return "fatal" not in result.lower()
     except subprocess.CalledProcessError as e:
         logger.error(f"Error staging files: {e}")
         return False
