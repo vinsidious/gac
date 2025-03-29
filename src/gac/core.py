@@ -280,7 +280,8 @@ def main(
         push = "y"
     else:
         prompt = "Do you want to push these changes? (y/n)"
-        push = click.prompt(prompt, type=str, default="y").strip().lower()
+        push = click.prompt(prompt, type=str, default="y")
+        push = push.strip().lower()
 
     if push and push[0] == "y":
         run_subprocess(["git", "push"])
