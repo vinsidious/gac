@@ -262,7 +262,7 @@ def main(
     if force:
         proceed = "y"
     else:
-        prompt = "Do you want to proceed with this commit? (y/n): "
+        prompt = "Do you want to proceed with this commit? (y/n)"
         proceed = click.prompt(prompt, type=str, default="y").strip().lower()
 
     if not proceed or proceed[0] != "y":
@@ -279,7 +279,7 @@ def main(
     if force:
         push = "y"
     else:
-        prompt = "Do you want to push these changes? (y/n): "
+        prompt = "Do you want to push these changes? (y/n)"
         push = click.prompt(prompt, type=str, default="y").strip().lower()
 
     if push and push[0] == "y":
