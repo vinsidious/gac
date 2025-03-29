@@ -106,7 +106,7 @@ def send_to_llm(status: str, diff: str, one_liner: bool = False) -> str:
             "Format:\n"
             "[type]: Short summary of changes (50 chars or less)\n\n"
             "[feat/fix/docs/refactor/test/chore/other]: <description>\n\n"
-            "Git Status:\n"
+            "Git Status (git status -s):\n"
             "```\n"
             + status
             + "\n```\n\n"
