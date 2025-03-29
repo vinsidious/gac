@@ -83,9 +83,9 @@ def run_isort() -> bool:
     return n_formatted > 0
 
 
-def send_to_llm(status: str, diff: str, one_liner: bool = False) -> str:
+def build_prompt(status: str, diff: str, one_liner: bool = False) -> str:
     """
-    Send the git status and staged diff to an LLM for summarization.
+    Build the prompt for the LLM based on git status and diff.
 
     Args:
         status: Output of git status
@@ -93,10 +93,8 @@ def send_to_llm(status: str, diff: str, one_liner: bool = False) -> str:
         one_liner: If True, request a single-line commit message
 
     Returns:
-        The generated commit message
+        The formatted prompt string
     """
-    config = get_config()
-    model = config["model"]
     # fmt: off
     # flake8: noqa: E501
     if one_liner:
@@ -107,11 +105,11 @@ def send_to_llm(status: str, diff: str, one_liner: bool = False) -> str:
             "[type]: Short summary of changes (50 chars or less)\n\n"
             "[feat/fix/docs/refactor/test/chore/other]: <description>\n\n"
             "Git Status (git status -s):\n"
-            "```\n"
+            "``\n"
             + status
-            + "\n```\n\n"
+            + "\n``\n\n"
             "Git Diff:\n"
-            "```\n"
+            "``\n"
             + diff
             + "\n```"
         )
@@ -130,20 +128,50 @@ def send_to_llm(status: str, diff: str, one_liner: bool = False) -> str:
             " - Change 2\n"
             " - Change 3\n\n"
             "Git Status (git status -s):\n"
-            "```\n"
+            "``\n"
             + status
-            + "\n```\n\n"
+            + "\n``\n\n"
             "Git Diff:\n"
-            "```\n"
+            "``\n"
             + diff
             + "\n```"
         )
     # fmt: on
+    return prompt
+
+
+def send_to_llm(
+    status: str,
+    diff: str,
+    one_liner: bool = False,
+    show_prompt: bool = False,
+) -> str:
+    """
+    Send the git status and staged diff to an LLM for summarization.
+
+    Args:
+        status: Output of git status
+        diff: Output of git diff --staged
+        one_liner: If True, request a single-line commit message
+        show_prompt: If True, display the prompt sent to the LLM
+
+    Returns:
+        The generated commit message
+    """
+    config = get_config()
+    model = config["model"]
+
+    prompt = build_prompt(status, diff, one_liner)
 
     logger.info(f"Using model: {model}")
     logger.info(f"Prompt length: {len(prompt)} characters")
     token_count = count_tokens(prompt, model)
     logger.info(f"Prompt token count: {token_count:,}")
+
+    if show_prompt:
+        logger.info("\n=== LLM Prompt ===")
+        logger.info(prompt)
+        logger.info("==================")
 
     # Get project description and include it in context if available
     project_description = get_project_description()
@@ -176,7 +204,8 @@ def main(
     verbose: bool = False,
     model: Optional[str] = None,
     one_liner: bool = False,
-) -> Optional[str]:
+    show_prompt: bool = False,
+):
     """
     Main function to generate and apply a commit message.
 
@@ -189,6 +218,7 @@ def main(
         verbose: If True, increase output verbosity
         model: Override default model (format: provider:model)
         one_liner: If True, generate a single-line commit message
+        show_prompt: If True, display the prompt sent to the LLM
 
     Returns:
         The commit message if successful, None otherwise
@@ -224,6 +254,9 @@ def main(
  - This is a test bullet point
  - Another test bullet point
  - Final test bullet point for demonstration"""
+        print("\n=== Test Commit Message ===")
+        print(f"{commit_message}")
+        print("========================\n")
     else:
         logger.debug("Checking for Python files to format...")
         python_files = get_staged_python_files()
@@ -249,64 +282,64 @@ def main(
         logger.info("Generating commit message...")
         status = run_subprocess(["git", "status"])
         diff = run_subprocess(["git", "--no-pager", "diff", "--staged"])
-        commit_message = send_to_llm(status=status, diff=diff, one_liner=one_liner)
+        commit_message = send_to_llm(
+            status=status,
+            diff=diff,
+            one_liner=one_liner,
+            show_prompt=show_prompt,
+        )
 
-    if not commit_message:
-        logger.error("Failed to generate commit message.")
-        return None
+        if not commit_message:
+            logger.error("Failed to generate commit message.")
+            return None
 
-    print("\n=== Suggested Commit Message ===")
-    print(f"{commit_message}")
-    print("================================\n")
+        print("\n=== Suggested Commit Message ===")
+        print(f"{commit_message}")
+        print("================================\n")
 
-    if force:
-        proceed = "y"
-    else:
-        prompt = "Do you want to proceed with this commit? (y/n)"
-        proceed = click.prompt(prompt, type=str, default="y").strip().lower()
+        if force:
+            proceed = "y"
+        else:
+            prompt = "Do you want to proceed with this commit? (y/n)"
+            proceed = click.prompt(prompt, type=str, default="y").strip().lower()
 
-    if not proceed or proceed[0] != "y":
-        logger.info("Commit aborted.")
-        return None
+        if not proceed or proceed[0] != "y":
+            logger.info("Commit aborted.")
+            return None
 
-    if test_mode:
-        logger.info("[TEST MODE] Commit simulation completed. No actual commit was made.")
-        return commit_message
+        if test_mode:
+            logger.info("[TEST MODE] Commit simulation completed. No actual commit was made.")
+            return commit_message
 
-    commit_changes(commit_message)
-    logger.info("Changes committed successfully.")
+        commit_changes(commit_message)
+        logger.info("Changes committed successfully.")
 
-    if force:
-        push = "y"
-    else:
-        prompt = "Do you want to push these changes? (y/n)"
-        push = click.prompt(prompt, type=str, default="y")
-        push = push.strip().lower()
+        if force:
+            push = "y"
+        else:
+            prompt = "Do you want to push these changes? (y/n)"
+            push = click.prompt(prompt, type=str, default="y")
+            push = push.strip().lower()
 
-    if push and push[0] == "y":
-        run_subprocess(["git", "push"])
-        logger.info("Push complete.")
-    else:
-        logger.info("Push aborted.")
+        if push and push[0] == "y":
+            run_subprocess(["git", "push"])
+            logger.info("Push complete.")
+        else:
+            logger.info("Push aborted.")
 
     return commit_message
 
 
 @click.command()
-@click.option("--test", "-t", is_flag=True, help="Run in test mode")
-@click.option(
-    "--force",
-    "-f",
-    "-y",
-    is_flag=True,
-    help="Force commit without user prompting (yes to all prompts)",
-)
+@click.option("--test", "-t", is_flag=True, help="Use a test message without calling an LLM")
+@click.option("--force", "-f", "-y", is_flag=True, help="Skip user confirmation prompts")
 @click.option("--add-all", "-a", is_flag=True, help="Stage all changes before committing")
 @click.option("--quiet", "-q", is_flag=True, help="Reduce output verbosity")
 @click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity")
-@click.option("--no-format", "-nf", is_flag=True, help="Disable formatting")
-@click.option("--model", "-m", help="Override default model (format: provider:model)")
+@click.option("--no-format", "-nf", is_flag=True, help="Skip code formatting")
+@click.option("--model", "-m", type=str, help="Override default model (format: provider:model)")
 @click.option("--one-liner", "-o", is_flag=True, help="Generate a single-line commit message")
+@click.option("--show-prompt", "-sp", is_flag=True, help="Show the prompt sent to the LLM")
 def cli(
     test: bool,
     force: bool,
@@ -316,6 +349,7 @@ def cli(
     no_format: bool,
     model: str,
     one_liner: bool,
+    show_prompt: bool,
 ) -> None:
     """Commit staged changes with an AI-generated commit message."""
     # Configure logging based on verbosity options
@@ -336,6 +370,7 @@ def cli(
         verbose=verbose,
         model=model,
         one_liner=one_liner,
+        show_prompt=show_prompt,
     )
 
 
