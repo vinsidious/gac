@@ -62,12 +62,14 @@ def get_config() -> Dict[str, Any]:
     if os.environ.get("GAC_MAX_TOKENS"):
         try:
             max_tokens = int(os.environ.get("GAC_MAX_TOKENS"))
+            if max_tokens < 1:
+                raise ValueError("GAC_MAX_TOKENS must be a positive integer")
             config["max_output_tokens"] = max_tokens
             logger.debug(f"Using max tokens: {max_tokens}")
-        except ValueError:
+        except ValueError as e:
             logger.warning(
                 f"Invalid GAC_MAX_TOKENS value: {os.environ.get('GAC_MAX_TOKENS')}. "
-                f"Using default: {config['max_output_tokens']}"
+                f"Using default: {config['max_output_tokens']}. Error: {str(e)}"
             )
 
     return config
