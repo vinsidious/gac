@@ -4,7 +4,7 @@ import subprocess
 import unittest
 from unittest.mock import MagicMock, patch
 
-from gac.core import main, run_black, run_isort, run_subprocess, send_to_llm
+from gac.core import build_prompt, main, run_subprocess, send_to_llm
 
 
 class TestCore(unittest.TestCase):
@@ -484,6 +484,24 @@ class TestCore(unittest.TestCase):
 
         # Verify we got simulation mode
         mock_run_subprocess.assert_not_called()
+
+    def test_build_prompt_with_hint(self):
+        """Test that the hint is properly incorporated into the prompt."""
+        status = "M file1.py"
+        diff = "diff --git a/file1.py b/file1.py\n+test content"
+        hint = "JIRA-123"
+
+        # Test with hint in regular mode
+        prompt = build_prompt(status, diff, one_liner=False, hint=hint)
+        self.assertIn("Please consider this context from the user: JIRA-123", prompt)
+
+        # Test with hint in one-liner mode
+        one_liner_prompt = build_prompt(status, diff, one_liner=True, hint=hint)
+        self.assertIn("Please consider this context from the user: JIRA-123", one_liner_prompt)
+
+        # Test without hint
+        no_hint_prompt = build_prompt(status, diff, one_liner=False)
+        self.assertNotIn("Please consider this context", no_hint_prompt)
 
 
 if __name__ == "__main__":

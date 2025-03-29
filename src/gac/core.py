@@ -83,7 +83,7 @@ def run_isort() -> bool:
     return n_formatted > 0
 
 
-def build_prompt(status: str, diff: str, one_liner: bool = False) -> str:
+def build_prompt(status: str, diff: str, one_liner: bool = False, hint: str = "") -> str:
     """
     Build the prompt for the LLM based on git status and diff.
 
@@ -91,19 +91,23 @@ def build_prompt(status: str, diff: str, one_liner: bool = False) -> str:
         status: Output of git status
         diff: Output of git diff --staged
         one_liner: If True, request a single-line commit message
+        hint: Optional context to include in the prompt (like "JIRA-123")
 
     Returns:
         The formatted prompt string
     """
     # fmt: off
     # flake8: noqa: E501
+    hint_text = f"\nPlease consider this context from the user: {hint}\n" if hint else ""
+    
     if one_liner:
         prompt = (
             "Analyze this git status and git diff and write ONLY a commit message as a single line. "
             "Do not include any other text, explanation, or commentary.\n\n"
             "Format:\n"
             "[type]: Short summary of changes (50 chars or less)\n\n"
-            "[feat/fix/docs/refactor/test/chore/other]: <description>\n\n"
+            "[feat/fix/docs/refactor/test/chore/other]: <description>"
+            f"{hint_text}\n"
             "Git Status (git status -s):\n"
             "```\n"
             + status
@@ -126,7 +130,8 @@ def build_prompt(status: str, diff: str, one_liner: bool = False) -> str:
             "[category]: Main description\n"
             " - Change 1\n"
             " - Change 2\n"
-            " - Change 3\n\n"
+            " - Change 3"
+            f"{hint_text}\n"
             "Git Status (git status -s):\n"
             "```\n"
             + status
@@ -145,6 +150,7 @@ def send_to_llm(
     diff: str,
     one_liner: bool = False,
     show_prompt: bool = False,
+    hint: str = "",
 ) -> str:
     """
     Send the git status and staged diff to an LLM for summarization.
@@ -154,6 +160,7 @@ def send_to_llm(
         diff: Output of git diff --staged
         one_liner: If True, request a single-line commit message
         show_prompt: If True, display the prompt sent to the LLM
+        hint: Optional context to include in the prompt (like "JIRA-123")
 
     Returns:
         The generated commit message
@@ -161,7 +168,7 @@ def send_to_llm(
     config = get_config()
     model = config["model"]
 
-    prompt = build_prompt(status, diff, one_liner)
+    prompt = build_prompt(status, diff, one_liner, hint)
 
     logger.info(f"Using model: {model}")
     logger.info(f"Prompt length: {len(prompt)} characters")
@@ -207,6 +214,7 @@ def main(
     show_prompt: bool = False,
     test_with_real_diff: bool = False,
     testing: bool = False,  # Used only during test suite runs
+    hint: str = "",
 ):
     """
     Main function to generate and apply a commit message.
@@ -223,6 +231,7 @@ def main(
         show_prompt: If True, display the prompt sent to the LLM
         test_with_real_diff: If True, use the actual git diff in test mode
         testing: If True, skip interactive prompts (used for automated testing)
+        hint: Optional context to include in the prompt (like "JIRA-123")
 
     Returns:
         The commit message if successful, None otherwise
@@ -323,7 +332,7 @@ index 0000000..1234567
             diff = run_subprocess(["git", "--no-pager", "diff", "--staged"])
 
             # Build a test prompt and log info about it
-            prompt = build_prompt(status, diff, one_liner)
+            prompt = build_prompt(status, diff, one_liner, hint)
             logger.info(f"Test prompt length: {len(prompt)} characters")
             token_count = count_tokens(prompt, config["model"])
             logger.info(f"Test prompt token count: {token_count:,}")
@@ -376,6 +385,7 @@ index 0000000..1234567
             diff=diff,
             one_liner=one_liner,
             show_prompt=show_prompt,
+            hint=hint,
         )
 
         if not commit_message:
@@ -465,6 +475,9 @@ index 0000000..1234567
 @click.option(
     "--test-with-diff", is_flag=True, help="Use actual git diff with test mode (only with --test)"
 )
+@click.option(
+    "--hint", "-h", type=str, help="Optional context to include in the prompt (like 'JIRA-123')"
+)
 def cli(
     test: bool,
     force: bool,
@@ -476,6 +489,7 @@ def cli(
     one_liner: bool,
     show_prompt: bool,
     test_with_diff: bool,
+    hint: str,
 ) -> None:
     """Commit staged changes with an AI-generated commit message."""
     # Configure logging based on verbosity options
@@ -502,6 +516,7 @@ def cli(
         one_liner=one_liner,
         show_prompt=show_prompt,
         test_with_real_diff=test_with_diff,
+        hint=hint,
     )
 
 
