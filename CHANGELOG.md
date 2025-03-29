@@ -11,18 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- 🌟 Enhanced project description retrieval feature for improved commit message context
-- 📝 Added option for generating one-liner commit messages
+- 🌟 Enhanced project description retrieval for improved commit message context
+- 🔄 Added optional hint context for commit messages
+- 📝 Added one-liner commit message generation option
+- 🔍 Added support for simulated files in test mode
 - 🚀 Created changelog preparation script for release management
-- 🔍 Added GitHub release workflow
+- 🔧 Added formatting module with code extraction
 
 ### Changed
 
-- 🔧 Improved LLM commit message generation process
-- 🛠️ Refactored git status comment and file detection methods
+- 🛠️ Refactored git status detection and file handling methods
 - 💡 Updated multi-provider examples with latest model names
 - 📊 Reduced default max output tokens from 8192 to 512
 - 🔄 Switched from `bumpversion` to `bump-my-version` for version management
+- 🧩 Enhanced test mode with real diff and simulation support
+- 📝 Updated `.env.example` configuration details
 
 ### Removed
 
@@ -32,11 +35,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - 🐛 Improve git staged files detection and staging
 - 🔧 Remove colon from commit prompts
-- 📝 Update `.env.example` with refined configuration details
+- 📝 Enhance token parsing and validation in configuration
+- 🛡️ Improve error handling in configuration and core modules
 
 ### Security
 
 - 📦 Enhanced version bumping and release processes in CI/CD workflows
+- 🔐 Added GitHub release workflow with version management
 
 ## [0.3.1] - 2025-03-27
 
