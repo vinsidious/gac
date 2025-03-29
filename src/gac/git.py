@@ -15,17 +15,17 @@ def get_staged_files() -> List[str]:
     """
     Get list of filenames of all staged files.
 
+    M = Modified
+    A = Added
+    D = Deleted
+    R = Renamed
+
     Returns:
         List of staged file paths
     """
     logger.debug("Checking staged files...")
     result = run_subprocess(["git", "status", "-s"])
-    # Filter for all staged files (M, A, D, R prefixes) and extract filenames
-    return [
-        line.split()[1]
-        for line in result.splitlines()
-        if line[0] in "MARD"  # Modified, Added, Deleted, Renamed
-    ]
+    return [line.split()[1] for line in result.splitlines() if line[0] in "MADR"]
 
 
 def get_staged_python_files() -> List[str]:

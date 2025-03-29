@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added 
+### Added
 
 - 🌟 Enhanced project description retrieval feature for improved commit message context
 - 📝 Added option for generating one-liner commit messages

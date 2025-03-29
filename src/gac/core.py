@@ -105,11 +105,11 @@ def build_prompt(status: str, diff: str, one_liner: bool = False) -> str:
             "[type]: Short summary of changes (50 chars or less)\n\n"
             "[feat/fix/docs/refactor/test/chore/other]: <description>\n\n"
             "Git Status (git status -s):\n"
-            "``\n"
+            "```\n"
             + status
-            + "\n``\n\n"
+            + "\n```\n\n"
             "Git Diff:\n"
-            "``\n"
+            "```\n"
             + diff
             + "\n```"
         )
@@ -128,11 +128,11 @@ def build_prompt(status: str, diff: str, one_liner: bool = False) -> str:
             " - Change 2\n"
             " - Change 3\n\n"
             "Git Status (git status -s):\n"
-            "``\n"
+            "```\n"
             + status
-            + "\n``\n\n"
+            + "\n```\n\n"
             "Git Diff:\n"
-            "``\n"
+            "```\n"
             + diff
             + "\n```"
         )
@@ -205,6 +205,7 @@ def main(
     model: Optional[str] = None,
     one_liner: bool = False,
     show_prompt: bool = False,
+    test_with_real_diff: bool = False,
 ):
     """
     Main function to generate and apply a commit message.
@@ -219,6 +220,7 @@ def main(
         model: Override default model (format: provider:model)
         one_liner: If True, generate a single-line commit message
         show_prompt: If True, display the prompt sent to the LLM
+        test_with_real_diff: If True, use the actual git diff in test mode
 
     Returns:
         The commit message if successful, None otherwise
@@ -248,12 +250,34 @@ def main(
         return None
 
     if test_mode:
-        logger.info("[TEST MODE ENABLED] Using example commit message")
-        commit_message = """[TEST MESSAGE] Example commit format
+        logger.info("[TEST MODE ENABLED] Using test commit message")
+
+        if test_with_real_diff:
+            logger.info("Using real git diff in test mode")
+            status = run_subprocess(["git", "status"])
+            diff = run_subprocess(["git", "--no-pager", "diff", "--staged"])
+
+            # Build a test prompt and log info about it
+            prompt = build_prompt(status, diff, one_liner)
+            logger.info(f"Test prompt length: {len(prompt)} characters")
+            token_count = count_tokens(prompt, config["model"])
+            logger.info(f"Test prompt token count: {token_count:,}")
+
+            if show_prompt:
+                logger.info("\n=== Test LLM Prompt ===")
+                logger.info(prompt)
+                logger.info("=======================")
+
+        # Generate appropriate test message
+        if one_liner:
+            commit_message = "[feat]: Add support for OAuth2 authentication with multiple providers"
+        else:
+            commit_message = """[TEST MESSAGE] Example commit format
 [feat]: This is a test commit message to demonstrate formatting
  - This is a test bullet point
  - Another test bullet point
  - Final test bullet point for demonstration"""
+
         print("\n=== Test Commit Message ===")
         print(f"{commit_message}")
         print("========================\n")
@@ -340,6 +364,9 @@ def main(
 @click.option("--model", "-m", type=str, help="Override default model (format: provider:model)")
 @click.option("--one-liner", "-o", is_flag=True, help="Generate a single-line commit message")
 @click.option("--show-prompt", "-sp", is_flag=True, help="Show the prompt sent to the LLM")
+@click.option(
+    "--test-with-diff", is_flag=True, help="Use actual git diff with test mode (only with --test)"
+)
 def cli(
     test: bool,
     force: bool,
@@ -350,6 +377,7 @@ def cli(
     model: str,
     one_liner: bool,
     show_prompt: bool,
+    test_with_diff: bool,
 ) -> None:
     """Commit staged changes with an AI-generated commit message."""
     # Configure logging based on verbosity options
@@ -360,7 +388,11 @@ def cli(
         handlers=[RichHandler(rich_tracebacks=True, markup=True)],
     )
 
-    # Run the main function
+    # If model option is provided, add to global config
+    if model:
+        os.environ["GAC_MODEL"] = model
+
+    # Run the main function with options
     main(
         test_mode=test,
         force=force,
@@ -371,6 +403,7 @@ def cli(
         model=model,
         one_liner=one_liner,
         show_prompt=show_prompt,
+        test_with_real_diff=test_with_diff,
     )
 
 
