@@ -34,53 +34,12 @@ from gac.git import (
     get_staged_python_files,
     stage_files,
 )
+from gac.formatting.formatters import run_black, run_isort
 from gac.utils import run_subprocess
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
-
-
-def run_black() -> bool:
-    """
-    Run black code formatter on staged Python files.
-
-    Returns:
-        True if files were formatted, False otherwise
-    """
-    logger.debug("Identifying Python files for formatting with black...")
-    python_files = get_existing_staged_python_files()
-    if not python_files:
-        logger.info("No existing Python files to format with black.")
-        return False
-    n_before = len(python_files)
-    run_subprocess(["black"] + python_files)
-    logger.debug("Checking which files were modified by black...")
-    formatted_files = get_staged_python_files()
-    n_formatted = n_before - len(formatted_files)
-    logger.info(f"Black formatted {n_formatted} files.")
-    return n_formatted > 0
-
-
-def run_isort() -> bool:
-    """
-    Run isort import sorter on staged Python files.
-
-    Returns:
-        True if files were formatted, False otherwise
-    """
-    logger.debug("Identifying Python files for import sorting with isort...")
-    python_files = get_existing_staged_python_files()
-    if not python_files:
-        logger.info("No existing Python files to format with isort.")
-        return False
-    n_before = len(python_files)
-    run_subprocess(["isort"] + python_files)
-    logger.debug("Checking which files were modified by isort...")
-    formatted_files = get_staged_python_files()
-    n_formatted = n_before - len(formatted_files)
-    logger.info(f"isort formatted {n_formatted} files.")
-    return n_formatted > 0
 
 
 def build_prompt(status: str, diff: str, one_liner: bool = False, hint: str = "") -> str:
