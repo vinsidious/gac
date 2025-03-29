@@ -20,14 +20,14 @@ class TestGit(unittest.TestCase):
     @patch("gac.git.run_subprocess")
     def test_get_staged_files(self, mock_run_subprocess):
         """Test get_staged_files returns correct result."""
-        # Mock run_subprocess to return staged files
-        mock_run_subprocess.return_value = "file1.py\nfile2.md\nfile3.js"
+        # Mock run_subprocess to return staged files with git status -s format
+        mock_run_subprocess.return_value = "M file1.py\nM file2.md\nM file3.js\n?? unstaged.txt"
 
         # Call get_staged_files
         result = get_staged_files()
 
-        # Assert mock was called correctly with git diff command
-        mock_run_subprocess.assert_called_once_with(["git", "diff", "--staged", "--name-only"])
+        # Assert mock was called correctly with git status -s
+        mock_run_subprocess.assert_called_once_with(["git", "status", "-s"])
 
         # Assert result is list of files
         self.assertEqual(result, ["file1.py", "file2.md", "file3.js"])

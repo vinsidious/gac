@@ -19,8 +19,9 @@ def get_staged_files() -> List[str]:
         List of staged file paths
     """
     logger.debug("Checking staged files...")
-    result = run_subprocess(["git", "diff", "--staged", "--name-only"])
-    return result.splitlines()
+    result = run_subprocess(["git", "status", "-s"])
+    # Filter for only staged files (M prefix) and extract filenames
+    return [line.split()[1] for line in result.splitlines() if line.startswith("M ")]
 
 
 def get_staged_python_files() -> List[str]:

@@ -129,7 +129,7 @@ def send_to_llm(status: str, diff: str, one_liner: bool = False) -> str:
             " - Change 1\n"
             " - Change 2\n"
             " - Change 3\n\n"
-            "Git Status:\n"
+            "Git Status (git status -s):\n"
             "```\n"
             + status
             + "\n```\n\n"
