@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added 🚀
+
+- New code formatters for JavaScript, TypeScript, Markdown, HTML, CSS, JSON, YAML, Rust, and Go
+- Support for splitting simulation mode and test mode with all-caps labeling
+
+### Changed 🔧
+
+- Refactored `ai_utils.py` with improved token counting and encoding detection
+- Simplified constants and git module imports
+- Enhanced formatting system with optimized file detection and formatter integration
+- Removed pytest's `--no-cov` flag in configuration
+
+### Improved 🌟
+
+- Increased test coverage to 94%
+- Streamlined configuration and formatting modules
+
+### Refactored 🔨
+
+- Updated `main()` to support enhanced formatting system for all file types
+- Simplified git module functions and added more robust file handling
+
 ## [0.4.2] - 2025-03-31
 
 ### Added 🚀
