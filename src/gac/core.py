@@ -282,16 +282,12 @@ index 0000000..1234567
 
     # Format only the staged changes
     if not no_format and not testing:
-        python_files = get_staged_files(file_type=".py")
-        if python_files:
-            logger.info(f"Formatting {len(python_files)} Python files...")
-            format_staged_files()
-            logger.debug("Re-staging Python files after formatting...")
-            existing_python_files = get_staged_files(file_type=".py", existing_only=True)
-            if existing_python_files:
-                stage_files(existing_python_files)
-            else:
-                logger.info("No existing Python files to re-stage after formatting.")
+        logger.info("Formatting staged files...")
+        any_formatted, formatted_exts = format_staged_files(stage_after_format=True)
+        if any_formatted:
+            logger.info(f"Formatted files with extensions: {', '.join(formatted_exts)}")
+        else:
+            logger.debug("No files were formatted.")
 
     # Restore unstaged changes if needed
     if restore_unstaged:
@@ -336,19 +332,15 @@ index 0000000..1234567
                 force=force,
             )
     else:
-        logger.debug("Checking for Python files to format...")
-        python_files = get_staged_files(file_type=".py")
-        existing_python_files = get_staged_files(file_type=".py", existing_only=True)
+        logger.debug("Checking for files to format...")
 
-        # Only run formatting if enabled and there are Python files
-        if existing_python_files and config["use_formatting"] and not no_format:
-            format_staged_files()
-            logger.debug("Re-staging Python files after formatting...")
-            existing_python_files = get_staged_files(file_type=".py", existing_only=True)
-            if existing_python_files:
-                stage_files(existing_python_files)
+        # Only run formatting if enabled
+        if config["use_formatting"] and not no_format:
+            any_formatted, formatted_exts = format_staged_files(stage_after_format=True)
+            if any_formatted:
+                logger.info(f"Formatted files with extensions: {', '.join(formatted_exts)}")
             else:
-                logger.info("No existing Python files to re-stage after formatting.")
+                logger.debug("No files were formatted.")
 
         logger.info("Generating commit message...")
         status = run_subprocess(["git", "status"])
