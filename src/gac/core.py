@@ -161,11 +161,13 @@ def send_to_llm(
     if show_prompt:
         border_length = get_border_length(prompt)
         header = "=== LLM Prompt ==="
-        padding = "=" * ((border_length - len(header)) // 2)
-        top_border = f"{padding}{header}{padding}"
-        # Add an extra = if needed to match bottom border length
-        if len(top_border) < border_length:
-            top_border += "="
+        # Calculate padding ensuring equal sides
+        total_padding = border_length - len(header)
+        left_padding = total_padding // 2
+        right_padding = (
+            total_padding - left_padding
+        )  # This ensures right side gets the extra = if total_padding is odd
+        top_border = f"{'=' * left_padding}{header}{'=' * right_padding}"
         print(f"\n{top_border}")
         print(prompt)
         print("=" * border_length)
@@ -401,11 +403,13 @@ index 0000000..1234567
 
     border_length = get_border_length(commit_message)
     header = "=== Suggested Commit Message ==="
-    padding = "=" * ((border_length - len(header)) // 2)
-    top_border = f"{padding}{header}{padding}"
-    # Add an extra = if needed to match bottom border length
-    if len(top_border) < border_length:
-        top_border += "="
+    # Calculate padding ensuring equal sides
+    total_padding = border_length - len(header)
+    left_padding = total_padding // 2
+    right_padding = (
+        total_padding - left_padding
+    )  # This ensures right side gets the extra = if total_padding is odd
+    top_border = f"{'=' * left_padding}{header}{'=' * right_padding}"
     print(f"\n{top_border}")
     print(f"{commit_message}")
     print("=" * border_length + "\n")
