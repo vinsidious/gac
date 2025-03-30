@@ -6,6 +6,11 @@ on:
       - main
   workflow_dispatch:  # Allow manual triggering
 
+# Add permissions at workflow level
+permissions:
+  contents: write  # Required for creating GitHub releases
+  packages: write  # Required for publishing packages
+
 jobs:
   check-for-changes:
     runs-on: ubuntu-latest
@@ -30,6 +35,10 @@ jobs:
     needs: check-for-changes
     if: ${{ needs.check-for-changes.outputs.should_release == 'true' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
+    # Add permissions for this job too for clarity
+    permissions:
+      contents: write
+      packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

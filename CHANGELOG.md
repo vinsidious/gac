@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added 🚀
+
+- Nightly release GitHub Actions workflow with automated builds and release process
+- Configuration support for max input and output tokens
+- Comprehensive README configuration guide
+
+### Changed 🔧
+
+- Simplified black and isort formatting logic
+- Enhanced subprocess handling and error management
+- Improved config validation and token limits
+- Updated .env.example with more comprehensive configuration options
+
+### Refactored 🛠️
+
+- Restructured configuration parsing in config.py
+- Enhanced test fixtures and mock configurations
+- Adjusted logging and print statement behaviors
+
+### Fixed 🐛
+
+- Improved unstaged changes detection logic
+- Added more robust error handling for subprocess commands
+
+### Chore 📋
+
+- Updated .gitignore to include uv.lock file
+
 ## [0.4.1] - 2025-03-29
 
 ### Bug Fixes
