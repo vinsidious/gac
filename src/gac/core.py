@@ -41,6 +41,29 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
+def get_border_length(content: str, min_length: int = 0, max_length: int = 120) -> int:
+    """Calculate the length of the border based on content.
+
+    Args:
+        content: The content to calculate border length for
+        min_length: Minimum border length (default: 0)
+        max_length: Maximum border length (default: 120)
+
+    Returns:
+        The calculated border length
+    """
+    # Get the longest line length
+    max_line_length = max(len(line) for line in content.split("\n"))
+    # Calculate border length (must be odd to maintain symmetry)
+    border_length = max(min_length, max_line_length)
+    # Cap at max_length
+    border_length = min(border_length, max_length)
+    # Ensure odd length for symmetry
+    if border_length % 2 == 0:
+        border_length += 1
+    return border_length
+
+
 def build_prompt(status: str, diff: str, one_liner: bool = False, hint: str = "") -> str:
     """Build LLM prompt from git status and diff."""
     # Add hint to prompt if provided
@@ -136,9 +159,16 @@ def send_to_llm(
                 return ""
 
     if show_prompt:
-        print("\n=== LLM Prompt ===")
+        border_length = get_border_length(prompt)
+        header = "=== LLM Prompt ==="
+        padding = "=" * ((border_length - len(header)) // 2)
+        top_border = f"{padding}{header}{padding}"
+        # Add an extra = if needed to match bottom border length
+        if len(top_border) < border_length:
+            top_border += "="
+        print(f"\n{top_border}")
         print(prompt)
-        print("==================")
+        print("=" * border_length)
 
     # Get project description and include it in context if available
     project_description = get_project_description()
@@ -228,12 +258,12 @@ index 1234567..abcdefg 100644
 @@ -10,7 +10,9 @@ def main():
      # Process command-line arguments
      args = parse_args()
-     
+
 -    # Configure logging
 +    # Configure logging with improved format
 +    logging.basicConfig(level=logging.INFO)
 +    logger.info("Starting application")
-     
+
      # Load configuration
      config = load_config(args.config)
 diff --git a/utils.py b/utils.py
@@ -369,9 +399,16 @@ index 0000000..1234567
         logger.error("Failed to generate commit message.")
         return None
 
-    print("\n=== Suggested Commit Message ===")
+    border_length = get_border_length(commit_message)
+    header = "=== Suggested Commit Message ==="
+    padding = "=" * ((border_length - len(header)) // 2)
+    top_border = f"{padding}{header}{padding}"
+    # Add an extra = if needed to match bottom border length
+    if len(top_border) < border_length:
+        top_border += "="
+    print(f"\n{top_border}")
     print(f"{commit_message}")
-    print("================================\n")
+    print("=" * border_length + "\n")
 
     # Process commit confirmation for both real and test modes
     if force or testing:
