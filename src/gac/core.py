@@ -164,7 +164,7 @@ def send_to_llm(
         top_border = f"{'=' * left_padding}{header}{'=' * right_padding}"
         print(f"\n{top_border}")
         print(prompt)
-        print("=" * border_length)
+        print("=" * len(top_border))
 
     # Get project description and include it in context if available
     project_description = get_project_description()
@@ -403,7 +403,7 @@ index 0000000..1234567
     top_border = f"{'=' * left_padding}{header}{'=' * right_padding}"
     print(f"\n{top_border}")
     print(f"{commit_message}")
-    print("=" * border_length + "\n")
+    print("=" * len(top_border) + "\n")
 
     # Process commit confirmation for both real and test modes
     if force or testing:
