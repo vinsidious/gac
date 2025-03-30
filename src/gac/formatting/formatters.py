@@ -192,21 +192,37 @@ def format_staged_files(stage_after_format: bool = True) -> Tuple[bool, List[str
     """
     logger.debug("Running code formatters on staged files...")
 
+    # Get all staged files first to avoid multiple git calls
+    all_staged_files = get_staged_files(existing_only=True)
+    if not all_staged_files:
+        logger.info("No existing files to format.")
+        return False, []
+
     # Track formatted file types
     formatted_exts = []
 
-    # Run formatters for different file types
-    python_files = get_staged_files(file_type=".py", existing_only=True)
+    # Categorize files by extension
+    python_files = []
     js_ts_files = []
-    for ext in [".js", ".jsx", ".ts", ".tsx"]:
-        js_ts_files.extend(get_staged_files(file_type=ext, existing_only=True))
-
     md_html_css_json_yaml_files = []
-    for ext in [".md", ".html", ".css", ".json", ".yaml", ".yml"]:
-        md_html_css_json_yaml_files.extend(get_staged_files(file_type=ext, existing_only=True))
+    rust_files = []
+    go_files = []
 
-    rust_files = get_staged_files(file_type=".rs", existing_only=True)
-    go_files = get_staged_files(file_type=".go", existing_only=True)
+    js_ts_extensions = [".js", ".jsx", ".ts", ".tsx"]
+    md_html_css_json_yaml_extensions = [".md", ".html", ".css", ".json", ".yaml", ".yml"]
+
+    for file in all_staged_files:
+        ext = "." + file.split(".")[-1].lower() if "." in file else ""
+        if ext == ".py":
+            python_files.append(file)
+        elif ext in js_ts_extensions:
+            js_ts_files.append(file)
+        elif ext in md_html_css_json_yaml_extensions:
+            md_html_css_json_yaml_files.append(file)
+        elif ext == ".rs":
+            rust_files.append(file)
+        elif ext == ".go":
+            go_files.append(file)
 
     # Run formatters only if files exist
     any_formatted = False
@@ -217,40 +233,57 @@ def format_staged_files(stage_after_format: bool = True) -> Tuple[bool, List[str
         if black_result or isort_result:
             any_formatted = True
             formatted_exts.append(".py")
+            logger.info(f"Formatted {len(python_files)} Python files")
 
     if js_ts_files:
         if run_prettier(files=js_ts_files):
             any_formatted = True
-            for ext in [".js", ".jsx", ".ts", ".tsx"]:
+            for ext in js_ts_extensions:
                 if any(f.endswith(ext) for f in js_ts_files):
                     formatted_exts.append(ext)
+            logger.info(f"Formatted {len(js_ts_files)} JavaScript/TypeScript files")
 
     if md_html_css_json_yaml_files:
         if run_prettier(files=md_html_css_json_yaml_files):
             any_formatted = True
-            for ext in [".md", ".html", ".css", ".json", ".yaml", ".yml"]:
+            for ext in md_html_css_json_yaml_extensions:
                 if any(f.endswith(ext) for f in md_html_css_json_yaml_files):
                     formatted_exts.append(ext)
+            logger.info(
+                f"Formatted {len(md_html_css_json_yaml_files)} Markdown/HTML/CSS/JSON/YAML files"
+            )
 
     if rust_files:
         if run_rustfmt(rust_files):
             any_formatted = True
             formatted_exts.append(".rs")
+            logger.info(f"Formatted {len(rust_files)} Rust files")
 
     if go_files:
         if run_gofmt(go_files):
             any_formatted = True
             formatted_exts.append(".go")
+            logger.info(f"Formatted {len(go_files)} Go files")
 
     # Re-stage files if required
     if stage_after_format and any_formatted:
         logger.debug("Re-staging formatted files after formatting...")
-        staged_files = []
-        for ext in formatted_exts:
-            staged_files.extend(get_staged_files(file_type=ext, existing_only=True))
+        # Directly use the files we already know were formatted
+        formatted_files = []
+        formatted_files.extend(python_files if ".py" in formatted_exts else [])
+        formatted_files.extend(
+            js_ts_files if any(ext in formatted_exts for ext in js_ts_extensions) else []
+        )
+        formatted_files.extend(
+            md_html_css_json_yaml_files
+            if any(ext in formatted_exts for ext in md_html_css_json_yaml_extensions)
+            else []
+        )
+        formatted_files.extend(rust_files if ".rs" in formatted_exts else [])
+        formatted_files.extend(go_files if ".go" in formatted_exts else [])
 
-        if staged_files:
-            stage_files(staged_files)
-            logger.info(f"Re-staged {len(staged_files)} files after formatting.")
+        if formatted_files:
+            stage_files(formatted_files)
+            logger.info(f"Re-staged {len(formatted_files)} files after formatting.")
 
     return any_formatted, formatted_exts

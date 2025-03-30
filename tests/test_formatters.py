@@ -118,19 +118,14 @@ def test_format_staged_files_success(
     mock_run_black,
     mock_get_staged_files,
 ):
-    # Set up mock return values
-    def mock_get_staged_files_side_effect(file_type=None, existing_only=False):
-        if file_type == ".py":
-            return ["file1.py", "file2.py"]
-        elif file_type == ".js":
-            return ["file1.js"]
-        elif file_type == ".rs":
-            return ["file1.rs"]
-        elif file_type == ".go":
-            return ["file1.go"]
-        return []
-
-    mock_get_staged_files.side_effect = mock_get_staged_files_side_effect
+    # Set up mock return values for the new implementation
+    mock_get_staged_files.return_value = [
+        "file1.py",
+        "file2.py",
+        "file1.js",
+        "file1.rs",
+        "file1.go",
+    ]
 
     mock_run_black.return_value = True
     mock_run_isort.return_value = True
@@ -144,9 +139,41 @@ def test_format_staged_files_success(
     assert ".py" in exts
     mock_run_black.assert_called_once()
     mock_run_isort.assert_called_once()
-    mock_run_prettier.assert_called()
+    mock_run_prettier.assert_called_once()
     mock_run_rustfmt.assert_called_once()
     mock_run_gofmt.assert_called_once()
+
+
+@patch("gac.formatting.formatters.run_black")
+@patch("gac.formatting.formatters.run_isort")
+@patch("gac.formatting.formatters.run_prettier")
+@patch("gac.formatting.formatters.run_rustfmt")
+@patch("gac.formatting.formatters.run_gofmt")
+@patch("gac.formatting.formatters.stage_files")
+def test_format_staged_files_with_stage(
+    mock_stage_files,
+    mock_run_gofmt,
+    mock_run_rustfmt,
+    mock_run_prettier,
+    mock_run_isort,
+    mock_run_black,
+    mock_get_staged_files,
+):
+    # Setup staged files for the new implementation
+    mock_get_staged_files.return_value = ["file1.py", "file1.js"]
+
+    mock_run_black.return_value = True
+    mock_run_isort.return_value = False
+    mock_run_prettier.return_value = True
+    mock_run_rustfmt.return_value = False
+    mock_run_gofmt.return_value = False
+
+    formatted, exts = format_staged_files(stage_after_format=True)
+
+    assert formatted is True
+    assert ".py" in exts
+    assert ".js" in exts
+    mock_stage_files.assert_called_once()
 
 
 @patch("gac.formatting.formatters.run_black")
@@ -171,42 +198,3 @@ def test_format_staged_files_no_files(
     mock_run_prettier.assert_not_called()
     mock_run_rustfmt.assert_not_called()
     mock_run_gofmt.assert_not_called()
-
-
-@patch("gac.formatting.formatters.run_black")
-@patch("gac.formatting.formatters.run_isort")
-@patch("gac.formatting.formatters.run_prettier")
-@patch("gac.formatting.formatters.run_rustfmt")
-@patch("gac.formatting.formatters.run_gofmt")
-@patch("gac.formatting.formatters.stage_files")
-def test_format_staged_files_with_stage(
-    mock_stage_files,
-    mock_run_gofmt,
-    mock_run_rustfmt,
-    mock_run_prettier,
-    mock_run_isort,
-    mock_run_black,
-    mock_get_staged_files,
-):
-    # Setup to return different files for different extensions
-    def mock_get_staged_files_side_effect(file_type=None, existing_only=False):
-        if file_type == ".py":
-            return ["file1.py"]
-        elif file_type == ".js":
-            return ["file1.js"]
-        return []
-
-    mock_get_staged_files.side_effect = mock_get_staged_files_side_effect
-
-    mock_run_black.return_value = True
-    mock_run_isort.return_value = False
-    mock_run_prettier.return_value = True
-    mock_run_rustfmt.return_value = False
-    mock_run_gofmt.return_value = False
-
-    formatted, exts = format_staged_files(stage_after_format=True)
-
-    assert formatted is True
-    assert ".py" in exts
-    assert ".js" in exts
-    mock_stage_files.assert_called_once()

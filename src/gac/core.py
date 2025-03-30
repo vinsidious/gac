@@ -26,7 +26,7 @@ from rich.logging import RichHandler
 
 from gac.ai_utils import chat, count_tokens
 from gac.config import get_config
-from gac.formatting.formatters import run_black, run_isort
+from gac.formatting.formatters import format_staged_files
 from gac.git import (
     commit_changes,
     get_project_description,
@@ -285,20 +285,13 @@ index 0000000..1234567
         python_files = get_staged_files(file_type=".py")
         if python_files:
             logger.info(f"Formatting {len(python_files)} Python files...")
-            run_black()
-            logger.debug("Re-staging Python files after black formatting...")
+            format_staged_files()
+            logger.debug("Re-staging Python files after formatting...")
             existing_python_files = get_staged_files(file_type=".py", existing_only=True)
             if existing_python_files:
                 stage_files(existing_python_files)
             else:
-                logger.info("No existing Python files to re-stage after black.")
-            run_isort()
-            logger.debug("Re-staging Python files after isort formatting...")
-            existing_python_files = get_staged_files(file_type=".py", existing_only=True)
-            if existing_python_files:
-                stage_files(existing_python_files)
-            else:
-                logger.info("No existing Python files to re-stage after isort.")
+                logger.info("No existing Python files to re-stage after formatting.")
 
     # Restore unstaged changes if needed
     if restore_unstaged:
@@ -349,20 +342,13 @@ index 0000000..1234567
 
         # Only run formatting if enabled and there are Python files
         if existing_python_files and config["use_formatting"] and not no_format:
-            run_black()
-            logger.debug("Re-staging Python files after black formatting...")
+            format_staged_files()
+            logger.debug("Re-staging Python files after formatting...")
             existing_python_files = get_staged_files(file_type=".py", existing_only=True)
             if existing_python_files:
                 stage_files(existing_python_files)
             else:
-                logger.info("No existing Python files to re-stage after black.")
-            run_isort()
-            logger.debug("Re-staging Python files after isort formatting...")
-            existing_python_files = get_staged_files(file_type=".py", existing_only=True)
-            if existing_python_files:
-                stage_files(existing_python_files)
-            else:
-                logger.info("No existing Python files to re-stage after isort.")
+                logger.info("No existing Python files to re-stage after formatting.")
 
         logger.info("Generating commit message...")
         status = run_subprocess(["git", "status"])
