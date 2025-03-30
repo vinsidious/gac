@@ -166,7 +166,7 @@ def send_to_llm(
         left_padding = total_padding // 2
         right_padding = (
             total_padding - left_padding
-        )  # This ensures right side gets the extra = if total_padding is odd
+        )  # This ensures left side gets the extra = if total_padding is odd
         top_border = f"{'=' * left_padding}{header}{'=' * right_padding}"
         print(f"\n{top_border}")
         print(prompt)
@@ -408,7 +408,7 @@ index 0000000..1234567
     left_padding = total_padding // 2
     right_padding = (
         total_padding - left_padding
-    )  # This ensures right side gets the extra = if total_padding is odd
+    )  # This ensures left side gets the extra = if total_padding is odd
     top_border = f"{'=' * left_padding}{header}{'=' * right_padding}"
     print(f"\n{top_border}")
     print(f"{commit_message}")
