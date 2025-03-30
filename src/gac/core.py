@@ -58,9 +58,6 @@ def get_border_length(content: str, min_length: int = 0, max_length: int = 120) 
     border_length = max(min_length, max_line_length)
     # Cap at max_length
     border_length = min(border_length, max_length)
-    # Ensure odd length for symmetry
-    if border_length % 2 == 0:
-        border_length += 1
     return border_length
 
 
@@ -157,16 +154,13 @@ def send_to_llm(
             if not click.confirm(prompt_msg, default=False):
                 logger.info("Operation cancelled by user")
                 return ""
-
     if show_prompt:
         border_length = get_border_length(prompt)
         header = "=== LLM Prompt ==="
         # Calculate padding ensuring equal sides
         total_padding = border_length - len(header)
-        left_padding = total_padding // 2
-        right_padding = (
-            total_padding - left_padding
-        )  # This ensures left side gets the extra = if total_padding is odd
+        left_padding = (total_padding + 1) // 2
+        right_padding = left_padding
         top_border = f"{'=' * left_padding}{header}{'=' * right_padding}"
         print(f"\n{top_border}")
         print(prompt)
@@ -400,15 +394,12 @@ index 0000000..1234567
     if not commit_message:
         logger.error("Failed to generate commit message.")
         return None
-
     border_length = get_border_length(commit_message)
     header = "=== Suggested Commit Message ==="
-    # Calculate padding ensuring equal sides
+    # Calculate padding ensuring equal sides by rounding up
     total_padding = border_length - len(header)
-    left_padding = total_padding // 2
-    right_padding = (
-        total_padding - left_padding
-    )  # This ensures left side gets the extra = if total_padding is odd
+    left_padding = (total_padding + 1) // 2
+    right_padding = left_padding
     top_border = f"{'=' * left_padding}{header}{'=' * right_padding}"
     print(f"\n{top_border}")
     print(f"{commit_message}")
