@@ -4,15 +4,12 @@ import subprocess
 import unittest
 from unittest.mock import mock_open, patch
 
-import tiktoken
-
 from gac.git import (
+    FileStatus,
     commit_changes,
-    get_existing_staged_python_files,
     get_project_description,
     get_staged_diff,
     get_staged_files,
-    get_staged_python_files,
     is_large_file,
     stage_files,
 )
@@ -36,30 +33,35 @@ class TestGit(unittest.TestCase):
         # Assert result is list of files
         self.assertEqual(result, ["file1.py", "file2.md", "file3.js"])
 
-    @patch("gac.git.get_staged_files")
-    def test_get_staged_python_files(self, mock_get_staged_files):
-        """Test get_staged_python_files returns only Python files."""
-        # Mock get_staged_files to return mixed file types
-        mock_get_staged_files.return_value = ["file1.py", "file2.md", "file3.js", "file4.py"]
+    @patch("gac.git.run_subprocess")
+    def test_get_staged_files_with_type(self, mock_run_subprocess):
+        """Test get_staged_files with file_type filter returns correct result."""
+        # Mock run_subprocess to return staged files with git status -s format
+        mock_run_subprocess.return_value = (
+            "M file1.py\nM file2.md\nM file3.js\nM file4.py\n?? unstaged.txt"
+        )
 
-        # Call get_staged_python_files
-        result = get_staged_python_files()
+        # Call get_staged_files with Python file filter
+        result = get_staged_files(file_type=".py")
+
+        # Assert mock was called correctly
+        mock_run_subprocess.assert_called_once_with(["git", "status", "-s"])
 
         # Assert only Python files are returned
         self.assertEqual(result, ["file1.py", "file4.py"])
 
     @patch("os.path.exists")
-    @patch("gac.git.get_staged_python_files")
-    def test_get_existing_staged_python_files(self, mock_get_staged_python_files, mock_exists):
-        """Test get_existing_staged_python_files returns only existing Python files."""
-        # Mock get_staged_python_files to return Python files
-        mock_get_staged_python_files.return_value = ["file1.py", "file2.py", "file3.py"]
+    @patch("gac.git.run_subprocess")
+    def test_get_staged_files_existing_only(self, mock_run_subprocess, mock_exists):
+        """Test get_staged_files with existing_only filter returns correct result."""
+        # Mock run_subprocess to return staged files
+        mock_run_subprocess.return_value = "M file1.py\nM file2.py\nM file3.py"
 
         # Mock os.path.exists to return True for specific files
         mock_exists.side_effect = lambda f: f != "file2.py"  # file2.py doesn't exist
 
-        # Call get_existing_staged_python_files
-        result = get_existing_staged_python_files()
+        # Call get_staged_files with Python file filter and existing_only=True
+        result = get_staged_files(file_type=".py", existing_only=True)
 
         # Assert only existing Python files are returned
         self.assertEqual(result, ["file1.py", "file3.py"])
@@ -71,28 +73,35 @@ class TestGit(unittest.TestCase):
         mock_run_subprocess.return_value = "Commit successful"
 
         # Call commit_changes
-        commit_changes("Test commit message")
+        result = commit_changes("Test commit message")
 
         # Assert git commit was called with the message
         mock_run_subprocess.assert_called_once_with(["git", "commit", "-m", "Test commit message"])
 
+        # Assert result is True
+        self.assertTrue(result)
+
     def test_commit_changes_empty_message(self):
-        """Test commit_changes raises ValueError for empty message."""
-        # Call commit_changes with empty message and expect ValueError
-        with self.assertRaises(ValueError):
-            commit_changes("")
+        """Test commit_changes returns False for empty message."""
+        # Call commit_changes with empty message
+        result = commit_changes("")
+
+        # Assert result is False
+        self.assertFalse(result)
 
     @patch("gac.git.run_subprocess")
     def test_commit_changes_failure(self, mock_run_subprocess):
-        """Test commit_changes raises CalledProcessError when git commit fails."""
+        """Test commit_changes returns False when git commit fails."""
         # Setup mock to raise CalledProcessError
         mock_run_subprocess.side_effect = subprocess.CalledProcessError(
             1, ["git", "commit"], "Error output"
         )
 
-        # Call commit_changes and expect CalledProcessError
-        with self.assertRaises(subprocess.CalledProcessError):
-            commit_changes("Test commit message")
+        # Call commit_changes
+        result = commit_changes("Test commit message")
+
+        # Assert result is False
+        self.assertFalse(result)
 
     @patch("gac.git.run_subprocess")
     def test_stage_files(self, mock_run_subprocess):
@@ -110,10 +119,12 @@ class TestGit(unittest.TestCase):
         self.assertTrue(result)
 
     def test_stage_files_empty_list(self):
-        """Test stage_files raises ValueError for empty file list."""
-        # Call stage_files with empty list and expect ValueError
-        with self.assertRaises(ValueError):
-            stage_files([])
+        """Test stage_files returns False for empty file list."""
+        # Call stage_files with empty list
+        result = stage_files([])
+
+        # Assert result is False
+        self.assertFalse(result)
 
     @patch("gac.git.run_subprocess")
     def test_stage_files_failure(self, mock_run_subprocess):
@@ -239,6 +250,22 @@ class TestGit(unittest.TestCase):
         diff, truncated = get_staged_diff()
         self.assertEqual(diff, "")
         self.assertEqual(truncated, [])
+
+    def test_file_status_class(self):
+        """Test FileStatus class constants and helper methods."""
+        # Test status constants
+        self.assertEqual(FileStatus.MODIFIED, "M")
+        self.assertEqual(FileStatus.ADDED, "A")
+        self.assertEqual(FileStatus.DELETED, "D")
+        self.assertEqual(FileStatus.RENAMED, "R")
+
+        # Test is_valid_status method
+        self.assertTrue(FileStatus.is_valid_status("M"))
+        self.assertTrue(FileStatus.is_valid_status("A"))
+        self.assertTrue(FileStatus.is_valid_status("D"))
+        self.assertTrue(FileStatus.is_valid_status("R"))
+        self.assertFalse(FileStatus.is_valid_status("X"))  # Invalid status
+        self.assertFalse(FileStatus.is_valid_status("??"))  # Untracked files
 
 
 if __name__ == "__main__":

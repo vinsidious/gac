@@ -29,11 +29,9 @@ from gac.config import get_config
 from gac.formatting.formatters import run_black, run_isort
 from gac.git import (
     commit_changes,
-    get_existing_staged_python_files,
     get_project_description,
     get_staged_diff,
     get_staged_files,
-    get_staged_python_files,
     stage_files,
 )
 from gac.utils import run_subprocess
@@ -45,52 +43,50 @@ logger = logging.getLogger(__name__)
 
 def build_prompt(status: str, diff: str, one_liner: bool = False, hint: str = "") -> str:
     """Build LLM prompt from git status and diff."""
-    # fmt: off
-    # flake8: noqa: E501
+    # Add hint to prompt if provided
     hint_text = f"\nPlease consider this context from the user: {hint}\n" if hint else ""
-    
+
+    # Base prompt components that are the same for both formats
+    base_prompt = (
+        "Analyze this git status and git diff and write ONLY a commit message. "
+        "Do not include any other text, explanation, or commentary.\n\n"
+        "Format:\n"
+    )
+
+    # Basic format shared by both modes
+    format_desc = "[type]: Short summary of changes (50 chars or less)"
+
+    # Additional format details for the detailed mode
+    detail_format = (
+        "\n - Bullet point details about the changes"
+        "\n - Another bullet point if needed\n\n"
+        "[feat/fix/docs/refactor/test/chore/other]: <description>\n\n"
+        "For larger changes, include bullet points:\n"
+        "[category]: Main description\n"
+        " - Change 1\n"
+        " - Change 2\n"
+        " - Change 3"
+    )
+
+    # Command output sections (same for both modes)
+    git_sections = (
+        f"{hint_text}\n"
+        "Git Status (git status -s):\n"
+        "```\n" + status + "\n```\n\n"
+        "Git Diff:\n"
+        "```\n" + diff + "\n```"
+    )
+
+    # Build the final prompt based on one_liner flag
     if one_liner:
-        prompt = (
-            "Analyze this git status and git diff and write ONLY a commit message as a single line. "
-            "Do not include any other text, explanation, or commentary.\n\n"
-            "Format:\n"
-            "[type]: Short summary of changes (50 chars or less)\n\n"
-            "[feat/fix/docs/refactor/test/chore/other]: <description>"
-            f"{hint_text}\n"
-            "Git Status (git status -s):\n"
-            "```\n"
-            + status
-            + "\n```\n\n"
-            "Git Diff:\n"
-            "```\n"
-            + diff
-            + "\n```"
+        format_section = (
+            format_desc + "\n\n[feat/fix/docs/refactor/test/chore/other]: <description>"
         )
+        prompt = base_prompt + format_section + git_sections
     else:
-        prompt = (
-            "Analyze this git status and git diff and write ONLY a commit message in the following format. "
-            "Do not include any other text, explanation, or commentary.\n\n"
-            "Format:\n"
-            "[type]: Short summary of changes (50 chars or less)\n"
-            " - Bullet point details about the changes\n"
-            " - Another bullet point if needed\n\n"
-            "[feat/fix/docs/refactor/test/chore/other]: <description>\n\n"
-            "For larger changes, include bullet points:\n"
-            "[category]: Main description\n"
-            " - Change 1\n"
-            " - Change 2\n"
-            " - Change 3"
-            f"{hint_text}\n"
-            "Git Status (git status -s):\n"
-            "```\n"
-            + status
-            + "\n```\n\n"
-            "Git Diff:\n"
-            "```\n"
-            + diff
-            + "\n```"
-        )
-    # fmt: on
+        format_section = format_desc + detail_format
+        prompt = base_prompt + format_section + git_sections
+
     return prompt
 
 
@@ -127,15 +123,15 @@ def send_to_llm(
     logger.info(f"Prompt token count: {token_count:,}")
 
     # Check if token count exceeds the limit
-    if token_count > config["max_input_tokens"]:
-        logger.warning(
-            f"Warning: Prompt exceeds token limit ({token_count} > {config['max_input_tokens']})"
-        )
+    max_tokens = config["max_input_tokens"]
+    if token_count > max_tokens:
+        logger.warning(f"Warning: Prompt exceeds token limit ({token_count} > {max_tokens})")
         if not force:
-            if not click.confirm(
-                f"The prompt is {token_count:,} tokens, which exceeds the limit of {config['max_input_tokens']:,}. Continue anyway?",
-                default=False,
-            ):
+            prompt_msg = (
+                f"The prompt is {token_count:,} tokens, which exceeds the limit "
+                f"of {max_tokens:,}. Continue anyway?"
+            )
+            if not click.confirm(prompt_msg, default=False):
                 logger.info("Operation cancelled by user")
                 return ""
 
@@ -146,11 +142,18 @@ def send_to_llm(
 
     # Get project description and include it in context if available
     project_description = get_project_description()
-    system = "You are a helpful assistant that writes clear, concise git commit messages. Only output the commit message, nothing else."
+    system = (
+        "You are a helpful assistant that writes clear, concise git commit messages. "
+        "Only output the commit message, nothing else."
+    )
 
     # Add project description to system message if available
     if project_description:
-        system = f"You are a helpful assistant that writes clear, concise git commit messages for the following project: '{project_description}'. Only output the commit message, nothing else."
+        system = (
+            "You are a helpful assistant that writes clear, concise git commit messages "
+            f"for the following project: '{project_description}'. "
+            "Only output the commit message, nothing else."
+        )
 
     messages = [{"role": "user", "content": prompt}]
     response = chat(
@@ -278,15 +281,23 @@ index 0000000..1234567
 
     # Format only the staged changes
     if not no_format and not testing:
-        python_files = get_staged_python_files()
+        python_files = get_staged_files(file_type=".py")
         if python_files:
             logger.info(f"Formatting {len(python_files)} Python files...")
-            run_black(python_files)
-            run_isort(python_files)
-
-            # Restage the formatted files
-            for file in python_files:
-                run_subprocess(["git", "add", file])
+            run_black()
+            logger.debug("Re-staging Python files after black formatting...")
+            existing_python_files = get_staged_files(file_type=".py", existing_only=True)
+            if existing_python_files:
+                stage_files(existing_python_files)
+            else:
+                logger.info("No existing Python files to re-stage after black.")
+            run_isort()
+            logger.debug("Re-staging Python files after isort formatting...")
+            existing_python_files = get_staged_files(file_type=".py", existing_only=True)
+            if existing_python_files:
+                stage_files(existing_python_files)
+            else:
+                logger.info("No existing Python files to re-stage after isort.")
 
     # Restore unstaged changes if needed
     if restore_unstaged:
@@ -316,7 +327,7 @@ index 0000000..1234567
                 logger.warning(f"Large files detected and truncated: {', '.join(truncated_files)}")
                 if not force and not testing:
                     if not click.confirm(
-                        f"Some large files were truncated to reduce token usage. Continue?",
+                        "Some large files were truncated to reduce token usage. Continue?",
                         default=True,
                     ):
                         logger.info("Operation cancelled by user")
@@ -332,21 +343,21 @@ index 0000000..1234567
             )
     else:
         logger.debug("Checking for Python files to format...")
-        python_files = get_staged_python_files()
-        existing_python_files = get_existing_staged_python_files()
+        python_files = get_staged_files(file_type=".py")
+        existing_python_files = get_staged_files(file_type=".py", existing_only=True)
 
         # Only run formatting if enabled and there are Python files
         if existing_python_files and config["use_formatting"] and not no_format:
             run_black()
             logger.debug("Re-staging Python files after black formatting...")
-            existing_python_files = get_existing_staged_python_files()
+            existing_python_files = get_staged_files(file_type=".py", existing_only=True)
             if existing_python_files:
                 stage_files(existing_python_files)
             else:
                 logger.info("No existing Python files to re-stage after black.")
             run_isort()
             logger.debug("Re-staging Python files after isort formatting...")
-            existing_python_files = get_existing_staged_python_files()
+            existing_python_files = get_staged_files(file_type=".py", existing_only=True)
             if existing_python_files:
                 stage_files(existing_python_files)
             else:
@@ -360,7 +371,7 @@ index 0000000..1234567
             logger.warning(f"Large files detected and truncated: {', '.join(truncated_files)}")
             if not force and not testing:
                 if not click.confirm(
-                    f"Some large files were truncated to reduce token usage. Continue?",
+                    "Some large files were truncated to reduce token usage. Continue?",
                     default=True,
                 ):
                     logger.info("Operation cancelled by user")

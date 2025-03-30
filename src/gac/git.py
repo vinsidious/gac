@@ -3,7 +3,7 @@
 import logging
 import os
 import subprocess
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from gac.ai_utils import count_tokens
 from gac.utils import run_subprocess
@@ -11,7 +11,7 @@ from gac.utils import run_subprocess
 # Set up logger
 logger = logging.getLogger(__name__)
 
-# Constants for large file handling
+# Constants for file handling
 MAX_DIFF_TOKENS = 1000  # Maximum number of tokens to include for large files
 LARGE_FILE_PATTERNS = [
     "package-lock.json",
@@ -26,12 +26,27 @@ LARGE_FILE_PATTERNS = [
 ]
 
 
-def is_large_file(file_path: str) -> bool:
+class FileStatus:
+    """Constants for file status in git."""
+
+    MODIFIED = "M"
+    ADDED = "A"
+    DELETED = "D"
+    RENAMED = "R"
+
+    @classmethod
+    def is_valid_status(cls, status: str) -> bool:
+        """Check if a status code is valid."""
+        return status in [cls.MODIFIED, cls.ADDED, cls.DELETED, cls.RENAMED]
+
+
+def is_large_file(file_path: str, model: str = "anthropic:claude-3-5-haiku-latest") -> bool:
     """
     Check if a file should be treated as a large file based on its name and diff size.
 
     Args:
         file_path: Path to the file to check
+        model: Model to use for token counting
 
     Returns:
         bool: True if the file should be treated as large
@@ -45,12 +60,39 @@ def is_large_file(file_path: str) -> bool:
         diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--", file_path])
         if not diff:
             return False
-        # Count tokens using the default model
-        token_count = count_tokens(diff, "anthropic:claude-3-5-haiku-latest")
+        # Count tokens using the specified model
+        token_count = count_tokens(diff, model)
         return token_count > MAX_DIFF_TOKENS
     except Exception as e:
         logger.error(f"Error checking if {file_path} is large: {e}")
         return False
+
+
+def get_staged_files(file_type: Optional[str] = None, existing_only: bool = False) -> List[str]:
+    """
+    Get list of filenames of staged files with optional filtering.
+
+    Args:
+        file_type: Optional file extension to filter by (e.g., ".py")
+        existing_only: If True, only return files that exist on disk
+
+    Returns:
+        List of staged file paths
+    """
+    logger.debug("Checking staged files...")
+    result = run_subprocess(["git", "status", "-s"])
+
+    # Get all staged files
+    files = [line.split()[1] for line in result.splitlines() if line and line[0] in "MADR"]
+
+    # Apply filters if needed
+    if file_type:
+        files = [f for f in files if f.endswith(file_type)]
+
+    if existing_only:
+        files = [f for f in files if os.path.exists(f)]
+
+    return files
 
 
 def get_staged_diff() -> Tuple[str, List[str]]:
@@ -65,6 +107,7 @@ def get_staged_diff() -> Tuple[str, List[str]]:
     staged_files = get_staged_files()
     truncated_files = []
     diff_parts = []
+    model = "anthropic:claude-3-5-haiku-latest"
 
     for file in staged_files:
         try:
@@ -72,86 +115,52 @@ def get_staged_diff() -> Tuple[str, List[str]]:
             if not file_diff:
                 continue
 
-            if is_large_file(file):
+            if is_large_file(file, model):
                 # For large files, only include a summary
                 truncated_files.append(file)
-                diff_parts.append(f"# Large file {file} (truncated):")
-                diff_parts.append(f"# File type: {os.path.splitext(file)[1]}")
-                # Count tokens using the default model
-                token_count = count_tokens(file_diff, "anthropic:claude-3-5-haiku-latest")
-                diff_parts.append(f"# Changes: {token_count} tokens")
-                diff_parts.append("...")
+                file_ext = os.path.splitext(file)[1]
+                token_count = count_tokens(file_diff, model)
+
+                diff_parts.append(
+                    f"# Large file {file} (truncated):\n"
+                    f"# File type: {file_ext}\n"
+                    f"# Changes: {token_count} tokens\n..."
+                )
             else:
                 diff_parts.append(file_diff)
         except Exception as e:
             logger.error(f"Error getting diff for {file}: {e}")
-            # Even if there's an error, try to get a basic diff
+            # Try to get a basic diff even if there was an error
             try:
-                file_diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--", file])
-                if file_diff:
-                    diff_parts.append(file_diff)
+                simple_diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--", file])
+                if simple_diff:
+                    diff_parts.append(simple_diff)
             except Exception:
-                continue
+                pass
 
     return "\n".join(diff_parts), truncated_files
 
 
-def get_staged_files() -> List[str]:
-    """
-    Get list of filenames of all staged files.
-
-    M = Modified
-    A = Added
-    D = Deleted
-    R = Renamed
-
-    Returns:
-        List of staged file paths
-    """
-    logger.debug("Checking staged files...")
-    result = run_subprocess(["git", "status", "-s"])
-    return [line.split()[1] for line in result.splitlines() if line[0] in "MADR"]
-
-
-def get_staged_python_files() -> List[str]:
-    """
-    Get list of filenames of staged Python files.
-
-    Returns:
-        List of staged Python file paths
-    """
-    return [f for f in get_staged_files() if f.endswith(".py")]
-
-
-def get_existing_staged_python_files() -> List[str]:
-    """
-    Get list of filenames of staged Python files that exist on disk.
-
-    Returns:
-        List of existing staged Python file paths
-    """
-    return [f for f in get_staged_python_files() if os.path.exists(f)]
-
-
-def commit_changes(message: str) -> None:
+def commit_changes(message: str) -> bool:
     """
     Commit changes with the given message.
 
     Args:
         message: The commit message to use
 
-    Raises:
-        subprocess.CalledProcessError: If the git commit fails
-        ValueError: If the commit message is empty
+    Returns:
+        True if commit successful, False otherwise
     """
     if not message:
-        raise ValueError("Commit message cannot be empty")
+        logger.error("Commit message cannot be empty")
+        return False
 
     try:
         run_subprocess(["git", "commit", "-m", message])
+        return True
     except subprocess.CalledProcessError as e:
         logger.error(f"Error committing changes: {e}")
-        raise
+        return False
 
 
 def stage_files(files: List[str]) -> bool:
@@ -160,21 +169,18 @@ def stage_files(files: List[str]) -> bool:
 
     Args:
         files: List of files to stage (e.g., ["file1.py", "file2.py"])
-               To stage all files, use ["*"]
+               To stage all files, use ["."]
 
     Returns:
         True if successful, False otherwise
-
-    Raises:
-        ValueError: If no files are provided
     """
     if not files:
-        raise ValueError("No files provided to stage")
+        logger.error("No files provided to stage")
+        return False
 
     try:
         result = run_subprocess(["git", "add"] + files)
         logger.info("Files staged.")
-        # Check if git add was successful by looking for error output
         return "fatal" not in result.lower()
     except subprocess.CalledProcessError as e:
         logger.error(f"Error staging files: {e}")
@@ -198,11 +204,9 @@ def get_project_description() -> str:
             remote_url = run_subprocess(["git", "config", "--get", "remote.origin.url"]).strip()
             if remote_url:
                 # Extract repo name from remote URL
-                # Handle different URL formats (HTTPS or SSH)
-                if "github.com" in remote_url:
-                    if remote_url.endswith(".git"):
-                        remote_url = remote_url[:-4]  # Remove .git suffix
-                    repo_name = remote_url.split("/")[-1]
+                if remote_url.endswith(".git"):
+                    remote_url = remote_url[:-4]  # Remove .git suffix
+                repo_name = remote_url.split("/")[-1]
         except subprocess.CalledProcessError:
             # If we can't get the remote URL, try to get it from the directory name
             try:
@@ -217,10 +221,10 @@ def get_project_description() -> str:
         if os.path.exists(description_file):
             with open(description_file, "r") as f:
                 file_content = f.read().strip()
-                # Check if it's the default description
+                # Check if it's not the default description
                 if (
                     file_content
-                    != "Unnamed repository; edit this file 'description' to name the repository."  # noqa: E501 W503
+                    != "Unnamed repository; edit this file 'description' to name the repository."
                 ):
                     description = file_content
 

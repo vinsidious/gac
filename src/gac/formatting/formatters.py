@@ -7,7 +7,7 @@ It includes functions to format individual files or all staged Python files.
 import logging
 from typing import List
 
-from gac.git import get_existing_staged_python_files, get_staged_python_files, stage_files
+from gac.git import get_staged_files, stage_files
 from gac.utils import run_subprocess
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ def run_black(python_files: List[str] = None) -> bool:
     """
     if python_files is None:
         logger.debug("Identifying Python files for formatting with black...")
-        python_files = get_existing_staged_python_files()
+        python_files = get_staged_files(file_type=".py", existing_only=True)
 
     if not python_files:
         logger.info("No existing Python files to format with black.")
@@ -52,7 +52,7 @@ def run_isort(python_files: List[str] = None) -> bool:
     """
     if python_files is None:
         logger.debug("Identifying Python files for import sorting with isort...")
-        python_files = get_existing_staged_python_files()
+        python_files = get_staged_files(file_type=".py", existing_only=True)
 
     if not python_files:
         logger.info("No existing Python files to sort imports with isort.")
@@ -80,11 +80,10 @@ def format_staged_files(stage_after_format: bool = True) -> bool:
     Returns:
         True if any files were formatted, False otherwise
     """
-
     logger.debug("Running code formatters on staged Python files...")
 
     # Get the Python files that exist and are staged
-    python_files = get_existing_staged_python_files()
+    python_files = get_staged_files(file_type=".py", existing_only=True)
     if not python_files:
         logger.info("No existing Python files to format.")
         return False
@@ -96,7 +95,7 @@ def format_staged_files(stage_after_format: bool = True) -> bool:
     # Re-stage files if required
     if stage_after_format and (black_formatted or isort_formatted):
         logger.debug("Re-staging Python files after formatting...")
-        formatted_files = get_existing_staged_python_files()
+        formatted_files = get_staged_files(file_type=".py", existing_only=True)
         if formatted_files:
             stage_files(formatted_files)
             logger.info(f"Re-staged {len(formatted_files)} Python files after formatting.")

@@ -7,20 +7,56 @@ default values.
 
 import logging
 import os
-from typing import Any, Dict, Optional
-
-from .constants import (
-    API_KEY_ENV_VARS,
-    DEFAULT_CONFIG,
-    ENV_VARS,
-    PROVIDER_MODELS,
-)
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
+# Default provider models - used when GAC_PROVIDER is set without GAC_MODEL_NAME
+PROVIDER_MODELS = {
+    "anthropic": "claude-3-5-haiku-latest",
+    "openai": "gpt-4o-mini",
+    "groq": "llama3-70b-8192",
+    "mistral": "mistral-large-latest",
+    "aws": "meta.llama3-1-70b-instruct-v1:0",
+    "azure": "gpt-4o-mini",
+    "google": "gemini-2.0-flash",
+}
+
+# Default settings
+DEFAULT_CONFIG = {
+    "model": "anthropic:claude-3-5-haiku-latest",  # Default model with provider prefix
+    "use_formatting": True,  # Format Python files with black and isort
+    "max_output_tokens": 512,  # Maximum tokens in model output
+    "max_input_tokens": 4096,  # Maximum tokens in input prompt
+}
+
+# Environment variable names
+ENV_VARS = {
+    "model": "GAC_MODEL",
+    "provider": "GAC_PROVIDER",
+    "model_name": "GAC_MODEL_NAME",
+    "use_formatting": "GAC_USE_FORMATTING",
+    "max_output_tokens": "GAC_MAX_OUTPUT_TOKENS",
+    "max_input_tokens": "GAC_MAX_INPUT_TOKENS",
+}
+
+# API key environment variables by provider
+API_KEY_ENV_VARS = {
+    "anthropic": "ANTHROPIC_API_KEY",
+    "openai": "OPENAI_API_KEY",
+    "groq": "GROQ_API_KEY",
+    "mistral": "MISTRAL_API_KEY",
+    "aws": "AWS_ACCESS_KEY_ID",  # AWS requires multiple credentials
+    "azure": "AZURE_OPENAI_API_KEY",
+    "google": "GOOGLE_API_KEY",
+}
+
+
 class ConfigError(Exception):
     """Raised when there's an error with the configuration."""
+
     pass
+
 
 def get_config() -> Dict[str, Any]:
     """Load configuration from environment variables or use defaults.
@@ -33,9 +69,6 @@ def get_config() -> Dict[str, Any]:
 
     Returns:
         Dict[str, Any]: The configuration dictionary with all settings
-
-    Raises:
-        ConfigError: If there's an issue with the configuration values
     """
     config = DEFAULT_CONFIG.copy()
 
@@ -45,7 +78,8 @@ def get_config() -> Dict[str, Any]:
         # Ensure model has provider prefix
         if ":" not in model:
             logger.warning(
-                f"{ENV_VARS['model']} '{model}' does not include provider prefix, assuming 'anthropic:'"
+                f"{ENV_VARS['model']} '{model}' does not include provider prefix, "
+                f"assuming 'anthropic:'"
             )
             model = f"anthropic:{model}"
         config["model"] = model
@@ -72,6 +106,7 @@ def get_config() -> Dict[str, Any]:
 
     return config
 
+
 def validate_config(config: Dict[str, Any]) -> bool:
     """Validate the current configuration.
 
@@ -84,41 +119,52 @@ def validate_config(config: Dict[str, Any]) -> bool:
         config (Dict[str, Any]): The configuration dictionary to validate
 
     Returns:
-        bool: True if configuration is valid, False otherwise
+        bool: True if configuration is valid
+
+    Raises:
+        ConfigError: If the configuration is invalid
     """
+    # Extract provider from model
+    model = config.get("model", "")
+    if not model:
+        raise ConfigError("Model configuration is required")
+
+    if ":" not in model:
+        raise ConfigError(
+            f"Invalid model format: '{model}'. Model must be in format 'provider:model_name'"
+        )
+
+    provider = model.split(":")[0]
+
     # Check for required API keys
-    provider = config.get("provider", "anthropic")
     if provider not in API_KEY_ENV_VARS:
-        raise ConfigError(f"Invalid provider: '{provider}'. Supported providers: {', '.join(API_KEY_ENV_VARS.keys())}")
-    
+        raise ConfigError(
+            f"Invalid provider: '{provider}'. Supported: {', '.join(API_KEY_ENV_VARS.keys())}"
+        )
+
     api_key_env = API_KEY_ENV_VARS[provider]
     if not os.environ.get(api_key_env):
         raise ConfigError(f"API key not set: {api_key_env}")
 
-    # Check model format
-    model = config.get("model")
-    if not model:
-        raise ConfigError("Model configuration is required")
-    
-    if ":" not in model:
-        raise ConfigError(f"Invalid model format: '{model}'. Model string must be in format 'provider:model_name'")
-    
     # Check token limits
     if config["max_output_tokens"] <= 0:
-        raise ConfigError(f"max_output_tokens must be a positive integer (got {config['max_output_tokens']})")
-    
+        raise ConfigError(f"max_output_tokens must be positive (got {config['max_output_tokens']})")
+
     if config["max_input_tokens"] <= 0:
-        raise ConfigError(f"max_input_tokens must be a positive integer (got {config['max_input_tokens']})")
-    
+        raise ConfigError(f"max_input_tokens must be positive (got {config['max_input_tokens']})")
+
     if config["max_input_tokens"] > 8192:
-        logger.warning("max_input_tokens is set very high (>8192). This might cause issues with some models")
-    
+        logger.warning(
+            "max_input_tokens is set very high (>8192). This might cause issues with some models"
+        )
+
     # Check formatting option
     use_formatting = config.get("use_formatting")
     if use_formatting not in [True, False]:
         raise ConfigError(f"use_formatting must be a boolean value (got {use_formatting})")
 
     return True
+
 
 def get_provider_from_model(model: str) -> str:
     """Extract the provider name from a model string.

@@ -13,6 +13,75 @@ logger = logging.getLogger(__name__)
 
 # Default maximum output tokens
 MAX_OUTPUT_TOKENS = 8192
+# Default encoding to use as fallback
+DEFAULT_ENCODING = "cl100k_base"
+
+
+def get_encoding(model: str) -> tiktoken.Encoding:
+    """
+    Get the appropriate encoding for a given model.
+
+    Args:
+        model: The model identifier in the format "provider:model_name"
+
+    Returns:
+        The appropriate tiktoken encoding
+    """
+    # Extract model name from provider:model format
+    model_name = model.split(":")[-1] if ":" in model else model
+
+    # Map model to encoding
+    if "claude" in model_name.lower():
+        # Claude models use cl100k_base encoding like GPT-4
+        return tiktoken.get_encoding(DEFAULT_ENCODING)
+
+    try:
+        return tiktoken.encoding_for_model(model_name)
+    except KeyError:
+        # Fallback to cl100k_base for unknown models
+        return tiktoken.get_encoding(DEFAULT_ENCODING)
+
+
+def count_tokens(
+    content: Union[str, List[Dict[str, str]], Dict[str, Any]],
+    model: str,
+    test_mode: bool = False,
+) -> int:
+    """
+    Count tokens in content using the model's tokenizer.
+
+    Args:
+        content: A string, message object, or list of message dictionaries.
+        model: The model identifier in the format "provider:model_name".
+        test_mode: If True, returns a fixed value without counting.
+
+    Returns:
+        The number of tokens in the input.
+    """
+    if test_mode:
+        return 10
+
+    try:
+        # Convert input to a string
+        if isinstance(content, str):
+            text = content
+        elif isinstance(content, list):
+            text = "\n".join(
+                msg["content"] for msg in content if isinstance(msg, dict) and "content" in msg
+            )
+        elif isinstance(content, dict) and "content" in content:
+            text = content["content"]
+        else:
+            logger.warning("No valid content found to count tokens")
+            return 0
+
+        # Get encoding and count tokens
+        encoding = get_encoding(model)
+        return len(encoding.encode(text))
+    except Exception as e:
+        logger.error(f"Error counting tokens: {e}")
+        # Fallback to simple estimation
+        return len(text) // 4 if "text" in locals() else 0
 
 
 def chat(
@@ -95,63 +164,3 @@ def chat(
     except Exception as e:
         logger.error(f"Error in chat: {str(e)}")
         raise
-
-
-def count_tokens(
-    messages: Union[str, List[Dict[str, str]], Dict[str, Any]],
-    model: str,
-    test_mode: bool = False,
-) -> int:
-    """
-    Count tokens in messages using the model's tokenizer.
-
-    Args:
-        messages: A string, message object, or list of message dictionaries.
-        model: The model identifier in the format "provider:model_name".
-        test_mode: If True, returns a fixed value without making an API call.
-
-    Returns:
-        The number of tokens in the input.
-    """
-    if test_mode:
-        return 10
-
-    try:
-        # Convert input to a string
-        if isinstance(messages, str):
-            content = messages
-        elif isinstance(messages, list):
-            content = "\n".join(
-                msg["content"] for msg in messages if isinstance(msg, dict) and "content" in msg
-            )
-        elif isinstance(messages, dict) and "content" in messages:
-            content = messages["content"]
-        else:
-            return 0
-
-        # Extract model name from provider:model format
-        model_name = model.split(":")[-1] if ":" in model else model
-
-        # Map model to encoding
-        if "claude" in model_name.lower():
-            # Claude models use cl100k_base encoding like GPT-4
-            encoding = tiktoken.get_encoding("cl100k_base")
-        else:
-            try:
-                encoding = tiktoken.encoding_for_model(model_name)
-            except KeyError:
-                # Fallback to cl100k_base for unknown models
-                encoding = tiktoken.get_encoding("cl100k_base")
-
-        # Count tokens
-        token_count = len(encoding.encode(content))
-        return token_count
-    except Exception as e:
-        logger.error(f"Error counting tokens: {e}")
-        # Fallback to simple estimation if token counting fails
-        # Roughly 4 characters per token for English text
-        if "content" not in locals():
-            # If content wasn't created, there was likely an error parsing the input
-            logger.warning("No content found to count tokens for - input may be malformed")
-            return 0
-        return len(content) // 4
