@@ -95,6 +95,38 @@ def get_staged_files(file_type: Optional[str] = None, existing_only: bool = Fals
     return files
 
 
+def get_file_diff(file_path: str, model: str = "anthropic:claude-3-5-haiku-latest") -> str:
+    """
+    Get the diff for a single file, with appropriate handling for large files.
+
+    Args:
+        file_path: Path to the file to get diff for
+        model: Model to use for token counting
+
+    Returns:
+        The diff string for the file, potentially truncated if it's large
+    """
+    try:
+        file_diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--", file_path])
+        if not file_diff:
+            return ""
+
+        if is_large_file(file_path, model):
+            # For large files, only include a summary
+            file_ext = os.path.splitext(file_path)[1]
+            token_count = count_tokens(file_diff, model)
+            return (
+                f"# Large file {file_path} (truncated):\n"
+                f"# File type: {file_ext}\n"
+                f"# Changes: {token_count} tokens\n..."
+            )
+        else:
+            return file_diff
+    except Exception as e:
+        logger.error(f"Error getting diff for {file_path}: {e}")
+        return f"# Error processing {file_path}: {str(e)}"
+
+
 def get_staged_diff() -> Tuple[str, List[str]]:
     """
     Get the staged diff, handling large files appropriately.
@@ -110,33 +142,15 @@ def get_staged_diff() -> Tuple[str, List[str]]:
     model = "anthropic:claude-3-5-haiku-latest"
 
     for file in staged_files:
-        try:
-            file_diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--", file])
-            if not file_diff:
-                continue
+        file_diff = get_file_diff(file, model)
+        if not file_diff:
+            continue
 
-            if is_large_file(file, model):
-                # For large files, only include a summary
-                truncated_files.append(file)
-                file_ext = os.path.splitext(file)[1]
-                token_count = count_tokens(file_diff, model)
+        # Check if this file was truncated (starts with the large file marker)
+        if file_diff.startswith(f"# Large file {file}"):
+            truncated_files.append(file)
 
-                diff_parts.append(
-                    f"# Large file {file} (truncated):\n"
-                    f"# File type: {file_ext}\n"
-                    f"# Changes: {token_count} tokens\n..."
-                )
-            else:
-                diff_parts.append(file_diff)
-        except Exception as e:
-            logger.error(f"Error getting diff for {file}: {e}")
-            # Try to get a basic diff even if there was an error
-            try:
-                simple_diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--", file])
-                if simple_diff:
-                    diff_parts.append(simple_diff)
-            except Exception:
-                pass
+        diff_parts.append(file_diff)
 
     return "\n".join(diff_parts), truncated_files
 

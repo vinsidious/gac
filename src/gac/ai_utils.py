@@ -42,6 +42,27 @@ def get_encoding(model: str) -> tiktoken.Encoding:
         return tiktoken.get_encoding(DEFAULT_ENCODING)
 
 
+def extract_text_content(content: Union[str, List[Dict[str, str]], Dict[str, Any]]) -> str:
+    """
+    Extract text content from various input formats.
+
+    Args:
+        content: A string, message object, or list of message dictionaries.
+
+    Returns:
+        The extracted text content as a string.
+    """
+    if isinstance(content, str):
+        return content
+    elif isinstance(content, list):
+        return "\n".join(
+            msg["content"] for msg in content if isinstance(msg, dict) and "content" in msg
+        )
+    elif isinstance(content, dict) and "content" in content:
+        return content["content"]
+    return ""
+
+
 def count_tokens(
     content: Union[str, List[Dict[str, str]], Dict[str, Any]],
     model: str,
@@ -62,16 +83,9 @@ def count_tokens(
         return 10
 
     try:
-        # Convert input to a string
-        if isinstance(content, str):
-            text = content
-        elif isinstance(content, list):
-            text = "\n".join(
-                msg["content"] for msg in content if isinstance(msg, dict) and "content" in msg
-            )
-        elif isinstance(content, dict) and "content" in content:
-            text = content["content"]
-        else:
+        # Extract text content from input
+        text = extract_text_content(content)
+        if not text:
             logger.warning("No valid content found to count tokens")
             return 0
 
@@ -80,8 +94,10 @@ def count_tokens(
         return len(encoding.encode(text))
     except Exception as e:
         logger.error(f"Error counting tokens: {e}")
-        # Fallback to simple estimation
-        return len(text) // 4 if "text" in locals() else 0
+        # Simple fallback estimation
+        if "text" in locals():
+            return len(text) // 4
+        return 0
 
 
 def chat(

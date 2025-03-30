@@ -11,12 +11,53 @@ It includes functions to format individual files or all staged files of supporte
 """
 
 import logging
-from typing import List, Tuple
+from typing import Callable, List, Optional, Tuple
 
 from gac.git import get_staged_files, stage_files
 from gac.utils import run_subprocess
 
 logger = logging.getLogger(__name__)
+
+
+def run_formatter(
+    formatter_name: str,
+    command: List[str],
+    files: Optional[List[str]] = None,
+    file_type: Optional[str] = None,
+    file_getter: Optional[Callable] = None,
+) -> bool:
+    """
+    Run a code formatter on the specified files or get files using the provided getter function.
+
+    Args:
+        formatter_name: Name of the formatter for logging
+        command: Base command without file arguments
+        files: Optional list of files to format
+        file_type: Optional file extension to filter by when using default file getter
+        file_getter: Optional function to get files if not provided directly
+
+    Returns:
+        True if files were formatted, False otherwise
+    """
+    # Get files if not provided
+    if files is None:
+        if file_getter:
+            files = file_getter()
+        else:
+            logger.debug(f"Identifying files for {formatter_name} using default getter...")
+            files = get_staged_files(file_type=file_type, existing_only=True)
+
+    if not files:
+        logger.info(f"No existing files to format with {formatter_name}.")
+        return False
+
+    try:
+        run_subprocess(command + files)
+        logger.info(f"{formatter_name} formatted {len(files)} files.")
+        return True
+    except Exception as e:
+        logger.error(f"Error running {formatter_name}: {e}")
+        return False
 
 
 def run_black(python_files: List[str] = None) -> bool:
@@ -29,21 +70,7 @@ def run_black(python_files: List[str] = None) -> bool:
     Returns:
         True if files were formatted, False otherwise
     """
-    if python_files is None:
-        logger.debug("Identifying Python files for formatting with black...")
-        python_files = get_staged_files(file_type=".py", existing_only=True)
-
-    if not python_files:
-        logger.info("No existing Python files to format with black.")
-        return False
-
-    try:
-        run_subprocess(["black"] + python_files)
-        logger.info(f"Black formatted {len(python_files)} files.")
-        return True
-    except Exception as e:
-        logger.error(f"Error running black: {e}")
-        return False
+    return run_formatter("black", ["black"], files=python_files, file_type=".py")
 
 
 def run_isort(python_files: List[str] = None) -> bool:
@@ -56,21 +83,7 @@ def run_isort(python_files: List[str] = None) -> bool:
     Returns:
         True if files were formatted, False otherwise
     """
-    if python_files is None:
-        logger.debug("Identifying Python files for import sorting with isort...")
-        python_files = get_staged_files(file_type=".py", existing_only=True)
-
-    if not python_files:
-        logger.info("No existing Python files to sort imports with isort.")
-        return False
-
-    try:
-        run_subprocess(["isort"] + python_files)
-        logger.info(f"Isort sorted imports in {len(python_files)} files.")
-        return True
-    except Exception as e:
-        logger.error(f"Error running isort: {e}")
-        return False
+    return run_formatter("isort", ["isort"], files=python_files, file_type=".py")
 
 
 def run_prettier(file_patterns: List[str] = None, files: List[str] = None) -> bool:
@@ -101,23 +114,16 @@ def run_prettier(file_patterns: List[str] = None, files: List[str] = None) -> bo
             ".yml",
         ]
 
-    if files is None:
-        logger.debug(f"Identifying files for formatting with prettier: {file_patterns}...")
-        files = []
+    # Custom file getter for prettier to handle multiple patterns
+    def get_prettier_files() -> List[str]:
+        result = []
         for pattern in file_patterns:
-            files.extend(get_staged_files(file_type=pattern, existing_only=True))
+            result.extend(get_staged_files(file_type=pattern, existing_only=True))
+        return result
 
-    if not files:
-        logger.info("No existing files to format with prettier.")
-        return False
-
-    try:
-        run_subprocess(["prettier", "--write"] + files)
-        logger.info(f"Prettier formatted {len(files)} files.")
-        return True
-    except Exception as e:
-        logger.error(f"Error running prettier: {e}")
-        return False
+    return run_formatter(
+        "prettier", ["prettier", "--write"], files=files, file_getter=get_prettier_files
+    )
 
 
 def run_rustfmt(rust_files: List[str] = None) -> bool:
@@ -130,21 +136,7 @@ def run_rustfmt(rust_files: List[str] = None) -> bool:
     Returns:
         True if files were formatted, False otherwise
     """
-    if rust_files is None:
-        logger.debug("Identifying Rust files for formatting with rustfmt...")
-        rust_files = get_staged_files(file_type=".rs", existing_only=True)
-
-    if not rust_files:
-        logger.info("No existing Rust files to format with rustfmt.")
-        return False
-
-    try:
-        run_subprocess(["rustfmt"] + rust_files)
-        logger.info(f"Rustfmt formatted {len(rust_files)} files.")
-        return True
-    except Exception as e:
-        logger.error(f"Error running rustfmt: {e}")
-        return False
+    return run_formatter("rustfmt", ["rustfmt"], files=rust_files, file_type=".rs")
 
 
 def run_gofmt(go_files: List[str] = None) -> bool:
@@ -157,22 +149,7 @@ def run_gofmt(go_files: List[str] = None) -> bool:
     Returns:
         True if files were formatted, False otherwise
     """
-    if go_files is None:
-        logger.debug("Identifying Go files for formatting with gofmt...")
-        go_files = get_staged_files(file_type=".go", existing_only=True)
-
-    if not go_files:
-        logger.info("No existing Go files to format with gofmt.")
-        return False
-
-    try:
-        # gofmt -w writes changes to the file
-        run_subprocess(["gofmt", "-w"] + go_files)
-        logger.info(f"Gofmt formatted {len(go_files)} files.")
-        return True
-    except Exception as e:
-        logger.error(f"Error running gofmt: {e}")
-        return False
+    return run_formatter("gofmt", ["gofmt", "-w"], files=go_files, file_type=".go")
 
 
 def format_staged_files(stage_after_format: bool = True) -> Tuple[bool, List[str]]:

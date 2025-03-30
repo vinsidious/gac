@@ -7,6 +7,7 @@ from unittest.mock import mock_open, patch
 from gac.git import (
     FileStatus,
     commit_changes,
+    get_file_diff,
     get_project_description,
     get_staged_diff,
     get_staged_files,
@@ -190,48 +191,34 @@ class TestGit(unittest.TestCase):
         self.assertFalse(is_large_file("error_file.txt"))
 
     @patch("gac.git.get_staged_files")
-    @patch("gac.git.run_subprocess")
-    @patch("gac.git.count_tokens")
-    def test_get_staged_diff(self, mock_count_tokens, mock_run_subprocess, mock_get_staged_files):
+    @patch("gac.git.get_file_diff")
+    def test_get_staged_diff(self, mock_get_file_diff, mock_get_staged_files):
         """Test get_staged_diff handles large files correctly."""
-        # Set up mock token counting
-        mock_count_tokens.side_effect = [
-            100,  # normal.py
-            2000,  # pnpm-lock.yaml
-            50,  # small.txt
-        ]  # Only pnpm-lock.yaml is large
-
         # Mock staged files
         mock_get_staged_files.return_value = ["normal.py", "pnpm-lock.yaml", "small.txt"]
 
-        # Mock diffs for each file
-        # For each file, we need to mock:
-        # 1. The call in is_large_file to check if it's large
-        # 2. The call in get_staged_diff to get the actual diff (except for large files)
-        mock_run_subprocess.side_effect = [
-            # normal.py
-            "normal diff",  # is_large_file check
-            "normal diff",  # get_staged_diff
-            # pnpm-lock.yaml (large file - only needs one check)
-            "large diff content",  # is_large_file check
-            # small.txt
-            "small diff",  # is_large_file check
-            "small diff",  # get_staged_diff
+        # Use a shorter model name for assertions
+        model = "anthropic:claude-3-5-haiku-latest"
+
+        # Mock file diffs
+        mock_get_file_diff.side_effect = [
+            "normal diff",  # normal.py
+            (
+                "# Large file pnpm-lock.yaml (truncated):\n"
+                "# File type: .yaml\n"
+                "# Changes: 2000 tokens\n..."
+            ),  # pnpm-lock.yaml (large file)
+            "small diff",  # small.txt
         ]
 
+        # Call get_staged_diff
         diff, truncated = get_staged_diff()
 
-        # Debug assertions to understand mock call sequence
-        print("\nActual calls:")
-        for i, call in enumerate(mock_run_subprocess.call_args_list):
-            print(f"Call {i}: {call[0][0][-1]}")
-
-        self.assertEqual(
-            len(mock_run_subprocess.call_args_list), 5
-        )  # 2 calls for normal files, 1 for large files
-        self.assertEqual(mock_run_subprocess.call_args_list[0][0][0][-1], "normal.py")
-        self.assertEqual(mock_run_subprocess.call_args_list[2][0][0][-1], "pnpm-lock.yaml")
-        self.assertEqual(mock_run_subprocess.call_args_list[3][0][0][-1], "small.txt")
+        # Check that get_file_diff was called for each file
+        self.assertEqual(mock_get_file_diff.call_count, 3)
+        mock_get_file_diff.assert_any_call("normal.py", model)
+        mock_get_file_diff.assert_any_call("pnpm-lock.yaml", model)
+        mock_get_file_diff.assert_any_call("small.txt", model)
 
         # Check that large file was truncated
         self.assertIn("pnpm-lock.yaml", truncated)
@@ -241,15 +228,41 @@ class TestGit(unittest.TestCase):
 
         # Check that normal files were included fully
         self.assertIn("normal diff", diff)
-        self.assertIn(
-            "small diff", diff.split("\n")
-        )  # Check if "small diff" exists as a line in the diff
+        self.assertIn("small diff", diff.split("\n"))
 
         # Test error handling
-        mock_run_subprocess.side_effect = subprocess.CalledProcessError(1, ["git", "diff"])
+        mock_get_file_diff.side_effect = ["", "", ""]
         diff, truncated = get_staged_diff()
         self.assertEqual(diff, "")
         self.assertEqual(truncated, [])
+
+    @patch("gac.git.run_subprocess")
+    @patch("gac.git.count_tokens")
+    def test_get_file_diff(self, mock_count_tokens, mock_run_subprocess):
+        """Test get_file_diff handles large files and errors correctly."""
+        # Test normal file
+        mock_run_subprocess.return_value = "normal diff"
+        mock_count_tokens.return_value = 100
+        result = get_file_diff("normal.py")
+        self.assertEqual(result, "normal diff")
+
+        # Test large file
+        mock_run_subprocess.return_value = "large diff content"
+        mock_count_tokens.return_value = 2000
+        with patch("gac.git.is_large_file", return_value=True):
+            result = get_file_diff("large.lock")
+        self.assertIn("Large file large.lock (truncated):", result)
+        self.assertIn("Changes: 2000 tokens", result)
+
+        # Test empty diff
+        mock_run_subprocess.return_value = ""
+        result = get_file_diff("empty.py")
+        self.assertEqual(result, "")
+
+        # Test error handling
+        mock_run_subprocess.side_effect = subprocess.CalledProcessError(1, ["git", "diff"])
+        result = get_file_diff("error.py")
+        self.assertTrue(result.startswith("# Error processing error.py:"))
 
     def test_file_status_class(self):
         """Test FileStatus class constants and helper methods."""
