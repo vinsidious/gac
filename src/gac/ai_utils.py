@@ -17,6 +17,48 @@ MAX_OUTPUT_TOKENS = 8192
 DEFAULT_ENCODING = "cl100k_base"
 
 
+class AIError(Exception):
+    """Base class for AI-related errors."""
+
+    pass
+
+
+class APIConnectionError(AIError):
+    """Error connecting to the AI provider's API."""
+
+    pass
+
+
+class APITimeoutError(AIError):
+    """Timeout when calling the AI provider's API."""
+
+    pass
+
+
+class APIRateLimitError(AIError):
+    """Rate limit exceeded for the AI provider's API."""
+
+    pass
+
+
+class APIAuthenticationError(AIError):
+    """Authentication error with the AI provider's API."""
+
+    pass
+
+
+class APIUnsupportedModelError(AIError):
+    """Model specified is not supported by the provider."""
+
+    pass
+
+
+class APIResponseError(AIError):
+    """Error with the response from the AI provider's API."""
+
+    pass
+
+
 def get_encoding(model: str) -> tiktoken.Encoding:
     """
     Get the appropriate encoding for a given model.
@@ -107,6 +149,8 @@ def chat(
     save_conversation_path: Optional[str] = None,
     test_mode: bool = False,
     system: Optional[str] = None,
+    max_retries: int = 3,
+    retry_delay: float = 1.0,
     **kwargs,
 ) -> str:
     """
@@ -119,64 +163,143 @@ def chat(
         save_conversation_path: Optional path to save the conversation history.
         test_mode: If True, returns a test response without making an API call.
         system: Optional system message to set the behavior of the assistant.
+        max_retries: Maximum number of retries for transient errors.
+        retry_delay: Delay between retries in seconds.
         **kwargs: Additional keyword arguments to pass to the AI provider.
 
     Returns:
         The model's response as a string.
 
     Raises:
-        Exception: Any error that occurs during the API call.
+        APIConnectionError: Error connecting to the API.
+        APITimeoutError: Timeout when calling the API.
+        APIRateLimitError: Rate limit exceeded.
+        APIAuthenticationError: Authentication error.
+        APIUnsupportedModelError: Model not supported.
+        APIResponseError: Error with the API response.
+        AIError: Other AI-related errors.
     """
     if test_mode:
         return "test_response"
 
-    try:
-        logger.debug(f"Starting chat with model {model}, temperature {temperature}")
-        start_time = time.time()
+    provider = model.split(":")[0] if ":" in model else "unknown"
+    retries = 0
 
-        # Check for existing system message in the messages list
-        has_system_message = messages and messages[0].get("role") == "system"
+    while retries <= max_retries:
+        try:
+            logger.debug(f"Starting chat with model {model}, temperature {temperature}")
+            start_time = time.time()
 
-        # If system parameter is provided and there's no system message, add it
-        if system and not has_system_message:
-            system_message = {"role": "system", "content": system}
-            messages = [system_message] + messages
-            logger.debug(f"Added system message: {system}")
+            # Check for existing system message in the messages list
+            has_system_message = messages and messages[0].get("role") == "system"
 
-        # Initialize the aisuite client
-        client = ai.Client()
+            # If system parameter is provided and there's no system message, add it
+            if system and not has_system_message:
+                system_message = {"role": "system", "content": system}
+                messages = [system_message] + messages
+                logger.debug(f"Added system message: {system}")
 
-        # Make the request through aisuite's unified interface
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=kwargs.pop("max_tokens", MAX_OUTPUT_TOKENS),
-            **kwargs,
-        )
+            # Initialize the aisuite client
+            client = ai.Client()
 
-        # Extract the response content
-        reply = response.choices[0].message.content
-        end_time = time.time()
-        logger.debug(f"Received response in {end_time - start_time:.2f} seconds")
+            # Make the request through aisuite's unified interface
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=kwargs.pop("max_tokens", MAX_OUTPUT_TOKENS),
+                **kwargs,
+            )
 
-        # Save conversation history if requested
-        if save_conversation_path:
-            save_data = {
-                "messages": messages,
-                "response": reply,
-                "model": model,
-                "temperature": temperature,
-                "time": end_time - start_time,
-            }
-            try:
-                with open(save_conversation_path, "w") as f:
-                    json.dump(save_data, f, indent=2)
-                logger.debug(f"Saved conversation to {save_conversation_path}")
-            except Exception as e:
-                logger.warning(f"Failed to save conversation: {e}")
+            # Extract the response content
+            reply = response.choices[0].message.content
+            end_time = time.time()
+            logger.debug(f"Received response in {end_time - start_time:.2f} seconds")
 
-        return reply
-    except Exception as e:
-        logger.error(f"Error in chat: {str(e)}")
-        raise
+            # Save conversation history if requested
+            if save_conversation_path:
+                save_data = {
+                    "messages": messages,
+                    "response": reply,
+                    "model": model,
+                    "temperature": temperature,
+                    "time": end_time - start_time,
+                }
+                try:
+                    with open(save_conversation_path, "w") as f:
+                        json.dump(save_data, f, indent=2)
+                    logger.debug(f"Saved conversation to {save_conversation_path}")
+                except Exception as e:
+                    logger.warning(f"Failed to save conversation: {e}")
+
+            return reply
+
+        # Handle different types of errors with specific responses
+        except ai.APIConnectionError as e:
+            err_msg = f"Connection error with {provider} API: {str(e)}"
+            logger.error(err_msg)
+
+            if retries < max_retries:
+                wait_time = retry_delay * (2**retries)  # Exponential backoff
+                logger.info(f"Retrying in {wait_time:.1f} seconds...")
+                time.sleep(wait_time)
+                retries += 1
+            else:
+                raise APIConnectionError(err_msg)
+
+        except ai.APITimeoutError as e:
+            err_msg = f"Timeout while waiting for {provider} API response: {str(e)}"
+            logger.error(err_msg)
+
+            if retries < max_retries:
+                wait_time = retry_delay * (2**retries)
+                logger.info(f"Retrying in {wait_time:.1f} seconds...")
+                time.sleep(wait_time)
+                retries += 1
+            else:
+                raise APITimeoutError(err_msg)
+
+        except ai.APIRateLimitError as e:
+            err_msg = f"Rate limit exceeded for {provider} API: {str(e)}. Try again later."
+            logger.error(err_msg)
+
+            if retries < max_retries:
+                wait_time = retry_delay * (2**retries) * 2  # Longer backoff for rate limits
+                logger.info(f"Retrying in {wait_time:.1f} seconds...")
+                time.sleep(wait_time)
+                retries += 1
+            else:
+                raise APIRateLimitError(err_msg)
+
+        except ai.APIAuthenticationError as e:
+            err_msg = (
+                f"Authentication error with {provider} API: {str(e)}. "
+                f"Check your {provider.upper()}_API_KEY environment variable."
+            )
+            logger.error(err_msg)
+            raise APIAuthenticationError(err_msg)
+
+        except ai.APINotFoundError as e:
+            if "model" in str(e).lower():
+                err_msg = f"Model '{model}' not supported by {provider}: {str(e)}"
+                logger.error(err_msg)
+                raise APIUnsupportedModelError(err_msg)
+            else:
+                err_msg = f"Resource not found on {provider} API: {str(e)}"
+                logger.error(err_msg)
+                raise APIResponseError(err_msg)
+
+        except Exception as e:
+            err_msg = f"Error with {provider} API: {str(e)}"
+            logger.error(err_msg)
+
+            if retries < max_retries and any(
+                keyword in str(e).lower()
+                for keyword in ["timeout", "connection", "network", "temporary", "retry"]
+            ):
+                wait_time = retry_delay * (2**retries)
+                logger.info(f"Possible transient error, retrying in {wait_time:.1f} seconds...")
+                time.sleep(wait_time)
+                retries += 1
+            else:
+                raise AIError(err_msg)

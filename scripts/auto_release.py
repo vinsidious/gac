@@ -1,150 +1,296 @@
-"""
-Script to automate the version release process.
-
-This script:
-1. Checks for uncommitted changes
-2. Updates the version in .bumpversion.cfg and __about__.py
-3. Updates the changelog
-4. Creates and pushes the tag
-
-Example usage:
-```
-# Release a new version
-python scripts/auto_release.py
-
-# Run in test mode without modifying files
-python scripts/auto_release.py --test
-
-# Force release even if no changes are detected
-python scripts/auto_release.py --force
-
-# Specify a different changelog path
-python scripts/auto_release.py --changelog path/to/CHANGELOG.md
-```
-"""
-
 import logging
+import os
 import re
 import subprocess
-from typing import List
+import sys
+from enum import Enum
+from typing import List, Optional, Tuple
 
 import click
 from rich.logging import RichHandler
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(message)s", datefmt="[%X]", handlers=[RichHandler()]
+)
 logger = logging.getLogger(__name__)
 
-MODEL = "anthropic:claude-3-5-haiku-latest"
+# Constants
+VERSION_TYPES = ["patch", "minor", "major", "alpha", "beta", "rc"]
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_MODEL = "anthropic:claude-3-5-haiku-latest"
 
 
-def run_subprocess(command: List[str]) -> str:
-    """Run a subprocess command and return its output."""
-    result = subprocess.run(command, capture_output=True, text=True, check=True)
-    return result.stdout.strip()
+class ReleaseError(Exception):
+    """Custom exception for release-related errors."""
+
+    pass
+
+
+class VersionType(str, Enum):
+    """Enum for version bump types."""
+
+    PATCH = "patch"
+    MINOR = "minor"
+    MAJOR = "major"
+    ALPHA = "alpha"
+    BETA = "beta"
+    RC = "rc"
+
+
+def run_subprocess(command: List[str], check: bool = True) -> Optional[str]:
+    """
+    Run a subprocess command and return its output.
+
+    Args:
+        command: List of command arguments
+        check: Whether to raise an exception on non-zero exit code
+
+    Returns:
+        Command output as string, or None if command fails and check=False
+
+    Raises:
+        ReleaseError: If the command fails and check=True
+    """
+    logger.debug(f"Running command: `{' '.join(command)}`")
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=check)
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        error_msg = f"Command failed: {' '.join(command)}\nError: {e.stderr}"
+        if check:
+            raise ReleaseError(error_msg)
+        logger.error(error_msg)
+        return None
 
 
 def get_latest_tag() -> str:
-    """Get the latest version tag."""
-    return run_subprocess(["git", "describe", "--tags", "--abbrev=0"])
+    """
+    Get the latest version tag from the repository.
+
+    Returns:
+        The latest version tag
+
+    Raises:
+        ReleaseError: If no tags are found
+    """
+    try:
+        return run_subprocess(["git", "describe", "--tags", "--abbrev=0"])
+    except ReleaseError:
+        raise ReleaseError("No version tags found. Please create an initial version tag.")
 
 
 def check_for_uncommitted_changes() -> bool:
-    """Check if there are any uncommitted changes."""
+    """
+    Check if there are any uncommitted changes in the repository.
+
+    Returns:
+        True if there are uncommitted changes, False otherwise
+    """
     status = run_subprocess(["git", "status", "--porcelain"])
     return status != ""
 
 
-def update_version_files(new_version: str) -> None:
-    """Update the version in .bumpversion.cfg and __about__.py."""
-    # Update .bumpversion.cfg
-    with open(".bumpversion.cfg", "r") as f:
-        content = f.read()
-    content = re.sub(r"current_version = .+", f"current_version = {new_version}", content)
-    with open(".bumpversion.cfg", "w") as f:
-        f.write(content)
+def run_tests() -> bool:
+    """
+    Run the test suite to ensure code quality.
 
-    # Update __about__.py
-    with open("src/gac/__about__.py", "r") as f:
-        content = f.read()
-    content = re.sub(r"__version__ = .+", f'__version__ = "{new_version}"', content)
-    with open("src/gac/__about__.py", "w") as f:
-        f.write(content)
-
-
-def create_and_push_tag(version: str) -> None:
-    """Create and push the version tag."""
-    run_subprocess(["git", "tag", version])
-    run_subprocess(["git", "push", "origin", version])
-
-
-def main(
-    changelog_path: str = "CHANGELOG.md", test_mode: bool = False, force: bool = False
-) -> None:
-    """Main function to handle the release process."""
-    # Check for uncommitted changes
-    has_uncommitted_changes = check_for_uncommitted_changes()
-    if not force and has_uncommitted_changes:
-        logger.error("There are uncommitted changes. Please commit them first.")
-        return
-    # Warn about uncommitted changes if --force is used
-    if force and has_uncommitted_changes:
-        logger.warning(
-            "Warning: Forcing a release with uncommitted changes. This may lead to inconsistencies and errors:\n"  # noqa: E501
-            "- Local changes will NOT be included in the release.\n"
-            "- Only version files (.bumpversion.cfg and __about__.py) will be updated and committed.\n"  # noqa: E501
-            "- The released version may not match your local codebase.\n"
-            "- Features, fixes, or dependencies in uncommitted changes will be missing from the release.\n\n"  # noqa: E501
-            "Recommendations:\n"
-            "1. Commit or stash your changes before releasing.\n"
-            "2. Run 'git status' to review local changes.\n"
-            "3. Consider re-running without --force.\n"
-            "4. Seek guidance if unsure.\n\n"
-            "Proceed with caution to avoid potential issues in the released version."
-        )
-
-    # Run tests before release
-    if not test_mode:
-        logger.info("Running tests before release...")
-        test_result = run_subprocess(["python", "-m", "pytest", "tests/", "-v"])
-        if test_result is None or "FAILED" in test_result:
+    Returns:
+        True if all tests pass, False otherwise
+    """
+    logger.info("Running tests before release...")
+    try:
+        output = run_subprocess(["python", "-m", "pytest", "tests/", "-v"], check=False)
+        if output is None or "failed" in output.lower():
             logger.error("Tests failed. Please fix the issues before proceeding with the release.")
-            return
+            return False
         logger.info("All tests passed successfully!")
+        return True
+    except Exception as e:
+        logger.error(f"Error running tests: {e}")
+        return False
 
-    # Get the latest tag
-    latest_tag = get_latest_tag()
-    if not latest_tag:
-        logger.error("No version tags found. Please create an initial version tag.")
-        return
 
-    # Update version files
-    new_version = f"v{latest_tag.split('v')[-1]}"  # Remove 'v' prefix if present
-    if not test_mode:
-        update_version_files(new_version)
-        run_subprocess(["git", "add", ".bumpversion.cfg", "src/gac/__about__.py"])
-        run_subprocess(["git", "commit", "-m", f"Update version to {new_version} for release"])
-        run_subprocess(["git", "push", "origin", "main"])
+def get_current_version() -> str:
+    """
+    Get the current version from the project configuration.
 
-    # Create and push tag
-    if not test_mode:
-        create_and_push_tag(new_version)
+    Returns:
+        The current version string
+    """
+    try:
+        with open(os.path.join(PROJECT_ROOT, "src/gac/__about__.py"), "r") as f:
+            content = f.read()
+            match = re.search(r'__version__ = ["\']([^"\']+)["\']', content)
+            if match:
+                return match.group(1)
 
-    logger.info(f"Successfully released version {new_version}")
+        # Alternative: use bump-my-version
+        output = run_subprocess(["bump-my-version", "show", "--tag-value"], check=False)
+        if output:
+            return output.strip()
+
+        raise ReleaseError("Could not determine current version")
+    except Exception as e:
+        raise ReleaseError(f"Error getting current version: {e}")
+
+
+def update_changelog(version: str) -> bool:
+    """
+    Update the changelog for the new version.
+
+    Args:
+        version: The new version string
+
+    Returns:
+        True if successful, False otherwise
+    """
+    changelog_path = os.path.join(PROJECT_ROOT, "CHANGELOG.md")
+    try:
+        # Run the prep_changelog_for_release.py script
+        script_path = os.path.join(PROJECT_ROOT, "scripts/prep_changelog_for_release.py")
+        run_subprocess([sys.executable, script_path, changelog_path, version])
+        logger.info(f"Updated changelog for version {version}")
+        return True
+    except Exception as e:
+        logger.error(f"Error updating changelog: {e}")
+        return False
+
+
+def bump_version(version_type: str) -> Tuple[str, str]:
+    """
+    Bump the version using bump-my-version.
+
+    Args:
+        version_type: Type of version bump (patch, minor, major, etc.)
+
+    Returns:
+        Tuple containing old and new version strings
+
+    Raises:
+        ReleaseError: If version bump fails
+    """
+    old_version = get_current_version()
+
+    try:
+        output = run_subprocess(["bump-my-version", "bump", version_type])
+        new_version = get_current_version()
+        logger.info(f"Bumped version from {old_version} to {new_version}")
+        return old_version, new_version
+    except Exception as e:
+        raise ReleaseError(f"Error bumping version: {e}")
+
+
+def create_and_push_tag(version: str) -> bool:
+    """
+    Create and push the version tag.
+
+    Args:
+        version: The version string for the tag
+
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        # Format tag version (ensure it starts with v)
+        tag_version = version if version.startswith("v") else f"v{version}"
+
+        # Create tag
+        run_subprocess(["git", "tag", tag_version])
+        logger.info(f"Created tag {tag_version}")
+
+        # Push tag
+        run_subprocess(["git", "push", "origin", tag_version])
+        logger.info(f"Pushed tag {tag_version} to origin")
+
+        return True
+    except Exception as e:
+        logger.error(f"Error creating or pushing tag: {e}")
+        return False
 
 
 @click.command()
-@click.option("--changelog", default="CHANGELOG.md", help="Path to the changelog file")
+@click.option(
+    "--type",
+    "-t",
+    type=click.Choice(VersionType.__members__.values(), case_sensitive=False),
+    default=VersionType.PATCH.value,
+    help="Type of version bump to perform",
+)
 @click.option("--test", is_flag=True, help="Run in test mode without modifying files")
-@click.option("--force", is_flag=True, help="Force release even if no changes are detected")
-def cli(changelog: str, test: bool, force: bool) -> None:
-    """CLI entry point for the release script."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(message)s",
-        datefmt="[%X]",
-        handlers=[RichHandler()],
-    )
-    main(changelog, test, force)
+@click.option("--force", "-f", is_flag=True, help="Force release even if no changes are detected")
+@click.option("--changelog", default="CHANGELOG.md", help="Path to the changelog file")
+def main(type: str, test: bool, force: bool, changelog: str) -> None:
+    """Automate the version release process."""
+    try:
+        # Check for uncommitted changes
+        has_uncommitted_changes = check_for_uncommitted_changes()
+        if not force and has_uncommitted_changes:
+            logger.error("There are uncommitted changes. Please commit them first.")
+            sys.exit(1)
+
+        # Warn about uncommitted changes if --force is used
+        if force and has_uncommitted_changes:
+            logger.warning(
+                "Warning: Forcing a release with uncommitted changes. "
+                "This may lead to inconsistencies and errors."
+            )
+            if not test and not click.confirm("Are you sure you want to proceed?", default=False):
+                logger.info("Release cancelled.")
+                sys.exit(0)
+
+        if test:
+            logger.info("Running in test mode - no files will be modified")
+            old_version = get_current_version()
+            # Simulate new version
+            if old_version.startswith("v"):
+                old_version = old_version[1:]
+            v_parts = old_version.split(".")
+            if type == VersionType.PATCH.value:
+                v_parts[2] = str(int(v_parts[2]) + 1)
+            elif type == VersionType.MINOR.value:
+                v_parts[1] = str(int(v_parts[1]) + 1)
+                v_parts[2] = "0"
+            elif type == VersionType.MAJOR.value:
+                v_parts[0] = str(int(v_parts[0]) + 1)
+                v_parts[1] = "0"
+                v_parts[2] = "0"
+            new_version = ".".join(v_parts)
+            logger.info(f"Would bump version from {old_version} to {new_version}")
+            logger.info("Test run completed successfully")
+            return
+
+        # Run tests before release
+        if not run_tests():
+            if not click.confirm("Tests failed. Continue anyway?", default=False):
+                sys.exit(1)
+
+        # Bump version
+        old_version, new_version = bump_version(type)
+
+        # Update changelog
+        if not update_changelog(new_version):
+            if not click.confirm("Failed to update changelog. Continue anyway?", default=False):
+                sys.exit(1)
+
+        # Add and commit changes
+        run_subprocess(["git", "add", "."])
+        run_subprocess(["git", "commit", "-m", f"Release {new_version}"])
+
+        # Push changes
+        run_subprocess(["git", "push", "origin", "main"])
+
+        # Create and push tag
+        if not create_and_push_tag(new_version):
+            logger.error("Failed to create or push tag, but version has been bumped.")
+            sys.exit(1)
+
+        logger.info(f"Successfully released version {new_version}")
+
+    except Exception as e:
+        logger.error(f"Release process failed: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    cli()
+    main()

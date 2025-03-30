@@ -5,7 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gac.core import build_prompt, main, run_subprocess, send_to_llm
+from gac.core import build_prompt, main, send_to_llm
+from gac.utils import run_subprocess
 
 
 class TestCore:

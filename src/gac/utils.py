@@ -2,42 +2,89 @@
 
 import logging
 import subprocess
-from typing import List
+from enum import Enum
+from typing import List, Optional, Tuple, Union
+
+import click
+from rich.console import Console
+from rich.panel import Panel
 
 logger = logging.getLogger(__name__)
 
+# Initialize a console for rich output
+console = Console()
 
-def run_subprocess(command: List[str]) -> str:
+
+class Color(Enum):
+    """Color codes for terminal output."""
+
+    BLACK = 0
+    RED = 1
+    GREEN = 2
+    YELLOW = 3
+    BLUE = 4
+    MAGENTA = 5
+    CYAN = 6
+    WHITE = 7
+    BRIGHT_BLACK = 8
+    BRIGHT_RED = 9
+    BRIGHT_GREEN = 10
+    BRIGHT_YELLOW = 11
+    BRIGHT_BLUE = 12
+    BRIGHT_MAGENTA = 13
+    BRIGHT_CYAN = 14
+    BRIGHT_WHITE = 15
+
+
+def colorize(text: str, fg_color: Color = None, bg_color: Color = None, bold: bool = False) -> str:
     """
-    Run a subprocess command and return its output.
+    Apply colors to text for terminal output.
 
     Args:
-        command: List of command arguments
+        text: The text to colorize
+        fg_color: Foreground color from the Color enum
+        bg_color: Background color from the Color enum
+        bold: Whether to make the text bold
 
     Returns:
-        The command output as a string
-
-    Raises:
-        CalledProcessError: If the command fails
+        The colorized text string
     """
-    logger.debug(f"Running command: `{' '.join(command)}`")
-    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    # Don't colorize if no colors are specified
+    if fg_color is None and bg_color is None and not bold:
+        return text
 
-    # Special case for git diff --quiet --cached --exit-code
-    if command == ["git", "diff", "--quiet", "--cached", "--exit-code"]:
-        # Returns True if no unstaged changes, False if there are unstaged changes
-        return result.returncode == 0
+    # Use click's style function for coloring
+    return click.style(
+        text,
+        fg=fg_color.name.lower() if fg_color else None,
+        bg=bg_color.name.lower() if bg_color else None,
+        bold=bold,
+    )
 
-    if result.returncode != 0:
-        error_msg = f"Command failed with exit code {result.returncode}: {result.stderr}"
-        logger.error(error_msg)
-        raise subprocess.CalledProcessError(
-            result.returncode, command, result.stdout, result.stderr
-        )
-    if result.stdout:
-        logger.debug(f"Command output:\n{result.stdout}")
-        return result.stdout
-    return ""
+
+def print_info(message: str) -> None:
+    """Print an info message in blue."""
+    console.print(f"[blue]ℹ️ {message}[/blue]")
+
+
+def print_success(message: str) -> None:
+    """Print a success message in green."""
+    console.print(f"[green]✅ {message}[/green]")
+
+
+def print_warning(message: str) -> None:
+    """Print a warning message in yellow."""
+    console.print(f"[yellow]⚠️ {message}[/yellow]")
+
+
+def print_error(message: str) -> None:
+    """Print an error message in red."""
+    console.print(f"[red]❌ {message}[/red]")
+
+
+def print_header(message: str) -> None:
+    """Print a header message in bold cyan."""
+    console.print(f"[bold cyan]== {message} ==[/bold cyan]")
 
 
 def format_bordered_text(
@@ -75,3 +122,34 @@ def format_bordered_text(
         bottom_border = top_border
 
     return f"\n{top_border}\n{content}\n{bottom_border}\n"
+
+
+def run_subprocess(command: List[str], check: bool = False) -> str:
+    """
+    Run a subprocess and return its output.
+
+    Args:
+        command: List of command components
+        check: Whether to check return code
+
+    Returns:
+        Output of the command
+
+    Raises:
+        subprocess.CalledProcessError: If check=True and the command fails
+    """
+    try:
+        logger.debug(f"Running command: {' '.join(command)}")
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            check=check,
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        if check:
+            raise
+        logger.error(f"Command failed: {' '.join(command)}")
+        logger.error(f"Error: {e.stderr.strip() if e.stderr else str(e)}")
+        return ""
