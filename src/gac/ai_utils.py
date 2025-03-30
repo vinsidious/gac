@@ -150,4 +150,8 @@ def count_tokens(
         logger.error(f"Error counting tokens: {e}")
         # Fallback to simple estimation if token counting fails
         # Roughly 4 characters per token for English text
-        return len(content) // 4 if "content" in locals() else 0
+        if "content" not in locals():
+            # If content wasn't created, there was likely an error parsing the input
+            logger.warning("No content found to count tokens for - input may be malformed")
+            return 0
+        return len(content) // 4

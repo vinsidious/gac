@@ -11,31 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added 🚀
 
-- Nightly release GitHub Actions workflow with automated builds and release process
-- Configuration support for max input and output tokens
-- Comprehensive README configuration guide
+- **Tiktoken integration** for advanced token counting and model-specific encoding support
+- Enhanced large file handling in git diff processing
 
 ### Changed 🔧
 
-- Simplified black and isort formatting logic
-- Enhanced subprocess handling and error management
-- Improved config validation and token limits
-- Updated .env.example with more comprehensive configuration options
-
-### Refactored 🛠️
-
-- Restructured configuration parsing in config.py
-- Enhanced test fixtures and mock configurations
-- Adjusted logging and print statement behaviors
+- Improved token counting logic using tiktoken for more accurate token estimation
+- Refactored git diff handling to manage large files and reduce token usage
+- Updated AI utility functions to support better token counting across different models
 
 ### Fixed 🐛
 
-- Improved unstaged changes detection logic
-- Added more robust error handling for subprocess commands
+- Refined token counting algorithm to handle various input types and models
+- Improved subprocess error handling in git diff processing
+- Enhanced test coverage for token counting and git utilities
 
-### Chore 📋
+### Refactored 🛠️
 
-- Updated .gitignore to include uv.lock file
+- Restructured AI utility functions for more robust token counting
+- Simplified git diff processing with better large file detection
+- Updated test fixtures to support new token counting methods
 
 ## [0.4.1] - 2025-03-29
 
