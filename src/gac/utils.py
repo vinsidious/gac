@@ -22,6 +22,12 @@ def run_subprocess(command: List[str]) -> str:
     """
     logger.debug(f"Running command: `{' '.join(command)}`")
     result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+    # Special case for git diff --quiet --cached --exit-code
+    if command == ["git", "diff", "--quiet", "--cached", "--exit-code"]:
+        # Returns True if no unstaged changes, False if there are unstaged changes
+        return result.returncode == 0
+
     if result.returncode != 0:
         error_msg = f"Command failed with exit code {result.returncode}: {result.stderr}"
         logger.error(error_msg)

@@ -269,10 +269,10 @@ index 0000000..1234567
 
     # If there are unstaged changes, stash them temporarily
     if not no_format and not testing:
-        result = run_subprocess("git diff --quiet --cached --exit-code")
-        if result.returncode != 0:  # There are unstaged changes
+        has_unstaged_changes = run_subprocess(["git", "diff", "--quiet", "--cached", "--exit-code"])
+        if not has_unstaged_changes:  # There are unstaged changes
             logger.debug("Stashing unstaged changes temporarily")
-            run_subprocess("git stash -k -q")  # Keep index, quiet mode
+            run_subprocess(["git", "stash", "-k", "-q"])  # Keep index, quiet mode
             restore_unstaged = True
 
     # Format only the staged changes
@@ -290,7 +290,10 @@ index 0000000..1234567
     # Restore unstaged changes if needed
     if restore_unstaged:
         logger.debug("Restoring unstaged changes")
-        run_subprocess("git stash pop -q")
+        try:
+            run_subprocess(["git", "stash", "pop", "-q"])
+        except Exception as e:
+            logger.error(f"Failed to restore unstaged changes: {e}")
 
     # Generate commit message (real or test)
     if test_mode:
@@ -299,7 +302,7 @@ index 0000000..1234567
         if test_with_real_diff and not simulation_mode:
             logger.info("Using real git diff in test mode")
             status = run_subprocess(["git", "status"])
-            diff = run_subprocess(["git", "--no-pager", "diff", "--staged"])
+            diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--patience"])
 
             # Build a test prompt and log info about it
             prompt = build_prompt(status, diff, one_liner, hint)
@@ -349,7 +352,7 @@ index 0000000..1234567
 
         logger.info("Generating commit message...")
         status = run_subprocess(["git", "status"])
-        diff = run_subprocess(["git", "--no-pager", "diff", "--staged"])
+        diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--patience"])
         commit_message = send_to_llm(
             status=status,
             diff=diff,
