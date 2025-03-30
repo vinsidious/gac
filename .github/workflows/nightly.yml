@@ -1,0 +1,84 @@
+name: Nightly Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  check-for-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check_date.outputs.should_release }}
+    steps:
+      - name: Check if changes were made today
+        id: check_date
+        run: |
+          # Get the current date in YYYY-MM-DD format
+          TODAY=$(date +"%Y-%m-%d")
+          # Check if there were any commits today
+          if [[ $(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/commits?since=${TODAY}T00:00:00Z" | \
+            jq '. | length') -gt 0 ]]; then
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          fi
+
+  nightly-release:
+    needs: check-for-changes
+    if: ${{ needs.check-for-changes.outputs.should_release == 'true' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for versioning
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          pip install build twine toml
+
+      - name: Get date for nightly version
+        id: date
+        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+      - name: Create nightly version
+        id: nightly_version
+        run: |
+          # Extract current version from pyproject.toml
+          CURRENT_VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['tool']['bump-my-version']['current_version'])")
+          # Create nightly version string
+          NIGHTLY_VERSION="${CURRENT_VERSION}-nightly.${{ steps.date.outputs.date }}"
+          echo "version=${NIGHTLY_VERSION}" >> $GITHUB_OUTPUT
+          echo "Building nightly version: ${NIGHTLY_VERSION}"
+
+      - name: Build package
+        run: python -m build
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: nightly-${{ steps.date.outputs.date }}
+          name: Nightly Release ${{ steps.nightly_version.outputs.version }}
+          body: |
+            Nightly build created from the latest changes on the main branch.
+            
+            This is an automated nightly release and may contain unstable features.
+            
+            Version: ${{ steps.nightly_version.outputs.version }}
+          prerelease: true
+          files: |
+            dist/*.whl
+            dist/*.tar.gz 
