@@ -217,6 +217,7 @@ def main(
                     return None
 
             # Create simulated data for test experience
+            print("*** SIMULATION MODE ***")
             logger.info("Using simulated files for test experience")
             simulation_mode = True
             status = "M app.py\nA utils.py\nA README.md"
@@ -309,7 +310,7 @@ index 0000000..1234567
 
     if test_mode:
         if simulation_mode:
-            logger.info("[SIMULATION] This is a simulated commit (no actual files committed)")
+            print("*** SIMULATION MODE ***")
             commit_message = send_to_llm(
                 status=status,
                 diff=diff,
@@ -319,7 +320,7 @@ index 0000000..1234567
                 force=force,
             )
         else:
-            logger.info("[TEST MODE] Using actual git status and diff")
+            print("*** TEST MODE ***")
             status = run_subprocess(["git", "status"])
             diff, truncated_files = get_staged_diff()
 
@@ -411,7 +412,7 @@ index 0000000..1234567
     # Handle test mode or real commit
     if test_mode:
         if simulation_mode:
-            logger.info("[SIMULATION] This is a simulated commit (no actual files committed)")
+            print("*** SIMULATION MODE ***")
 
             # Simulate the push prompt as well
             if force or testing:
@@ -421,11 +422,11 @@ index 0000000..1234567
                 push = click.prompt(prompt, type=str, default="y").strip().lower()
 
             if push and push[0] == "y":
-                logger.info("[SIMULATION] Push simulated successfully")
+                print("*** SIMULATION MODE: PUSH SIMULATED SUCCESSFULLY ***")
             else:
-                logger.info("[SIMULATION] Push simulation aborted")
+                print("*** SIMULATION MODE: PUSH SIMULATION ABORTED ***")
         else:
-            logger.info("[TEST MODE] Commit simulation completed. No actual commit was made.")
+            print("*** TEST MODE ***")
 
             # Only show push prompt in test mode if not in simulation mode
             if force or testing:
@@ -435,9 +436,9 @@ index 0000000..1234567
                 push = click.prompt(prompt, type=str, default="y").strip().lower()
 
             if push and push[0] == "y":
-                logger.info("[TEST MODE] Push simulation completed. No actual push was made.")
+                print("*** TEST MODE: PUSH SIMULATION COMPLETED ***")
             else:
-                logger.info("Push aborted.")
+                print("*** TEST MODE: PUSH ABORTED ***")
 
         return commit_message
 
