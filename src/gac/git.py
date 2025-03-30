@@ -236,10 +236,10 @@ def get_project_description() -> str:
             with open(description_file, "r") as f:
                 file_content = f.read().strip()
                 # Check if it's not the default description
-                if (
-                    file_content
-                    != "Unnamed repository; edit this file 'description' to name the repository."
-                ):
+                default_msg = (
+                    "Unnamed repository; edit this file 'description' to name the repository."
+                )
+                if file_content != default_msg:
                     description = file_content
 
         # Combine repo name and description
