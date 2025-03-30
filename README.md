@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD029-->
+
 # gac (Git Auto Commit)
 
 [![Tests](https://github.com/cellwebb/gac/actions/workflows/ci.yml/badge.svg)](https://github.com/cellwebb/gac/actions/workflows/ci.yml)
@@ -29,33 +31,36 @@ pipx install gac
 
 The following environment variables can be used to configure gac:
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `ANTHROPIC_API_KEY` | API key for Anthropic Claude | - | Yes (for Anthropic) |
-| `OPENAI_API_KEY` | API key for OpenAI models | - | Yes (for OpenAI) |
-| `GROQ_API_KEY` | API key for Groq models | - | Yes (for Groq) |
-| `MISTRAL_API_KEY` | API key for Mistral models | - | Yes (for Mistral) |
-| `GAC_MODEL` | Fully qualified model string (provider:model) | `anthropic:claude-3-5-haiku-latest` | No |
-| `GAC_USE_FORMATTING` | Enable/disable code formatting (true/false) | `true` | No |
-| `GAC_MAX_OUTPUT_TOKENS` | Maximum tokens in model output | `512` | No |
-| `GAC_MAX_INPUT_TOKENS` | Maximum tokens in input prompt | `1000` | No |
+| Variable                | Description                                   | Default                             | Required            |
+| ----------------------- | --------------------------------------------- | ----------------------------------- | ------------------- |
+| `ANTHROPIC_API_KEY`     | API key for Anthropic Claude                  | -                                   | Yes (for Anthropic) |
+| `OPENAI_API_KEY`        | API key for OpenAI models                     | -                                   | Yes (for OpenAI)    |
+| `GROQ_API_KEY`          | API key for Groq models                       | -                                   | Yes (for Groq)      |
+| `MISTRAL_API_KEY`       | API key for Mistral models                    | -                                   | Yes (for Mistral)   |
+| `GAC_MODEL`             | Fully qualified model string (provider:model) | `anthropic:claude-3-5-haiku-latest` | No                  |
+| `GAC_USE_FORMATTING`    | Enable/disable code formatting (true/false)   | `true`                              | No                  |
+| `GAC_MAX_OUTPUT_TOKENS` | Maximum tokens in model output                | `512`                               | No                  |
+| `GAC_MAX_INPUT_TOKENS`  | Maximum tokens in input prompt                | `1000`                              | No                  |
 
 ### Model Selection
 
 You can specify which LLM model to use in several ways:
 
 1. Using `GAC_MODEL` (recommended):
+
 ```bash
 export GAC_MODEL=anthropic:claude-3-5-haiku-latest
 ```
 
 2. Using separate provider and model name:
+
 ```bash
 export GAC_PROVIDER=anthropic
 export GAC_MODEL_NAME=claude-3-5-haiku-latest
 ```
 
 3. Using provider-specific environment variables:
+
 ```bash
 export GAC_PROVIDER=anthropic
 # Will use default model for provider
@@ -63,15 +68,15 @@ export GAC_PROVIDER=anthropic
 
 Available providers and their default models:
 
-| Provider | Default Model | Description |
-|----------|---------------|-------------|
-| `anthropic` | `claude-3-5-haiku-latest` | Latest Claude model with enhanced context understanding |
-| `openai` | `gpt-4o-mini` | Optimized version of GPT-4 for commit messages |
-| `groq` | `llama3-70b-8192` | Large Llama 3 model with 8192 context window |
-| `mistral` | `mistral-large-latest` | Latest Mistral large model |
-| `aws` | `meta.llama3-1-70b-instruct-v1:0` | AWS-hosted Llama 3 model |
-| `azure` | `gpt-4o-mini` | Azure-hosted GPT-4 optimized model |
-| `google` | `gemini-2.0-flash` | Latest Gemini model with flash attention |
+| Provider    | Default Model                     | Description                                             |
+| ----------- | --------------------------------- | ------------------------------------------------------- |
+| `anthropic` | `claude-3-5-haiku-latest`         | Latest Claude model with enhanced context understanding |
+| `openai`    | `gpt-4o-mini`                     | Optimized version of GPT-4 for commit messages          |
+| `groq`      | `llama3-70b-8192`                 | Large Llama 3 model with 8192 context window            |
+| `mistral`   | `mistral-large-latest`            | Latest Mistral large model                              |
+| `aws`       | `meta.llama3-1-70b-instruct-v1:0` | AWS-hosted Llama 3 model                                |
+| `azure`     | `gpt-4o-mini`                     | Azure-hosted GPT-4 optimized model                      |
+| `google`    | `gemini-2.0-flash`                | Latest Gemini model with flash attention                |
 
 ### Token Limits
 
@@ -102,11 +107,13 @@ This is useful if you're working on a project that uses different formatting too
 ### Basic Usage
 
 1. Stage your changes as usual with git:
+
 ```bash
 git add <files>
 ```
 
 2. Use `gac` to commit:
+
 ```bash
 gac
 ```
@@ -119,45 +126,51 @@ gac [OPTIONS]
 
 Available options:
 
-| Option | Description | Example |
-|--------|-------------|---------|
-| `--test` | Run in test mode with example commit messages | `gac --test` |
-| `--force, -f` | Skip all prompts (auto-yes) | `gac -f` |
-| `--add-all, -a` | Stage all changes before committing | `gac -a` |
-| `--no-format, -nf` | Disable automatic code formatting | `gac --no-format` |
-| `--model` | Specify model to use (overrides GAC_MODEL) | `gac --model=openai:gpt-4o` |
-| `--one-liner` | Generate one-line commit messages | `gac --one-liner` |
-| `--show-prompt` | Show the prompt sent to the LLM | `gac --show-prompt` |
-| `--hint` | Provide additional context for the commit message | `gac --hint="This is a breaking change"` |
+| Option             | Description                                       | Example                                  |
+| ------------------ | ------------------------------------------------- | ---------------------------------------- |
+| `--test`           | Run in test mode with example commit messages     | `gac --test`                             |
+| `--force, -f`      | Skip all prompts (auto-yes)                       | `gac -f`                                 |
+| `--add-all, -a`    | Stage all changes before committing               | `gac -a`                                 |
+| `--no-format, -nf` | Disable automatic code formatting                 | `gac --no-format`                        |
+| `--model`          | Specify model to use (overrides GAC_MODEL)        | `gac --model=openai:gpt-4o`              |
+| `--one-liner`      | Generate one-line commit messages                 | `gac --one-liner`                        |
+| `--show-prompt`    | Show the prompt sent to the LLM                   | `gac --show-prompt`                      |
+| `--hint`           | Provide additional context for the commit message | `gac --hint="This is a breaking change"` |
 
 ### Common Workflows
 
 1. Quick commit with all changes:
+
 ```bash
 gac -f -a
 ```
 
 2. Generate a one-line commit message:
+
 ```bash
 gac --one-liner
 ```
 
 3. Use a specific model:
+
 ```bash
 gac --model=openai:gpt-4o
 ```
 
 4. Provide additional context:
+
 ```bash
 gac --hint="This is a breaking change"
 ```
 
 5. Test the commit message without actually committing:
+
 ```bash
 gac --test
 ```
 
 6. View the prompt being sent to the LLM:
+
 ```bash
 gac --show-prompt
 ```

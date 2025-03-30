@@ -264,6 +264,34 @@ index 0000000..1234567
             logger.info("No staged files to commit.")
             return None
 
+    # Track if we need to restore unstaged changes
+    restore_unstaged = False
+
+    # If there are unstaged changes, stash them temporarily
+    if not no_format and not testing:
+        result = run_subprocess("git diff --quiet --cached --exit-code")
+        if result.returncode != 0:  # There are unstaged changes
+            logger.debug("Stashing unstaged changes temporarily")
+            run_subprocess("git stash -k -q")  # Keep index, quiet mode
+            restore_unstaged = True
+
+    # Format only the staged changes
+    if not no_format and not testing:
+        python_files = get_staged_python_files()
+        if python_files:
+            logger.info(f"Formatting {len(python_files)} Python files...")
+            run_black(python_files)
+            run_isort(python_files)
+
+            # Restage the formatted files
+            for file in python_files:
+                run_subprocess(["git", "add", file])
+
+    # Restore unstaged changes if needed
+    if restore_unstaged:
+        logger.debug("Restoring unstaged changes")
+        run_subprocess("git stash pop -q")
+
     # Generate commit message (real or test)
     if test_mode:
         logger.info("[TEST MODE ENABLED] Using test commit message")

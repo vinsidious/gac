@@ -1,13 +1,14 @@
 """Test module for gac.core."""
 
 import subprocess
-import unittest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from gac.core import build_prompt, main, run_subprocess, send_to_llm
 
 
-class TestCore(unittest.TestCase):
+class TestCore:
     """Tests for core functions."""
 
     @patch("gac.utils.subprocess.run")
@@ -31,7 +32,7 @@ class TestCore(unittest.TestCase):
         )
 
         # Assert result matches mock stdout
-        self.assertEqual(result, "Command output")
+        assert result == "Command output"
 
     @patch("gac.utils.subprocess.run")
     def test_run_subprocess_failure(self, mock_run):
@@ -43,7 +44,7 @@ class TestCore(unittest.TestCase):
         mock_run.return_value = mock_process
 
         # Call run_subprocess and expect exception
-        with self.assertRaises(subprocess.CalledProcessError):
+        with pytest.raises(subprocess.CalledProcessError):
             run_subprocess(["git", "invalid"])
 
     @patch("gac.core.get_config")
@@ -77,7 +78,7 @@ class TestCore(unittest.TestCase):
         # Assert commit message was generated and applied
         mock_send_to_llm.assert_called_once()
         mock_commit_changes.assert_called_once()
-        self.assertEqual(result, "Generated commit message")
+        assert result == "Generated commit message"
 
     @patch("gac.core.get_config")
     @patch("gac.core.get_staged_files")
@@ -116,7 +117,7 @@ class TestCore(unittest.TestCase):
 
         # Assert commit was made
         mock_commit_changes.assert_called_once()
-        self.assertEqual(result, "Generated commit message")
+        assert result == "Generated commit message"
 
     @patch("gac.core.get_config")
     @patch("gac.core.get_staged_files")
@@ -150,7 +151,7 @@ class TestCore(unittest.TestCase):
 
         # Assert commit was made
         mock_commit_changes.assert_called_once()
-        self.assertEqual(result, "Generated commit message")
+        assert result == "Generated commit message"
 
     @patch("gac.core.get_config")
     @patch("gac.core.get_staged_files")
@@ -178,7 +179,7 @@ class TestCore(unittest.TestCase):
 
         mock_prompt.assert_not_called()
         mock_commit_changes.assert_called_once_with("Generated commit message")
-        self.assertEqual(result, "Generated commit message")
+        assert result == "Generated commit message"
 
     @patch("gac.core.get_config")
     @patch("gac.core.get_staged_files")
@@ -211,9 +212,9 @@ class TestCore(unittest.TestCase):
             # Check that the model was set in the environment
             from gac.core import os
 
-            self.assertEqual(os.environ.get("GAC_MODEL"), "openai:gpt-4")
+            assert os.environ.get("GAC_MODEL") == "openai:gpt-4"
 
-        self.assertEqual(result, "Generated commit message")
+        assert result == "Generated commit message"
 
     @patch("gac.core.get_config")
     @patch("gac.core.get_staged_files")
@@ -286,7 +287,7 @@ class TestCore(unittest.TestCase):
 
             # Assert commit was made
             mock_commit_changes.assert_called_once()
-            self.assertEqual(result, "Generated commit message")
+            assert result == "Generated commit message"
 
     @patch("gac.core.get_config")
     @patch("gac.core.get_staged_files")
@@ -312,7 +313,7 @@ class TestCore(unittest.TestCase):
         mock_prompt.return_value = "y"
 
         result = main()
-        self.assertIsNone(result)
+        assert result is None
 
     @patch("gac.core.get_config")
     @patch("gac.core.get_staged_files")
@@ -336,7 +337,7 @@ class TestCore(unittest.TestCase):
         mock_prompt.return_value = "n"
 
         result = main()
-        self.assertIsNone(result)
+        assert result is None
         mock_commit_changes.assert_not_called()
 
     @patch("gac.core.get_config")
@@ -357,7 +358,7 @@ class TestCore(unittest.TestCase):
 
         # Assert LLM was called with expected parameters
         mock_chat.assert_called_once()
-        self.assertEqual(result, "Generated commit message")
+        assert result == "Generated commit message"
 
     @patch("gac.core.get_config")
     @patch("gac.core.get_staged_files")
@@ -391,10 +392,10 @@ class TestCore(unittest.TestCase):
 
         # Assert git push was not called
         for call_args in mock_run_subprocess.call_args_list:
-            self.assertNotEqual(call_args[0][0], ["git", "push"])
+            assert call_args[0][0] != ["git", "push"]
 
         # Assert message was returned
-        self.assertEqual(result, "Generated commit message")
+        assert result == "Generated commit message"
 
     @patch("gac.core.run_subprocess")
     @patch("gac.core.get_staged_files")
@@ -408,8 +409,8 @@ class TestCore(unittest.TestCase):
         result = main(test_mode=True, testing=True)
 
         # Assert the result is a test commit message
-        self.assertIsNotNone(result)
-        self.assertIn("[TEST MESSAGE]", result)
+        assert result is not None
+        assert "[TEST MESSAGE]" in result
 
         # Verify prints were called for the test message
         mock_print.assert_any_call("\n=== Test Commit Message ===")
@@ -451,10 +452,10 @@ class TestCore(unittest.TestCase):
         result = main(test_mode=True, test_with_real_diff=True, testing=True)
 
         # Assert the result is a test commit message
-        self.assertIsNotNone(result)
+        assert result is not None
 
         # Verify subprocess calls for status and diff
-        self.assertEqual(mock_run_subprocess.call_count, 2)
+        assert mock_run_subprocess.call_count == 2
         mock_run_subprocess.assert_any_call(["git", "status"])
         mock_run_subprocess.assert_any_call(["git", "--no-pager", "diff", "--staged"])
 
@@ -478,8 +479,8 @@ class TestCore(unittest.TestCase):
         result = main(test_mode=True, testing=True)
 
         # Assert the result is a test commit message (simulation worked)
-        self.assertIsNotNone(result)
-        self.assertIn("[TEST MESSAGE]", result)
+        assert result is not None
+        assert "[TEST MESSAGE]" in result
 
         # Verify prints were called for the test message
         mock_print.assert_any_call("\n=== Test Commit Message ===")
@@ -496,16 +497,157 @@ class TestCore(unittest.TestCase):
 
         # Test with hint in regular mode
         prompt = build_prompt(status, diff, one_liner=False, hint=hint)
-        self.assertIn("Please consider this context from the user: JIRA-123", prompt)
+        assert "Please consider this context from the user: JIRA-123" in prompt
 
         # Test with hint in one-liner mode
         one_liner_prompt = build_prompt(status, diff, one_liner=True, hint=hint)
-        self.assertIn("Please consider this context from the user: JIRA-123", one_liner_prompt)
+        assert "Please consider this context from the user: JIRA-123" in one_liner_prompt
 
         # Test without hint
         no_hint_prompt = build_prompt(status, diff, one_liner=False)
-        self.assertNotIn("Please consider this context", no_hint_prompt)
+        assert "Please consider this context" not in no_hint_prompt
+
+    def test_main_user_declines_commit(self, caplog):
+        """Test that main() exits when user declines to commit."""
+        # Setup logging
+        import logging
+
+        logging.basicConfig(level=logging.INFO)
+
+        # Mock git commands
+        mock_run = patch("subprocess.run")
+        mock_run.start()
+        mock_run.return_value = MagicMock()
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = "M file1.py\nM file2.py"
+        mock_run.return_value.stderr = ""
+
+        # Mock user input
+        mock_prompt = patch("click.prompt")
+        mock_prompt.start()
+        mock_prompt.return_value = "n"  # User declines commit
+
+        # Mock other functions
+        mock_stage_files = patch("gac.core.stage_files")
+        mock_stage_files.start()
+
+        mock_get_staged_files = patch("gac.git.get_staged_files")
+        mock_get_staged_files.start()
+        mock_get_staged_files.return_value = ["file1.py", "file2.py"]
+
+        mock_get_staged_python_files = patch("gac.git.get_staged_python_files")
+        mock_get_staged_python_files.start()
+        mock_get_staged_python_files.return_value = ["file1.py"]
+
+        mock_run_black = patch("gac.formatting.formatters.run_black")
+        mock_run_black.start()
+        mock_run_black.return_value = True
+
+        mock_run_isort = patch("gac.formatting.formatters.run_isort")
+        mock_run_isort.start()
+        mock_run_isort.return_value = True
+
+        mock_run_subprocess = patch("gac.utils.run_subprocess")
+        mock_run_subprocess.start()
+        mock_run_subprocess.return_value = "M file1.py\nM file2.py"  # Simulate staged files
+
+        try:
+            # Test
+            result = main(
+                add_all=False,
+                no_format=False,
+                verbose=True,  # Enable verbose mode to capture logging
+                test_mode=False,
+                one_liner=False,
+                model=None,
+                show_prompt=False,
+                test_with_real_diff=False,
+                testing=True,
+                hint="",
+            )
+
+            # Verify
+            assert result is None
+            assert "Commit aborted." in caplog.text
+            mock_prompt.assert_called_once()
+        finally:
+            # Cleanup mocks
+            mock_run.stop()
+            mock_prompt.stop()
+            mock_stage_files.stop()
+            mock_get_staged_files.stop()
+            mock_get_staged_python_files.stop()
+            mock_run_black.stop()
+            mock_run_isort.stop()
+            mock_run_subprocess.stop()
+
+    @patch("gac.core.run_subprocess")
+    def test_main_user_declines_commit(self, mock_run_subprocess, caplog):
+        """Test that main() exits when user declines to commit."""
+        # Setup logging
+        import logging
+
+        logging.basicConfig(level=logging.INFO)
+
+        # Mock git commands
+        mock_run_subprocess.side_effect = [
+            "M file1.py\nM file2.py",  # git status
+            "diff --git a/file1.py b/file1.py\n+test content",  # git diff
+        ]
+
+        # Mock user input
+        mock_prompt = patch("click.prompt")
+        mock_prompt.start()
+        mock_prompt.return_value = "n"  # User declines commit
+
+        # Mock other functions
+        mock_stage_files = patch("gac.core.stage_files")
+        mock_stage_files.start()
+
+        mock_get_staged_files = patch("gac.git.get_staged_files")
+        mock_get_staged_files.start()
+        mock_get_staged_files.return_value = ["file1.py", "file2.py"]
+
+        mock_get_staged_python_files = patch("gac.git.get_staged_python_files")
+        mock_get_staged_python_files.start()
+        mock_get_staged_python_files.return_value = ["file1.py"]
+
+        mock_run_black = patch("gac.formatting.formatters.run_black")
+        mock_run_black.start()
+        mock_run_black.return_value = True
+
+        mock_run_isort = patch("gac.formatting.formatters.run_isort")
+        mock_run_isort.start()
+        mock_run_isort.return_value = True
+
+        try:
+            # Test
+            result = main(
+                add_all=False,
+                no_format=False,
+                verbose=True,  # Enable verbose mode to capture logging
+                test_mode=False,
+                one_liner=False,
+                model=None,
+                show_prompt=False,
+                test_with_real_diff=False,
+                testing=True,
+                hint="",
+            )
+
+            # Verify
+            assert result is None
+            assert "Commit aborted." in caplog.text
+            mock_prompt.assert_called_once()
+        finally:
+            # Cleanup mocks
+            mock_prompt.stop()
+            mock_stage_files.stop()
+            mock_get_staged_files.stop()
+            mock_get_staged_python_files.stop()
+            mock_run_black.stop()
+            mock_run_isort.stop()
 
 
 if __name__ == "__main__":
-    unittest.main()
+    pytest.main()
