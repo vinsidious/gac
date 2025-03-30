@@ -3,6 +3,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+import tiktoken
+
 from gac.ai_utils import chat, count_tokens
 
 
@@ -92,9 +94,13 @@ class TestAiUtils(unittest.TestCase):
 
     def test_count_tokens_string(self):
         """Test count_tokens with string input."""
-        result = count_tokens("Test message", "test:model")
+        # Use tiktoken directly to get expected token count
+        encoding = tiktoken.get_encoding("cl100k_base")
+        text = "Test message"
+        expected = len(encoding.encode(text))
 
-        self.assertEqual(result, len("Test message") // 4)
+        result = count_tokens(text, "test:model")
+        self.assertEqual(result, expected)
 
     def test_count_tokens_messages(self):
         """Test count_tokens with messages list input."""
@@ -103,9 +109,11 @@ class TestAiUtils(unittest.TestCase):
             {"role": "user", "content": "Hello"},
         ]
 
-        result = count_tokens(messages, "test:model")
+        # Use tiktoken directly to get expected token count
+        encoding = tiktoken.get_encoding("cl100k_base")
+        expected = len(encoding.encode("You are helpful\nHello"))
 
-        expected = len("You are helpful") // 4 + len("Hello") // 4
+        result = count_tokens(messages, "test:model")
         self.assertEqual(result, expected)
 
     def test_count_tokens_test_mode(self):

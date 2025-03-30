@@ -4,6 +4,8 @@ import subprocess
 import unittest
 from unittest.mock import mock_open, patch
 
+import tiktoken
+
 from gac.git import (
     commit_changes,
     get_existing_staged_python_files,
@@ -150,12 +152,11 @@ class TestGit(unittest.TestCase):
         )
 
     @patch("gac.git.run_subprocess")
-    @patch("aisuite.Client")
-    def test_is_large_file(self, mock_client, mock_run_subprocess):
+    @patch("gac.git.count_tokens")
+    def test_is_large_file(self, mock_count_tokens, mock_run_subprocess):
         """Test is_large_file correctly identifies large files."""
-        # Set up mock client for token counting
-        mock_client_instance = mock_client.return_value
-        mock_client_instance.count_tokens.side_effect = [
+        # Set up mock token counting
+        mock_count_tokens.side_effect = [
             1001,  # large_file.txt
             999,  # small_file.txt
         ]
@@ -179,12 +180,11 @@ class TestGit(unittest.TestCase):
 
     @patch("gac.git.get_staged_files")
     @patch("gac.git.run_subprocess")
-    @patch("aisuite.Client")
-    def test_get_staged_diff(self, mock_client, mock_run_subprocess, mock_get_staged_files):
+    @patch("gac.git.count_tokens")
+    def test_get_staged_diff(self, mock_count_tokens, mock_run_subprocess, mock_get_staged_files):
         """Test get_staged_diff handles large files correctly."""
-        # Set up mock client for token counting
-        mock_client_instance = mock_client.return_value
-        mock_client_instance.count_tokens.side_effect = [
+        # Set up mock token counting
+        mock_count_tokens.side_effect = [
             100,  # normal.py
             2000,  # pnpm-lock.yaml
             50,  # small.txt

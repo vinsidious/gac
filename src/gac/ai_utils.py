@@ -6,6 +6,7 @@ import time
 from typing import Any, Dict, List, Optional, Union
 
 import aisuite as ai
+import tiktoken
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -116,10 +117,7 @@ def count_tokens(
         return 10
 
     try:
-        # Initialize the aisuite client
-        client = ai.Client()
-
-        # Convert input to a format suitable for token counting
+        # Convert input to a string
         if isinstance(messages, str):
             content = messages
         elif isinstance(messages, list):
@@ -131,20 +129,25 @@ def count_tokens(
         else:
             return 0
 
-        # Use aisuite's token counting
-        token_count = client.count_tokens(model=model, content=content)
+        # Extract model name from provider:model format
+        model_name = model.split(":")[-1] if ":" in model else model
+
+        # Map model to encoding
+        if "claude" in model_name.lower():
+            # Claude models use cl100k_base encoding like GPT-4
+            encoding = tiktoken.get_encoding("cl100k_base")
+        else:
+            try:
+                encoding = tiktoken.encoding_for_model(model_name)
+            except KeyError:
+                # Fallback to cl100k_base for unknown models
+                encoding = tiktoken.get_encoding("cl100k_base")
+
+        # Count tokens
+        token_count = len(encoding.encode(content))
         return token_count
     except Exception as e:
         logger.error(f"Error counting tokens: {e}")
         # Fallback to simple estimation if token counting fails
-        if isinstance(messages, str):
-            return len(messages) // 4
-        elif isinstance(messages, list):
-            total = 0
-            for msg in messages:
-                if isinstance(msg, dict) and "content" in msg:
-                    total += len(msg["content"]) // 4
-            return total
-        elif isinstance(messages, dict) and "content" in messages:
-            return len(messages["content"]) // 4
-        return 0
+        # Roughly 4 characters per token for English text
+        return len(content) // 4 if "content" in locals() else 0
