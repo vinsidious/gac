@@ -102,7 +102,7 @@ def count_tokens(
     test_mode: bool = False,
 ) -> int:
     """
-    Count tokens in messages.
+    Count tokens in messages using the model's tokenizer.
 
     Args:
         messages: A string, message object, or list of message dictionaries.
@@ -115,18 +115,36 @@ def count_tokens(
     if test_mode:
         return 10
 
-    # Simple estimation method
-    if isinstance(messages, str):
-        # Rough approximation: 1 token ≈ 4 characters
-        return len(messages) // 4
-    elif isinstance(messages, list):
-        # Sum up tokens for each message
-        total = 0
-        for msg in messages:
-            if isinstance(msg, dict) and "content" in msg:
-                total += len(msg["content"]) // 4
-        return total
-    elif isinstance(messages, dict) and "content" in messages:
-        # Single message as a dictionary
-        return len(messages["content"]) // 4
-    return 0
+    try:
+        # Initialize the aisuite client
+        client = ai.Client()
+
+        # Convert input to a format suitable for token counting
+        if isinstance(messages, str):
+            content = messages
+        elif isinstance(messages, list):
+            content = "\n".join(
+                msg["content"] for msg in messages if isinstance(msg, dict) and "content" in msg
+            )
+        elif isinstance(messages, dict) and "content" in messages:
+            content = messages["content"]
+        else:
+            return 0
+
+        # Use aisuite's token counting
+        token_count = client.count_tokens(model=model, content=content)
+        return token_count
+    except Exception as e:
+        logger.error(f"Error counting tokens: {e}")
+        # Fallback to simple estimation if token counting fails
+        if isinstance(messages, str):
+            return len(messages) // 4
+        elif isinstance(messages, list):
+            total = 0
+            for msg in messages:
+                if isinstance(msg, dict) and "content" in msg:
+                    total += len(msg["content"]) // 4
+            return total
+        elif isinstance(messages, dict) and "content" in messages:
+            return len(messages["content"]) // 4
+        return 0

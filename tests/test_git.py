@@ -8,8 +8,10 @@ from gac.git import (
     commit_changes,
     get_existing_staged_python_files,
     get_project_description,
+    get_staged_diff,
     get_staged_files,
     get_staged_python_files,
+    is_large_file,
     stage_files,
 )
 
@@ -146,6 +148,97 @@ class TestGit(unittest.TestCase):
         self.assertEqual(
             result, "Repository: test-repo; Description: Project description from file"
         )
+
+    @patch("gac.git.run_subprocess")
+    @patch("aisuite.Client")
+    def test_is_large_file(self, mock_client, mock_run_subprocess):
+        """Test is_large_file correctly identifies large files."""
+        # Set up mock client for token counting
+        mock_client_instance = mock_client.return_value
+        mock_client_instance.count_tokens.side_effect = [
+            1001,  # large_file.txt
+            999,  # small_file.txt
+        ]
+
+        # Test known large file patterns (these don't need token counting)
+        self.assertTrue(is_large_file("package-lock.json"))
+        self.assertTrue(is_large_file("pnpm-lock.yaml"))
+        self.assertTrue(is_large_file("yarn.lock"))
+
+        # Test large token count
+        mock_run_subprocess.return_value = "diff content"
+        self.assertTrue(is_large_file("large_file.txt"))
+
+        # Test small token count
+        mock_run_subprocess.return_value = "diff content"
+        self.assertFalse(is_large_file("small_file.txt"))
+
+        # Test error handling
+        mock_run_subprocess.side_effect = subprocess.CalledProcessError(1, ["git", "diff"])
+        self.assertFalse(is_large_file("error_file.txt"))
+
+    @patch("gac.git.get_staged_files")
+    @patch("gac.git.run_subprocess")
+    @patch("aisuite.Client")
+    def test_get_staged_diff(self, mock_client, mock_run_subprocess, mock_get_staged_files):
+        """Test get_staged_diff handles large files correctly."""
+        # Set up mock client for token counting
+        mock_client_instance = mock_client.return_value
+        mock_client_instance.count_tokens.side_effect = [
+            100,  # normal.py
+            2000,  # pnpm-lock.yaml
+            50,  # small.txt
+        ]  # Only pnpm-lock.yaml is large
+
+        # Mock staged files
+        mock_get_staged_files.return_value = ["normal.py", "pnpm-lock.yaml", "small.txt"]
+
+        # Mock diffs for each file
+        # For each file, we need to mock:
+        # 1. The call in is_large_file to check if it's large
+        # 2. The call in get_staged_diff to get the actual diff (except for large files)
+        mock_run_subprocess.side_effect = [
+            # normal.py
+            "normal diff",  # is_large_file check
+            "normal diff",  # get_staged_diff
+            # pnpm-lock.yaml (large file - only needs one check)
+            "large diff content",  # is_large_file check
+            # small.txt
+            "small diff",  # is_large_file check
+            "small diff",  # get_staged_diff
+        ]
+
+        diff, truncated = get_staged_diff()
+
+        # Debug assertions to understand mock call sequence
+        print("\nActual calls:")
+        for i, call in enumerate(mock_run_subprocess.call_args_list):
+            print(f"Call {i}: {call[0][0][-1]}")
+
+        self.assertEqual(
+            len(mock_run_subprocess.call_args_list), 5
+        )  # 2 calls for normal files, 1 for large files
+        self.assertEqual(mock_run_subprocess.call_args_list[0][0][0][-1], "normal.py")
+        self.assertEqual(mock_run_subprocess.call_args_list[2][0][0][-1], "pnpm-lock.yaml")
+        self.assertEqual(mock_run_subprocess.call_args_list[3][0][0][-1], "small.txt")
+
+        # Check that large file was truncated
+        self.assertIn("pnpm-lock.yaml", truncated)
+        self.assertIn("Large file pnpm-lock.yaml (truncated):", diff)
+        self.assertIn("File type: .yaml", diff)
+        self.assertIn("Changes: 2000 tokens", diff)
+
+        # Check that normal files were included fully
+        self.assertIn("normal diff", diff)
+        self.assertIn(
+            "small diff", diff.split("\n")
+        )  # Check if "small diff" exists as a line in the diff
+
+        # Test error handling
+        mock_run_subprocess.side_effect = subprocess.CalledProcessError(1, ["git", "diff"])
+        diff, truncated = get_staged_diff()
+        self.assertEqual(diff, "")
+        self.assertEqual(truncated, [])
 
 
 if __name__ == "__main__":

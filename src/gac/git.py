@@ -3,12 +3,97 @@
 import logging
 import os
 import subprocess
-from typing import List
+from typing import List, Tuple
 
+from gac.ai_utils import count_tokens
 from gac.utils import run_subprocess
 
 # Set up logger
 logger = logging.getLogger(__name__)
+
+# Constants for large file handling
+MAX_DIFF_TOKENS = 1000  # Maximum number of tokens to include for large files
+LARGE_FILE_PATTERNS = [
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    "Cargo.lock",
+    "poetry.lock",
+    "Pipfile.lock",
+    "composer.lock",
+    "mix.lock",
+    "*.lock",
+]
+
+
+def is_large_file(file_path: str) -> bool:
+    """
+    Check if a file should be treated as a large file based on its name and diff size.
+
+    Args:
+        file_path: Path to the file to check
+
+    Returns:
+        bool: True if the file should be treated as large
+    """
+    # Check if file matches any of the large file patterns
+    if any(pattern in file_path for pattern in LARGE_FILE_PATTERNS):
+        return True
+
+    # Get the diff size for this file
+    try:
+        diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--", file_path])
+        if not diff:
+            return False
+        # Count tokens using the default model
+        token_count = count_tokens(diff, "anthropic:claude-3-5-haiku-latest")
+        return token_count > MAX_DIFF_TOKENS
+    except Exception as e:
+        logger.error(f"Error checking if {file_path} is large: {e}")
+        return False
+
+
+def get_staged_diff() -> Tuple[str, List[str]]:
+    """
+    Get the staged diff, handling large files appropriately.
+
+    Returns:
+        Tuple containing:
+        - The full diff string
+        - List of files that were truncated
+    """
+    staged_files = get_staged_files()
+    truncated_files = []
+    diff_parts = []
+
+    for file in staged_files:
+        try:
+            file_diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--", file])
+            if not file_diff:
+                continue
+
+            if is_large_file(file):
+                # For large files, only include a summary
+                truncated_files.append(file)
+                diff_parts.append(f"# Large file {file} (truncated):")
+                diff_parts.append(f"# File type: {os.path.splitext(file)[1]}")
+                # Count tokens using the default model
+                token_count = count_tokens(file_diff, "anthropic:claude-3-5-haiku-latest")
+                diff_parts.append(f"# Changes: {token_count} tokens")
+                diff_parts.append("...")
+            else:
+                diff_parts.append(file_diff)
+        except Exception as e:
+            logger.error(f"Error getting diff for {file}: {e}")
+            # Even if there's an error, try to get a basic diff
+            try:
+                file_diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--", file])
+                if file_diff:
+                    diff_parts.append(file_diff)
+            except Exception:
+                continue
+
+    return "\n".join(diff_parts), truncated_files
 
 
 def get_staged_files() -> List[str]:

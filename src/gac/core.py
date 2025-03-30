@@ -31,6 +31,7 @@ from gac.git import (
     commit_changes,
     get_existing_staged_python_files,
     get_project_description,
+    get_staged_diff,
     get_staged_files,
     get_staged_python_files,
     stage_files,
@@ -295,39 +296,40 @@ index 0000000..1234567
         except Exception as e:
             logger.error(f"Failed to restore unstaged changes: {e}")
 
-    # Generate commit message (real or test)
     if test_mode:
-        logger.info("[TEST MODE ENABLED] Using test commit message")
-
-        if test_with_real_diff and not simulation_mode:
-            logger.info("Using real git diff in test mode")
-            status = run_subprocess(["git", "status"])
-            diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--patience"])
-
-            # Build a test prompt and log info about it
-            prompt = build_prompt(status, diff, one_liner, hint)
-            logger.info(f"Test prompt length: {len(prompt)} characters")
-            token_count = count_tokens(prompt, config["model"])
-            logger.info(f"Test prompt token count: {token_count:,}")
-
-            if show_prompt:
-                print("\n=== Test LLM Prompt ===")
-                print(prompt)
-                print("=======================")
-
-        # Generate appropriate test message
-        if one_liner:
-            commit_message = "[feat]: Add support for OAuth2 authentication with multiple providers"
+        if simulation_mode:
+            logger.info("[SIMULATION] This is a simulated commit (no actual files committed)")
+            commit_message = send_to_llm(
+                status=status,
+                diff=diff,
+                one_liner=one_liner,
+                show_prompt=show_prompt,
+                hint=hint,
+                force=force,
+            )
         else:
-            commit_message = """[TEST MESSAGE] Example commit format
-[feat]: This is a test commit message to demonstrate formatting
- - This is a test bullet point
- - Another test bullet point
- - Final test bullet point for demonstration"""
+            logger.info("[TEST MODE] Using actual git status and diff")
+            status = run_subprocess(["git", "status"])
+            diff, truncated_files = get_staged_diff()
 
-        print("\n=== Test Commit Message ===")
-        print(f"{commit_message}")
-        print("========================\n")
+            if truncated_files:
+                logger.warning(f"Large files detected and truncated: {', '.join(truncated_files)}")
+                if not force and not testing:
+                    if not click.confirm(
+                        f"Some large files were truncated to reduce token usage. Continue?",
+                        default=True,
+                    ):
+                        logger.info("Operation cancelled by user")
+                        return None
+
+            commit_message = send_to_llm(
+                status=status,
+                diff=diff,
+                one_liner=one_liner,
+                show_prompt=show_prompt,
+                hint=hint,
+                force=force,
+            )
     else:
         logger.debug("Checking for Python files to format...")
         python_files = get_staged_python_files()
@@ -352,7 +354,18 @@ index 0000000..1234567
 
         logger.info("Generating commit message...")
         status = run_subprocess(["git", "status"])
-        diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--patience"])
+        diff, truncated_files = get_staged_diff()
+
+        if truncated_files:
+            logger.warning(f"Large files detected and truncated: {', '.join(truncated_files)}")
+            if not force and not testing:
+                if not click.confirm(
+                    f"Some large files were truncated to reduce token usage. Continue?",
+                    default=True,
+                ):
+                    logger.info("Operation cancelled by user")
+                    return None
+
         commit_message = send_to_llm(
             status=status,
             diff=diff,
@@ -362,13 +375,13 @@ index 0000000..1234567
             force=force,
         )
 
-        if not commit_message:
-            logger.error("Failed to generate commit message.")
-            return None
+    if not commit_message:
+        logger.error("Failed to generate commit message.")
+        return None
 
-        print("\n=== Suggested Commit Message ===")
-        print(f"{commit_message}")
-        print("================================\n")
+    print("\n=== Suggested Commit Message ===")
+    print(f"{commit_message}")
+    print("================================\n")
 
     # Process commit confirmation for both real and test modes
     if force or testing:

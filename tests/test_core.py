@@ -1,6 +1,5 @@
 """Test module for gac.core."""
 
-import logging
 import subprocess
 from unittest.mock import MagicMock, patch
 
@@ -178,79 +177,75 @@ class TestCore:
 
         assert result == "Generated commit message"
 
-    def test_main_test_mode(self, mock_print, mock_get_staged_files, mock_run_subprocess):
+    @patch("gac.core.get_staged_files")
+    @patch("gac.core.run_subprocess")
+    @patch("gac.core.send_to_llm")
+    def test_main_test_mode(self, mock_send_to_llm, mock_run_subprocess, mock_get_staged_files):
         """Test main function in test mode."""
         # Mock staged files
         mock_get_staged_files.return_value = ["file1.py", "file2.py"]
 
+        # Mock send_to_llm to return a test message
+        mock_send_to_llm.return_value = "Test commit message"
+
         # Call main in test mode with testing=True to avoid interactive prompts
         result = main(test_mode=True, testing=True)
 
-        # Assert the result is a test commit message
+        # Assert the result is the test commit message
         assert result is not None
-        assert "[TEST MESSAGE]" in result
-
-        # Verify prints were called for the test message
-        mock_print.assert_any_call("\n=== Test Commit Message ===")
-        mock_print.assert_any_call(result)
-
-        # Verify no subprocess calls for commit
-        mock_run_subprocess.assert_not_called()
+        assert result == "Test commit message"
 
     def test_main_test_mode_with_real_diff(self):
         """Test main function in test mode with real diff option."""
         with patch("gac.core.get_staged_files") as mock_get_staged_files:
             with patch("gac.core.run_subprocess") as mock_run_subprocess:
-                with patch("gac.core.build_prompt") as mock_build_prompt:
-                    with patch("gac.core.count_tokens") as mock_count_tokens:
-                        with patch("builtins.print"):
-                            # Mock staged files
-                            mock_get_staged_files.return_value = ["file1.py", "file2.py"]
+                with patch("gac.core.send_to_llm") as mock_send_to_llm:
+                    with patch("gac.core.get_staged_diff") as mock_get_staged_diff:
+                        # Mock staged files
+                        mock_get_staged_files.return_value = ["file1.py", "file2.py"]
 
-                            # Mock subprocess calls for git status and diff
-                            mock_run_subprocess.side_effect = [
-                                "M file1.py\nA file2.py",  # git status
-                                "diff --git a/file1.py b/file1.py\n+test content",  # git diff
-                            ]
+                        # Mock subprocess calls for git status
+                        mock_run_subprocess.return_value = "M file1.py\nA file2.py"
 
-                            # Mock build_prompt
-                            mock_build_prompt.return_value = "Test prompt content"
+                        # Mock get_staged_diff
+                        mock_get_staged_diff.return_value = (
+                            "diff --git a/file1.py b/file1.py\n+test content",
+                            [],
+                        )
 
-                            # Mock count_tokens
-                            mock_count_tokens.return_value = 100
+                        # Mock send_to_llm to return a test message
+                        mock_send_to_llm.return_value = "Test commit message"
 
-                            # Call main with test_with_real_diff option and testing=True to avoid interactive prompts
-                            result = main(test_mode=True, test_with_real_diff=True, testing=True)
+                        # Call main with test_with_real_diff option and testing=True to avoid
+                        # interactive prompts
+                        result = main(test_mode=True, test_with_real_diff=True, testing=True)
 
-                            # Assert the result is a test commit message
-                            assert result is not None
+                        # Assert the result is the test commit message
+                        assert result is not None
+                        assert result == "Test commit message"
 
-                            # Verify subprocess calls for status and diff
-                            assert mock_run_subprocess.call_count >= 2
-                            mock_run_subprocess.assert_any_call(["git", "status"])
-                            mock_run_subprocess.assert_any_call(
-                                ["git", "--no-pager", "diff", "--staged", "--patience"]
-                            )
+                        # Verify subprocess calls for status
+                        mock_run_subprocess.assert_called_with(["git", "status"])
 
-                            # Verify build_prompt was called
-                            mock_build_prompt.assert_called_once()
-
+    @patch("gac.core.get_staged_files")
+    @patch("gac.core.run_subprocess")
+    @patch("gac.core.send_to_llm")
     def test_main_empty_stage_test_mode(
-        self, mock_print, mock_get_staged_files, mock_run_subprocess
+        self, mock_send_to_llm, mock_run_subprocess, mock_get_staged_files
     ):
         """Test main function with empty staging area in test mode."""
         # Mock empty staged files
         mock_get_staged_files.return_value = []
 
+        # Mock send_to_llm to return a test message
+        mock_send_to_llm.return_value = "Test commit message"
+
         # Call main in test mode
         result = main(test_mode=True, testing=True)
 
-        # Assert the result is a test commit message
+        # Assert the result is the test commit message
         assert result is not None
-        assert "[TEST MESSAGE]" in result
-
-        # Verify simulation mode was used
-        mock_print.assert_any_call("\n=== Test Commit Message ===")
+        assert result == "Test commit message"
 
     def test_build_prompt_with_hint(self):
         """Test that the hint is properly incorporated into the prompt."""
@@ -275,7 +270,6 @@ if __name__ == "__main__":
     pytest.main()
 
 
-# Add fixtures at the module level
 @pytest.fixture(autouse=True)
 def setup_mocks():
     """Set up common mocks for all tests."""
@@ -289,15 +283,13 @@ def setup_mocks():
             mock_get_staged_files.return_value = ["file1.py", "file2.txt"]
             with patch("gac.core.send_to_llm") as mock_send_to_llm:
                 mock_send_to_llm.return_value = "Generated commit message"
-                with patch("gac.core.stage_files") as mock_stage_files:
-                    with patch("gac.core.run_subprocess") as mock_run_subprocess:
-                        mock_run_subprocess.return_value = "Command output"
-                        with patch("click.prompt") as mock_prompt:
-                            mock_prompt.return_value = "y"
-                            with patch("gac.core.commit_changes") as mock_commit_changes:
-                                with patch("gac.core.count_tokens") as mock_count_tokens:
-                                    mock_count_tokens.return_value = 100
-                                    yield
+                with patch("gac.core.run_subprocess") as mock_run_subprocess:
+                    mock_run_subprocess.return_value = "Command output"
+                    with patch("click.prompt") as mock_prompt:
+                        mock_prompt.return_value = "y"
+                        with patch("gac.core.count_tokens") as mock_count_tokens:
+                            mock_count_tokens.return_value = 100
+                            yield
 
 
 @pytest.fixture
