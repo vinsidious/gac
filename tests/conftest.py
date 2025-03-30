@@ -42,7 +42,11 @@ def mock_get_staged_files():
 def mock_get_config():
     """Mock for gac.core.get_config."""
     with patch("gac.core.get_config") as mock:
-        mock.return_value = {"model": "anthropic:claude-3-haiku", "use_formatting": True}
+        mock.return_value = {
+            "model": "anthropic:claude-3-haiku",
+            "use_formatting": True,
+            "max_input_tokens": 1000,
+        }
         yield mock
 
 
@@ -80,6 +84,8 @@ def mock_print():
 def mock_logging():
     """Mock for gac.core.logging."""
     with patch("gac.core.logging") as mock:
+        mock.ERROR = 40  # Standard logging.ERROR value
+        mock.DEBUG = 10  # Standard logging.DEBUG value
         yield mock
 
 
@@ -100,6 +106,28 @@ def mock_build_prompt():
 
 
 @pytest.fixture
+def mock_stage_files():
+    """Mock for gac.core.stage_files."""
+    with patch("gac.core.stage_files") as mock:
+        yield mock
+
+
+@pytest.fixture
+def mock_chat():
+    """Mock for gac.core.chat."""
+    with patch("gac.core.chat") as mock:
+        mock.return_value = "Generated commit message"
+        yield mock
+
+
+@pytest.fixture
+def mock_os_environ():
+    """Mock for os.environ."""
+    with patch.dict("os.environ", {}, clear=True) as mock_env:
+        yield mock_env
+
+
+@pytest.fixture
 def base_mocks(
     mock_print,
     mock_prompt,
@@ -108,6 +136,7 @@ def base_mocks(
     mock_send_to_llm,
     mock_get_staged_files,
     mock_get_config,
+    mock_stage_files,
 ):
     """Fixture that provides all the common mocks for main() function tests."""
     return {
@@ -118,4 +147,5 @@ def base_mocks(
         "send_to_llm": mock_send_to_llm,
         "get_staged_files": mock_get_staged_files,
         "get_config": mock_get_config,
+        "stage_files": mock_stage_files,
     }
