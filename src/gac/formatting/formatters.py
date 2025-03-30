@@ -31,14 +31,10 @@ def run_black(python_files: List[str] = None) -> bool:
         logger.info("No existing Python files to format with black.")
         return False
 
-    n_before = len(python_files)
     try:
         run_subprocess(["black"] + python_files)
-        logger.debug("Checking which files were modified by black...")
-        formatted_files = get_staged_python_files()
-        n_formatted = n_before - len(formatted_files)
-        logger.info(f"Black formatted {n_formatted} files.")
-        return n_formatted > 0
+        logger.info(f"Black formatted {len(python_files)} files.")
+        return True
     except Exception as e:
         logger.error(f"Error running black: {e}")
         return False
@@ -59,17 +55,13 @@ def run_isort(python_files: List[str] = None) -> bool:
         python_files = get_existing_staged_python_files()
 
     if not python_files:
-        logger.info("No existing Python files to format with isort.")
+        logger.info("No existing Python files to sort imports with isort.")
         return False
 
-    n_before = len(python_files)
     try:
         run_subprocess(["isort"] + python_files)
-        logger.debug("Checking which files were modified by isort...")
-        formatted_files = get_staged_python_files()
-        n_formatted = n_before - len(formatted_files)
-        logger.info(f"isort formatted {n_formatted} files.")
-        return n_formatted > 0
+        logger.info(f"Isort sorted imports in {len(python_files)} files.")
+        return True
     except Exception as e:
         logger.error(f"Error running isort: {e}")
         return False
