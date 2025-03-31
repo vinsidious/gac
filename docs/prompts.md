@@ -13,6 +13,7 @@ This module was created as part of the codebase refactoring to reduce the monoli
 Builds a prompt for the LLM to generate a commit message based on git status and diff information.
 
 **Parameters:**
+
 - `status` (str): Output of `git status`
 - `diff` (str): Output of `git diff --staged`  
 - `one_liner` (bool): If True, request a single-line commit message
@@ -20,9 +21,11 @@ Builds a prompt for the LLM to generate a commit message based on git status and
 - `conventional` (bool): If True, request a conventional commit format message
 
 **Returns:**
+
 - A formatted prompt string
 
 **Example:**
+
 ```python
 from gac.prompts import build_prompt
 
@@ -48,12 +51,15 @@ prompt = build_prompt(
 Cleans a commit message returned from an LLM to ensure it doesn't contain triple backticks, XML tags, and enforces conventional commit prefixes.
 
 **Parameters:**
+
 - `message` (str): The commit message to clean
 
 **Returns:**
+
 - The cleaned commit message
 
 **Example:**
+
 ```python
 from gac.prompts import clean_commit_message
 
@@ -74,13 +80,16 @@ cleaned = clean_commit_message(message)
 Creates an abbreviated version of the prompt by limiting the diff lines to reduce token count.
 
 **Parameters:**
+
 - `prompt` (str): The original full prompt
 - `max_diff_lines` (int): Maximum number of diff lines to include
 
 **Returns:**
+
 - Abbreviated prompt with a note about hidden lines
 
 **Example:**
+
 ```python
 from gac.prompts import build_prompt, create_abbreviated_prompt
 
@@ -106,7 +115,7 @@ abbreviated = create_abbreviated_prompt(full_prompt, max_diff_lines=30)
 
 3. **When to use `create_abbreviated_prompt`**:
    - Use when you want to display a prompt to the user without showing the entire diff
-   - Useful for keeping console output manageable 
+   - Useful for keeping console output manageable
    - Helps to reduce visual noise while still showing enough context
 
 ## Complete Example
@@ -142,4 +151,4 @@ print(f"Generated commit message:\n{commit_message}")
 - The module handles the complexities of formatting prompts for different LLM providers
 - It uses XML-like tags to structure the prompt (`<git-status>`, `<git-diff>`)
 - The cleaning function is robust to different LLM outputs, handling various edge cases
-- Prompts include carefully crafted instructions to guide the LLM 
+- Prompts include carefully crafted instructions to guide the LLM
