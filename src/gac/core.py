@@ -8,7 +8,6 @@ import sys
 from typing import Optional
 
 import click
-from rich.panel import Panel
 
 from gac.ai_utils import (
     AIError,
@@ -31,7 +30,6 @@ from gac.git import (
     stage_files,
 )
 from gac.utils import (
-    console,
     format_bordered_text,
     print_error,
     print_header,
@@ -83,8 +81,8 @@ def build_prompt(
 
     if conventional:
         prompt.append(
-            "\nUse the Conventional Commits format: <type>(<optional scope>): <description>"
-            "\nCommon types include:"
+            "\nIMPORTANT: EVERY commit message MUST start with a conventional commit prefix. "
+            "This is a HARD REQUIREMENT. Choose from:"
             "\n- feat: A new feature"
             "\n- fix: A bug fix"
             "\n- docs: Documentation changes"
@@ -95,30 +93,9 @@ def build_prompt(
             "\n- build: Changes to build system or dependencies"
             "\n- ci: Changes to CI configuration"
             "\n- chore: Other changes that don't modify src or test files"
-            "\nChoose the most appropriate type based on the changes. Include a scope in "
-            "parentheses if relevant."
-            "\nFor breaking changes, add ! before the colon or include 'BREAKING CHANGE: "
-            "description' in the footer."
-            "\n\nIMPORTANT: Follow this structure exactly:"
-            "\n1. First line: <type>: Short description"
-            "\n2. Leave a blank line"
-            "\n3. Detailed description with a list of changes using bullet points:"
-            "\n   - Each bullet point should describe a specific change in a specific file "
-            "or component"
-            "\n   - Include at least 3-5 bullet points detailing the most important changes"
-            "\n   - Be specific about what was modified, added, or improved"
-            "\n   - Order bullet points from most important changes to least important"
-            "\n\nExample:"
-            "\nfeat: Enhance project infrastructure and error handling"
-            "\n"
-            "\nImplement comprehensive improvements across multiple files:"
-            "\n- Add ROADMAP.md to outline project vision and future goals"
-            "\n- Improve error handling in AI and utility scripts"
-            "\n- Add retry mechanism and error classes for AI interactions"
-            "\n- Refactor release and changelog automation scripts"
-            "\n- Enhance logging and error reporting in utility functions"
-            "\n\nYOUR COMMIT MESSAGE MUST INCLUDE MULTIPLE BULLET POINTS with specific "
-            "details about the changes."
+            "\n\nYOU MUST choose the most appropriate type based on the changes. "
+            "If you CANNOT determine a type, use 'chore'. "
+            "THE PREFIX IS MANDATORY - NO EXCEPTIONS."
         )
 
     if hint:
@@ -151,6 +128,20 @@ def clean_commit_message(message: str) -> str:
     Returns:
         The cleaned commit message
     """
+    # Conventional commit types
+    valid_types = [
+        "feat",
+        "fix",
+        "docs",
+        "style",
+        "refactor",
+        "perf",
+        "test",
+        "build",
+        "ci",
+        "chore",
+    ]
+
     # Remove triple backticks at the beginning
     if message.startswith("```"):
         message = message[3:].lstrip()
@@ -177,8 +168,21 @@ def clean_commit_message(message: str) -> str:
         if end_tag_pos > 0:
             message = message[end_tag_pos + len("</git-diff>") :].lstrip()
 
-    # Clean individual bullet points that might have backticks or XML tags
+    # Split into lines
     lines = message.split("\n")
+
+    # Enforce conventional commit prefix
+    first_line = lines[0].strip()
+
+    # Check if the first line starts with a valid type
+    type_match = next((t for t in valid_types if first_line.startswith(f"{t}:")), None)
+
+    if not type_match:
+        # If no valid type, default to 'chore'
+        first_line = f"chore: {first_line}"
+        lines[0] = first_line
+
+    # Clean individual bullet points
     for i, line in enumerate(lines):
         # Check if this is a bullet point with backticks
         if line.strip().startswith("- "):
@@ -263,22 +267,27 @@ def send_to_llm(
 
     # Show prompt if requested
     if show_prompt_full:
-        print_info("🤖 Creating LLM Prompt")
+        print_info("🤖 Crafting LLM Prompt")
         print(format_bordered_text(prompt, header="=== Full LLM Prompt ==="))
-        print_info("ℹ️ Generating commit message...")
     elif show_prompt:
-        print_info("🤖 Creating LLM Prompt")
+        print_info("🤖 Crafting LLM Prompt")
         abbreviated_prompt = create_abbreviated_prompt(prompt)
-        print(format_bordered_text(abbreviated_prompt, header="=== Abbreviated LLM Prompt ==="))
-        print_info("ℹ️ Generating commit message...")
-    else:
-        # Only show the message if we're not displaying a prompt
-        print_info("ℹ️ Generating commit message...")
+        print(
+            format_bordered_text(
+                abbreviated_prompt, header="=== Abbreviated LLM Prompt ===", add_border=False
+            )
+        )
 
     # Get project description and include it in context if available
     project_description = get_project_description()
     system = (
         "You are a helpful assistant that writes clear, concise git commit messages. "
+        "EVERY commit message MUST start with a conventional commit prefix. "
+        "Conventional commit types are: "
+        "feat (new feature), fix (bug fix), docs (documentation), "
+        "style (formatting), refactor (code changes), perf (performance), "
+        "test (testing), build (build system), ci (CI config), chore (other changes). "
+        "If you cannot determine a type, use 'chore'. "
         "Only output the commit message, nothing else. "
         "NEVER include triple backticks (```) or XML tags (like <git-status> or <git-diff>) "
         "at the beginning or end of your commit message. "
@@ -291,6 +300,12 @@ def send_to_llm(
         system = (
             "You are a helpful assistant that writes clear, concise git commit messages "
             f"for the following project: '{project_description}'. "
+            "EVERY commit message MUST start with a conventional commit prefix. "
+            "Conventional commit types are: "
+            "feat (new feature), fix (bug fix), docs (documentation), "
+            "style (formatting), refactor (code changes), perf (performance), "
+            "test (testing), build (build system), ci (CI config), chore (other changes). "
+            "If you cannot determine a type, use 'chore'. "
             "Only output the commit message, nothing else. "
             "NEVER include triple backticks (```) or XML tags (like <git-status> or <git-diff>) "
             "at the beginning or end of your commit message. "
@@ -651,8 +666,9 @@ index 0000000..1234567
             print_error("Failed to generate commit message.")
         return None
 
-    # Use rich console to display the commit message
-    console.print(Panel(commit_message, title="📝 Suggested Commit Message"))
+    # Use rich console to display the commit message without borders
+    print(commit_message)
+    print()  # Add an extra blank line
 
     # Process commit confirmation for both real and test modes
     if force or testing:

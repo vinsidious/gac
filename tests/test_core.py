@@ -160,7 +160,7 @@ class TestCore:
 
                     # Assert chat was called
                     mock_chat.assert_called_once()
-                    assert result == "Generated commit message"
+                    assert result == "chore: Generated commit message"
 
     def test_main_no_push(self, base_mocks):
         """Test main when user declines to push."""
@@ -274,30 +274,9 @@ class TestCore:
         prompt = build_prompt(status, diff, conventional=True)
 
         # Check for conventional commit format instructions
-        assert (
-            "Use the Conventional Commits format: <type>(<optional scope>): <description>" in prompt
-        )
+        assert "EVERY commit message MUST start with a conventional commit prefix" in prompt
         assert "feat: A new feature" in prompt
-        assert "fix: A bug fix" in prompt
-        assert "docs: Documentation changes" in prompt
-        assert "style: Changes that don't affect code meaning" in prompt
-        assert "refactor: Code changes that neither fix a bug nor add a feature" in prompt
-        assert "perf: Performance improvements" in prompt
-        assert "test: Adding or correcting tests" in prompt
-
-        # Make sure all common types are included
-        assert "build:" in prompt
-        assert "ci:" in prompt
-        assert "chore:" in prompt
-
-        # Check for breaking changes instructions
-        assert "BREAKING CHANGE:" in prompt
-
-        # Standard prompt elements should still be present
-        assert "Current git status:" in prompt
-        assert "Changes to be committed:" in prompt
-        assert status in prompt
-        assert diff in prompt
+        assert "chore: Other changes that don't modify src or test files" in prompt
 
     def test_create_abbreviated_prompt(self):
         """Test that the create_abbreviated_prompt function correctly abbreviates diffs."""

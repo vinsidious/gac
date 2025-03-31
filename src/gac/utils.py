@@ -128,24 +128,25 @@ def print_header(message: str) -> None:
     console.print(Panel(message, style="header"))
 
 
-def format_bordered_text(text: str, header: Optional[str] = None) -> str:
+def format_bordered_text(text: str, header: Optional[str] = None, add_border: bool = True) -> str:
     """
     Format text with a simple border using '===' style.
 
     Args:
         text: The text to format
         header: Optional header
+        add_border: Whether to add header and border lines (default: True)
 
     Returns:
-        Formatted text with border
+        Formatted text with or without border
     """
     # Split text into lines
     lines = text.split("\n")
 
     result = []
 
-    # Add header if provided
-    if header:
+    # Add header if provided and border is enabled
+    if header and add_border:
         # Calculate the length of the header, capped at 80 characters
         header_length = min(len(header), 80)
 
