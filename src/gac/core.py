@@ -3,6 +3,7 @@
 
 import logging
 import os
+import subprocess
 import sys
 from typing import Optional
 
@@ -124,21 +125,21 @@ def build_prompt(
     )
     prompt.append("Just output the commit message directly.")
     prompt.append("\n\nCurrent git status:")
-    prompt.append("```")
+    prompt.append("<git-status>")
     prompt.append(status)
-    prompt.append("```")
+    prompt.append("</git-status>")
     prompt.append("\nChanges to be committed:")
-    prompt.append("```")
+    prompt.append("<git-diff>")
     prompt.append(diff)
-    prompt.append("```")
+    prompt.append("</git-diff>")
 
     return "\n".join(prompt)
 
 
 def clean_commit_message(message: str) -> str:
     """
-    Clean the commit message to ensure it doesn't contain triple backticks at the beginning or end,
-    or around individual bullet points.
+    Clean the commit message to ensure it doesn't contain triple backticks or XML tags
+    at the beginning or end, or around individual bullet points.
 
     Args:
         message: The commit message to clean
@@ -160,7 +161,19 @@ def clean_commit_message(message: str) -> str:
     if message.endswith("```"):
         message = message[:-3].rstrip()
 
-    # Clean individual bullet points that might have backticks
+    # Remove git status XML tags if present
+    if message.startswith("<git-status>"):
+        end_tag_pos = message.find("</git-status>")
+        if end_tag_pos > 0:
+            message = message[end_tag_pos + len("</git-status>") :].lstrip()
+
+    # Remove git diff XML tags if present
+    if message.startswith("<git-diff>"):
+        end_tag_pos = message.find("</git-diff>")
+        if end_tag_pos > 0:
+            message = message[end_tag_pos + len("</git-diff>") :].lstrip()
+
+    # Clean individual bullet points that might have backticks or XML tags
     lines = message.split("\n")
     for i, line in enumerate(lines):
         # Check if this is a bullet point with backticks
@@ -173,6 +186,15 @@ def clean_commit_message(message: str) -> str:
             # Remove backticks at the end of the bullet content
             if content.endswith("```"):
                 content = content[:-3].rstrip()
+
+            # Remove XML tags from bullet points
+            if content.startswith("<git-"):
+                for tag in ["<git-status>", "<git-diff>"]:
+                    if content.startswith(tag):
+                        end_tag = tag.replace("<", "</")
+                        end_pos = content.find(end_tag)
+                        if end_pos > 0:
+                            content = content[end_pos + len(end_tag) :].lstrip()
 
             # Reconstruct the bullet point
             lines[i] = "- " + content
@@ -245,7 +267,8 @@ def send_to_llm(
     system = (
         "You are a helpful assistant that writes clear, concise git commit messages. "
         "Only output the commit message, nothing else. "
-        "NEVER include triple backticks (```) at the beginning or end of your commit message. "
+        "NEVER include triple backticks (```) or XML tags (like <git-status> or <git-diff>) "
+        "at the beginning or end of your commit message. "
         "When creating bullet points, always list the most important changes first, "
         "followed by less important ones in descending order of significance."
     )
@@ -256,7 +279,8 @@ def send_to_llm(
             "You are a helpful assistant that writes clear, concise git commit messages "
             f"for the following project: '{project_description}'. "
             "Only output the commit message, nothing else. "
-            "NEVER include triple backticks (```) at the beginning or end of your commit message. "
+            "NEVER include triple backticks (```) or XML tags (like <git-status> or <git-diff>) "
+            "at the beginning or end of your commit message. "
             "When creating bullet points, always list the most important changes first, "
             "followed by less important ones in descending order of significance."
         )
@@ -486,8 +510,13 @@ index 0000000..1234567
         has_unstaged_changes = run_subprocess(["git", "diff", "--quiet", "--cached", "--exit-code"])
         if not has_unstaged_changes:  # There are unstaged changes
             logger.debug("Stashing unstaged changes temporarily")
-            run_subprocess(["git", "stash", "-k", "-q"])  # Keep index, quiet mode
-            restore_unstaged = True
+            try:
+                run_subprocess(["git", "stash", "--keep-index", "-q"])  # Keep index, quiet mode
+                restore_unstaged = True
+            except subprocess.CalledProcessError as e:
+                logger.warning(f"Failed to stash unstaged changes: {e}")
+                logger.info("Continuing without stashing unstaged changes")
+                restore_unstaged = False
 
     # Format only the staged changes
     if not no_format and not testing:
@@ -695,7 +724,7 @@ index 0000000..1234567
     "-m",
     help="Override the default model (format: 'provider:model_name', e.g. 'ollama:llama3.2')",
 )
-@click.option("--one-liner", "-1", is_flag=True, help="Generate a single-line commit message")
+@click.option("--one-liner", "-o", is_flag=True, help="Generate a single-line commit message")
 @click.option(
     "--show-prompt",
     "-s",
@@ -854,20 +883,22 @@ def create_abbreviated_prompt(prompt: str, max_diff_lines: int = 50) -> str:
     if changes_idx == -1:
         return prompt
 
-    # Find the start of the code block for the diff
-    code_start_idx = prompt.find("```", changes_idx)
+    # Find the start of the git diff XML tag
+    code_start_tag = "<git-diff>"
+    code_start_idx = prompt.find(code_start_tag, changes_idx)
     if code_start_idx == -1:
         return prompt
 
-    # Find the end of the code block
-    code_end_idx = prompt.find("```", code_start_idx + 3)
+    # Find the end of the git diff XML tag
+    code_end_tag = "</git-diff>"
+    code_end_idx = prompt.find(code_end_tag, code_start_idx + len(code_start_tag))
     if code_end_idx == -1:
         return prompt
 
     # Extract parts of the prompt
-    before_diff = prompt[: code_start_idx + 3]  # Include the opening ```
-    diff_content = prompt[code_start_idx + 3 : code_end_idx]
-    after_diff = prompt[code_end_idx:]  # Include the closing ``` and anything after
+    before_diff = prompt[: code_start_idx + len(code_start_tag)]  # Include the opening tag
+    diff_content = prompt[code_start_idx + len(code_start_tag) : code_end_idx]
+    after_diff = prompt[code_end_idx:]  # Include the closing tag and anything after
 
     # Split the diff into lines
     diff_lines = diff_content.split("\n")

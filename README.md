@@ -154,7 +154,7 @@ Available options:
 | `--add-all, -a`      | Stage all changes before committing                | `gac -a`                                 |
 | `--no-format`        | Disable automatic code formatting                  | `gac --no-format`                        |
 | `--model, -m`        | Specify model to use (overrides GAC_MODEL)         | `gac --model=openai:gpt-4o`              |
-| `--one-liner, -1`    | Generate one-line commit messages                  | `gac --one-liner`                        |
+| `--one-liner, -o`    | Generate one-line commit messages                  | `gac --one-liner`                        |
 | `--show-prompt, -s`  | Show the prompt sent to the LLM                    | `gac --show-prompt`                      |
 | `--hint, -h`         | Provide additional context for the commit message  | `gac --hint="This is a breaking change"` |
 | `--conventional, -c` | Generate commit messages using conventional format | `gac --conventional`                     |
