@@ -20,6 +20,7 @@ PROVIDER_MODELS = {
     "aws": "meta.llama3-1-70b-instruct-v1:0",
     "azure": "gpt-4o-mini",
     "google": "gemini-2.0-flash",
+    "ollama": "llama3.2",
 }
 
 # Default settings
@@ -27,7 +28,7 @@ DEFAULT_CONFIG = {
     "model": "anthropic:claude-3-5-haiku-latest",  # Default model with provider prefix
     "use_formatting": True,  # Format Python files with black and isort
     "max_output_tokens": 512,  # Maximum tokens in model output
-    "max_input_tokens": 4096,  # Maximum tokens in input prompt
+    "max_input_tokens": 16000,  # Maximum tokens in input prompt
 }
 
 # Environment variable names
@@ -49,6 +50,7 @@ API_KEY_ENV_VARS = {
     "aws": "AWS_ACCESS_KEY_ID",  # AWS requires multiple credentials
     "azure": "AZURE_OPENAI_API_KEY",
     "google": "GOOGLE_API_KEY",
+    "ollama": None,  # Ollama doesn't require an API key for local models
 }
 
 
@@ -142,9 +144,11 @@ def validate_config(config: Dict[str, Any]) -> bool:
             f"Invalid provider: '{provider}'. Supported: {', '.join(API_KEY_ENV_VARS.keys())}"
         )
 
-    api_key_env = API_KEY_ENV_VARS[provider]
-    if not os.environ.get(api_key_env):
-        raise ConfigError(f"API key not set: {api_key_env}")
+    # Skip API key check for Ollama since it doesn't require one
+    if provider != "ollama":
+        api_key_env = API_KEY_ENV_VARS[provider]
+        if not os.environ.get(api_key_env):
+            raise ConfigError(f"API key not set: {api_key_env}")
 
     # Check token limits
     if config["max_output_tokens"] <= 0:
@@ -153,9 +157,9 @@ def validate_config(config: Dict[str, Any]) -> bool:
     if config["max_input_tokens"] <= 0:
         raise ConfigError(f"max_input_tokens must be positive (got {config['max_input_tokens']})")
 
-    if config["max_input_tokens"] > 8192:
+    if config["max_input_tokens"] > 32000:
         logger.warning(
-            "max_input_tokens is set very high (>8192). This might cause issues with some models"
+            "max_input_tokens is set very high (>32000). This might cause issues with some models"
         )
 
     # Check formatting option

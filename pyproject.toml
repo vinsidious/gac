@@ -40,7 +40,7 @@ gac = "gac.core:cli"
 
 [project.optional-dependencies]
 providers = [
-    "aisuite[anthropic,openai,groq,mistral]",
+    "aisuite[anthropic,openai,groq,mistral,ollama]",
 ]
 dev = [
     "bump-my-version",
@@ -149,6 +149,7 @@ dependencies = [
     "codecov>=2.1.13",
     "flake8>=7.1.2",
     "pydantic>=2.10.6",
+    "ollama>=0.4.0",
 ]
 
 [tool.hatch.envs.default.scripts]

@@ -19,6 +19,7 @@ from gac.ai_utils import (
     chat,
     count_tokens,
 )
+from gac.cache import Cache
 from gac.config import get_config
 from gac.formatting import format_staged_files
 from gac.git import (
@@ -41,6 +42,9 @@ from gac.utils import (
 
 logger = logging.getLogger(__name__)
 
+# Cache for core operations
+core_cache = Cache()
+
 
 def build_prompt(
     status: str, diff: str, one_liner: bool = False, hint: str = "", conventional: bool = False
@@ -56,19 +60,20 @@ def build_prompt(
         conventional: If True, request a conventional commit format message
 
     Returns:
-        The prompt string
+        The formatted prompt string
     """
-    prompt = []
-    prompt.append(
-        "Generate a meaningful and descriptive git commit message based on the following changes."
-    )
+    prompt = [
+        "Write a concise and meaningful git commit message based on the staged changes "
+        "shown below.",
+    ]
 
     if one_liner:
         prompt.append("\nFormat it as a single line (50-72 characters if possible).")
     else:
         prompt.append(
             "\nFormat it with a concise summary line (50-72 characters) followed by a "
-            "more detailed explanation if needed."
+            "more detailed explanation with multiple bullet points highlighting the "
+            "specific changes made. Order the bullet points from most important to least important."
         )
 
     if conventional:
@@ -89,10 +94,30 @@ def build_prompt(
             "parentheses if relevant."
             "\nFor breaking changes, add ! before the colon or include 'BREAKING CHANGE: "
             "description' in the footer."
+            "\n\nIMPORTANT: Follow this structure exactly:"
+            "\n1. First line: <type>: Short description"
+            "\n2. Leave a blank line"
+            "\n3. Detailed description with a list of changes using bullet points:"
+            "\n   - Each bullet point should describe a specific change in a specific file "
+            "or component"
+            "\n   - Include at least 3-5 bullet points detailing the most important changes"
+            "\n   - Be specific about what was modified, added, or improved"
+            "\n   - Order bullet points from most important changes to least important"
+            "\n\nExample:"
+            "\nfeat: Enhance project infrastructure and error handling"
+            "\n"
+            "\nImplement comprehensive improvements across multiple files:"
+            "\n- Add ROADMAP.md to outline project vision and future goals"
+            "\n- Improve error handling in AI and utility scripts"
+            "\n- Add retry mechanism and error classes for AI interactions"
+            "\n- Refactor release and changelog automation scripts"
+            "\n- Enhance logging and error reporting in utility functions"
+            "\n\nYOUR COMMIT MESSAGE MUST INCLUDE MULTIPLE BULLET POINTS with specific "
+            "details about the changes."
         )
 
     if hint:
-        prompt.append(f"\nInclude this context in your message: {hint}")
+        prompt.append(f"\nPlease consider this context from the user: {hint}")
 
     prompt.append(
         "\nDo not include any explanation or preamble like 'Here's a commit message', etc."
@@ -110,14 +135,62 @@ def build_prompt(
     return "\n".join(prompt)
 
 
+def clean_commit_message(message: str) -> str:
+    """
+    Clean the commit message to ensure it doesn't contain triple backticks at the beginning or end,
+    or around individual bullet points.
+
+    Args:
+        message: The commit message to clean
+
+    Returns:
+        The cleaned commit message
+    """
+    # Remove triple backticks at the beginning
+    if message.startswith("```"):
+        message = message[3:].lstrip()
+
+    # Remove language identifier if present (like ```python)
+    if message.startswith("```"):
+        first_newline = message.find("\n")
+        if first_newline > 0:
+            message = message[first_newline:].lstrip()
+
+    # Remove triple backticks at the end
+    if message.endswith("```"):
+        message = message[:-3].rstrip()
+
+    # Clean individual bullet points that might have backticks
+    lines = message.split("\n")
+    for i, line in enumerate(lines):
+        # Check if this is a bullet point with backticks
+        if line.strip().startswith("- "):
+            # Remove backticks at the beginning of the bullet content
+            content = line.strip()[2:].lstrip()
+            if content.startswith("```"):
+                content = content[3:].lstrip()
+
+            # Remove backticks at the end of the bullet content
+            if content.endswith("```"):
+                content = content[:-3].rstrip()
+
+            # Reconstruct the bullet point
+            lines[i] = "- " + content
+
+    return "\n".join(lines)
+
+
 def send_to_llm(
     status: str,
     diff: str,
     one_liner: bool = False,
     show_prompt: bool = False,
+    show_prompt_full: bool = False,
     hint: str = "",
     force: bool = False,
     conventional: bool = False,
+    cache_skip: bool = False,
+    show_spinner: bool = True,
 ) -> str:
     """
     Send the git status and staged diff to an LLM for summarization.
@@ -126,10 +199,13 @@ def send_to_llm(
         status: Output of git status
         diff: Output of git diff --staged
         one_liner: If True, request a single-line commit message
-        show_prompt: If True, display the prompt sent to the LLM
+        show_prompt: If True, display an abbreviated version of the prompt
+        show_prompt_full: If True, display the complete prompt with full diff
         hint: Optional context to include in the prompt (like "JIRA-123")
         force: If True, skip confirmation prompts
         conventional: If True, request a conventional commit format message
+        cache_skip: If True, bypass cache and force a new API call
+        show_spinner: If True, display a spinner during API calls
 
     Returns:
         The generated commit message
@@ -156,14 +232,22 @@ def send_to_llm(
             if not click.confirm(prompt_msg, default=False):
                 logger.info("Operation cancelled by user")
                 return ""
-    if show_prompt:
-        print(format_bordered_text(prompt, header="=== LLM Prompt ==="))
+
+    # Show prompt if requested
+    if show_prompt_full:
+        print(format_bordered_text(prompt, header="=== Full LLM Prompt ==="))
+    elif show_prompt:
+        abbreviated_prompt = create_abbreviated_prompt(prompt)
+        print(format_bordered_text(abbreviated_prompt, header="=== Abbreviated LLM Prompt ==="))
 
     # Get project description and include it in context if available
     project_description = get_project_description()
     system = (
         "You are a helpful assistant that writes clear, concise git commit messages. "
-        "Only output the commit message, nothing else."
+        "Only output the commit message, nothing else. "
+        "NEVER include triple backticks (```) at the beginning or end of your commit message. "
+        "When creating bullet points, always list the most important changes first, "
+        "followed by less important ones in descending order of significance."
     )
 
     # Add project description to system message if available
@@ -171,7 +255,10 @@ def send_to_llm(
         system = (
             "You are a helpful assistant that writes clear, concise git commit messages "
             f"for the following project: '{project_description}'. "
-            "Only output the commit message, nothing else."
+            "Only output the commit message, nothing else. "
+            "NEVER include triple backticks (```) at the beginning or end of your commit message. "
+            "When creating bullet points, always list the most important changes first, "
+            "followed by less important ones in descending order of significance."
         )
 
     messages = [{"role": "user", "content": prompt}]
@@ -183,11 +270,16 @@ def send_to_llm(
             temperature=0.7,
             system=system,
             test_mode=False,
+            cache_skip=cache_skip,
+            show_spinner=show_spinner,
         )
 
         response_token_count = count_tokens(response, model)
         logger.info(f"Response token count: {response_token_count:,}")
-        return response
+
+        # Clean the response to ensure no triple backticks
+        cleaned_response = clean_commit_message(response)
+        return cleaned_response
 
     except APIConnectionError as e:
         logger.error(f"Connection error: {str(e)}")
@@ -271,10 +363,14 @@ def main(
     model: Optional[str] = None,
     one_liner: bool = False,
     show_prompt: bool = False,
+    show_prompt_full: bool = False,
     test_with_real_diff: bool = False,
     testing: bool = False,  # Used only during test suite runs
     hint: str = "",
     conventional: bool = False,
+    no_cache: bool = False,
+    clear_cache: bool = False,
+    no_spinner: bool = False,
 ):
     """Generate and apply a commit message."""
     config = get_config()
@@ -284,6 +380,20 @@ def main(
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.ERROR)
+
+    # Clear cache if requested
+    if clear_cache:
+        import shutil
+        from pathlib import Path
+
+        from gac.cache import DEFAULT_CACHE_DIR
+
+        cache_dir = Path(DEFAULT_CACHE_DIR)
+        if cache_dir.exists():
+            shutil.rmtree(cache_dir)
+            logger.info("Cache cleared successfully")
+            if not quiet:
+                print_success("Cache cleared successfully.")
 
     # Override model if specified
     if model:
@@ -408,9 +518,12 @@ index 0000000..1234567
                 diff=diff,
                 one_liner=one_liner,
                 show_prompt=show_prompt,
+                show_prompt_full=show_prompt_full,
                 hint=hint,
                 force=force,
                 conventional=conventional,
+                cache_skip=no_cache,
+                show_spinner=not no_spinner,
             )
         else:
             print_header("TEST MODE")
@@ -420,9 +533,9 @@ index 0000000..1234567
             if truncated_files:
                 logger.warning(f"Large files detected and truncated: {', '.join(truncated_files)}")
                 if not quiet:
-                    print_warning(
-                        f"Large files detected and truncated: {', '.join(truncated_files)}"
-                    )
+                    print_warning("Large files detected and truncated:")
+                    for truncated_file in truncated_files:
+                        print_warning(f"  - {truncated_file}")
                 if not force and not testing:
                     if not click.confirm(
                         "Some large files were truncated to reduce token usage. Continue?",
@@ -436,9 +549,12 @@ index 0000000..1234567
                 diff=diff,
                 one_liner=one_liner,
                 show_prompt=show_prompt,
+                show_prompt_full=show_prompt_full,
                 hint=hint,
                 force=force,
                 conventional=conventional,
+                cache_skip=no_cache,
+                show_spinner=not no_spinner,
             )
     else:
         logger.debug("Checking for files to format...")
@@ -462,7 +578,9 @@ index 0000000..1234567
         if truncated_files:
             logger.warning(f"Large files detected and truncated: {', '.join(truncated_files)}")
             if not quiet:
-                print_warning(f"Large files detected and truncated: {', '.join(truncated_files)}")
+                print_warning("Large files detected and truncated:")
+                for truncated_file in truncated_files:
+                    print_warning(f"  - {truncated_file}")
             if not force and not testing:
                 if not click.confirm(
                     "Some large files were truncated to reduce token usage. Continue?",
@@ -476,9 +594,12 @@ index 0000000..1234567
             diff=diff,
             one_liner=one_liner,
             show_prompt=show_prompt,
+            show_prompt_full=show_prompt_full,
             hint=hint,
             force=force,
             conventional=conventional,
+            cache_skip=no_cache,
+            show_spinner=not no_spinner,
         )
 
     if not commit_message:
@@ -563,26 +684,56 @@ index 0000000..1234567
 
 
 @click.command()
-@click.option("--test", "-t", is_flag=True, help="Use a test message without calling an LLM")
-@click.option("--force", "-f", "-y", is_flag=True, help="Skip user confirmation prompts")
+@click.option("--test", "-t", is_flag=True, help="Run in test mode without making git commits")
+@click.option("--force", "-f", is_flag=True, help="Skip all confirmation prompts")
 @click.option("--add-all", "-a", is_flag=True, help="Stage all changes before committing")
-@click.option("--quiet", "-q", is_flag=True, help="Reduce output verbosity")
-@click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity")
-@click.option("--no-format", "-nf", is_flag=True, help="Skip code formatting")
-@click.option("--model", "-m", type=str, help="Override default model (format: provider:model)")
-@click.option("--one-liner", "-o", is_flag=True, help="Generate a single-line commit message")
-@click.option("--show-prompt", "-sp", is_flag=True, help="Show the prompt sent to the LLM")
+@click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose logging")
+@click.option("--no-format", is_flag=True, help="Skip formatting of staged files")
 @click.option(
-    "--test-with-diff", is_flag=True, help="Use actual git diff with test mode (only with --test)"
+    "--model",
+    "-m",
+    help="Override the default model (format: 'provider:model_name', e.g. 'ollama:llama3.2')",
+)
+@click.option("--one-liner", "-1", is_flag=True, help="Generate a single-line commit message")
+@click.option(
+    "--show-prompt",
+    "-s",
+    is_flag=True,
+    help="Show an abbreviated version of the prompt sent to the LLM",
 )
 @click.option(
-    "--hint", "-h", type=str, help="Optional context to include in the prompt (like 'JIRA-123')"
+    "--show-prompt-full",
+    is_flag=True,
+    help="Show the complete prompt sent to the LLM, including full diff",
 )
+@click.option("--test-with-diff", is_flag=True, help="Test with real staged changes (if any)")
+@click.option("--hint", "-h", default="", help="Additional context to include in the prompt")
 @click.option(
     "--conventional",
     "-c",
     is_flag=True,
-    help="Generate commit messages using conventional commits format (type: description)",
+    help="Generate a conventional commit format message",
+)
+@click.option(
+    "--no-cache",
+    is_flag=True,
+    help="Skip cache and force fresh API calls",
+)
+@click.option(
+    "--clear-cache",
+    is_flag=True,
+    help="Clear all cached data before running",
+)
+@click.option(
+    "--no-spinner",
+    is_flag=True,
+    help="Disable progress spinner during API calls",
+)
+@click.option(
+    "--local-models",
+    is_flag=True,
+    help="List available local Ollama models and exit",
 )
 def cli(
     test: bool,
@@ -594,12 +745,31 @@ def cli(
     model: str,
     one_liner: bool,
     show_prompt: bool,
+    show_prompt_full: bool,
     test_with_diff: bool,
     hint: str,
     conventional: bool,
+    no_cache: bool,
+    clear_cache: bool,
+    no_spinner: bool,
+    local_models: bool,
 ) -> None:
-    """A CLI tool to generate commit messages using LLMs."""
+    """A CLI tool to generate commit messages using LLMs.
+
+    Supports cloud providers like Anthropic, OpenAI, Groq, Mistral, and local models via Ollama.
+
+    To use local models:
+    1. Install Ollama from https://ollama.com
+    2. Pull a model: ollama pull llama3.2
+    3. Run gac with --model ollama:llama3.2
+
+    Use --local-models to see what Ollama models are available locally.
+    """
     try:
+        if local_models:
+            list_local_models()
+            return
+
         if quiet:
             # Suppress logging for non-error messages
             logging.getLogger().setLevel(logging.ERROR)
@@ -617,13 +787,115 @@ def cli(
             model=model,
             one_liner=one_liner,
             show_prompt=show_prompt,
+            show_prompt_full=show_prompt_full,
             test_with_real_diff=test_with_diff,
             hint=hint,
             conventional=conventional,
+            no_cache=no_cache,
+            clear_cache=clear_cache,
+            no_spinner=no_spinner,
         )
     except Exception as e:
         logger.error(f"Error: {e}")
         sys.exit(1)
+
+
+def list_local_models() -> None:
+    """List available local Ollama models."""
+    from gac.ai_utils import is_ollama_available
+    from gac.utils import print_error, print_info, print_success
+
+    print_info("Checking for local Ollama models...")
+
+    if not is_ollama_available():
+        print_error(
+            "Ollama is not available. Install from https://ollama.com and make sure it's running."
+        )
+        print_info("After installing, run 'ollama pull llama3.2' to download a model.")
+        return
+
+    try:
+        import ollama
+
+        models = ollama.list().get("models", [])
+
+        if not models:
+            print_info("No Ollama models found. Run 'ollama pull llama3.2' to download a model.")
+            return
+
+        print_success(f"Found {len(models)} Ollama models:")
+        for model in models:
+            name = model.get("name", "unknown")
+            size = model.get("size", 0) // (1024 * 1024)  # Convert to MB
+            print_info(f"  - {name} ({size} MB)")
+
+        print_info("\nUse with: gac --model ollama:MODEL_NAME")
+    except Exception as e:
+        print_error(f"Error listing Ollama models: {e}")
+        print_info("Make sure Ollama is installed and running.")
+
+
+def create_abbreviated_prompt(prompt: str, max_diff_lines: int = 50) -> str:
+    """
+    Create an abbreviated version of the prompt by limiting the diff lines.
+
+    Args:
+        prompt: The original full prompt
+        max_diff_lines: Maximum number of diff lines to include
+
+    Returns:
+        Abbreviated prompt with a note about hidden lines
+    """
+    # Find the start and end of the diff section
+    changes_marker = "Changes to be committed:"
+    changes_idx = prompt.find(changes_marker)
+
+    # If we can't find the marker, return the original prompt
+    if changes_idx == -1:
+        return prompt
+
+    # Find the start of the code block for the diff
+    code_start_idx = prompt.find("```", changes_idx)
+    if code_start_idx == -1:
+        return prompt
+
+    # Find the end of the code block
+    code_end_idx = prompt.find("```", code_start_idx + 3)
+    if code_end_idx == -1:
+        return prompt
+
+    # Extract parts of the prompt
+    before_diff = prompt[: code_start_idx + 3]  # Include the opening ```
+    diff_content = prompt[code_start_idx + 3 : code_end_idx]
+    after_diff = prompt[code_end_idx:]  # Include the closing ``` and anything after
+
+    # Split the diff into lines
+    diff_lines = diff_content.split("\n")
+    total_lines = len(diff_lines)
+
+    # If the diff is already short enough, return the original prompt
+    if total_lines <= max_diff_lines:
+        return prompt
+
+    # Extract the beginning and end of the diff
+    half_max = max_diff_lines // 2
+    first_half = diff_lines[:half_max]
+    second_half = diff_lines[-half_max:]
+
+    # Calculate how many lines we're hiding
+    hidden_lines = total_lines - len(first_half) - len(second_half)
+
+    # Create the hidden lines message
+    hidden_message = (
+        f"\n\n... {hidden_lines} lines hidden ...\n"
+        f"Use --show-prompt-full to see the complete diff\n\n"
+    )
+
+    # Create the abbreviated diff
+    abbreviated_diff = "\n".join(first_half) + hidden_message + "\n".join(second_half)
+
+    # Reconstruct the prompt
+    return before_diff + abbreviated_diff + after_diff
 
 
 if __name__ == "__main__":

@@ -7,13 +7,14 @@ import subprocess
 from typing import List, Optional, Tuple
 
 from gac.ai_utils import count_tokens
+from gac.cache import Cache, cached
 from gac.utils import run_subprocess
 
 # Set up logger
 logger = logging.getLogger(__name__)
 
 # Constants for file handling
-MAX_DIFF_TOKENS = 1000  # Maximum number of tokens to include for large files
+MAX_DIFF_TOKENS = 2500  # Maximum number of tokens to include for large files
 # Files that are usually auto-generated or less important for commit context
 LARGE_FILE_PATTERNS = [
     "package-lock.json",
@@ -29,6 +30,14 @@ LARGE_FILE_PATTERNS = [
     "dist/*",
     "build/*",
 ]
+
+# Cache expiration times (in seconds)
+GIT_CACHE_EXPIRATION = 5 * 60  # 5 minutes for most git operations
+DIFF_CACHE_EXPIRATION = 60  # 1 minute for diff operations (more volatile)
+
+# Create cache instances
+git_cache = Cache(expiration=GIT_CACHE_EXPIRATION)
+diff_cache = Cache(expiration=DIFF_CACHE_EXPIRATION)
 
 # Priorities for different file types (higher = more important)
 FILE_PRIORITY = {
@@ -135,13 +144,17 @@ def get_file_priority(file_path: str) -> int:
     return priority
 
 
-def get_staged_files(file_type: Optional[str] = None, existing_only: bool = False) -> List[str]:
+@cached(cache_instance=git_cache)
+def get_staged_files(
+    file_type: Optional[str] = None, existing_only: bool = False, cache_skip: bool = False
+) -> List[str]:
     """
     Get list of filenames of staged files with optional filtering.
 
     Args:
         file_type: Optional file extension to filter by (e.g., ".py")
         existing_only: If True, only return files that exist on disk
+        cache_skip: If True, bypass cache and force a new call
 
     Returns:
         List of staged file paths
@@ -329,9 +342,15 @@ def get_file_diff(file_path: str, model: str = "anthropic:claude-3-5-haiku-lates
         if not file_diff:
             return ""
 
-        if is_large_file(file_path, model):
+        token_count = count_tokens(file_diff, model)
+        is_large = is_large_file(file_path, model) or token_count > MAX_DIFF_TOKENS
+
+        if is_large:
             # For large files, apply smart truncation
-            return smart_truncate_diff(file_diff, MAX_DIFF_TOKENS, model)
+            truncated_diff = smart_truncate_diff(file_diff, MAX_DIFF_TOKENS, model)
+            truncation_msg = f"Large file {file_path} ({token_count} tokens, "
+            truncation_msg += f"truncated to ~{MAX_DIFF_TOKENS} tokens):"
+            return f"{truncation_msg}\n{truncated_diff}"
         else:
             return file_diff
     except Exception as e:
@@ -339,98 +358,91 @@ def get_file_diff(file_path: str, model: str = "anthropic:claude-3-5-haiku-lates
         return f"# Error processing {file_path}: {str(e)}"
 
 
-def get_staged_diff(max_input_tokens: int = 4096) -> Tuple[str, List[str]]:
+@cached(cache_instance=diff_cache)
+def get_staged_diff(
+    file_path: Optional[str] = None,
+    max_tokens: int = 16000,
+    model: str = "anthropic:claude-3-5-haiku-latest",
+    cache_skip: bool = False,
+) -> Tuple[str, List[str]]:
     """
-    Get the staged diff, handling large files appropriately.
+    Get the diff of staged changes, optionally for a specific file.
 
     Args:
-        max_input_tokens: Maximum tokens to include in the full diff
+        file_path: Optional specific file to get diff for
+        max_tokens: Maximum tokens to include in the diff
+        model: Model to use for token counting
+        cache_skip: If True, bypass cache and force a new call
 
     Returns:
-        Tuple containing:
-        - The full diff string
-        - List of files that were truncated
+        A tuple containing:
+        - The diff as a string
+        - A list of files that were truncated due to size, with token counts
     """
-    staged_files = get_staged_files()
-    truncated_files = []
-    diff_parts = []
-    model = "anthropic:claude-3-5-haiku-latest"
+    logger.debug(f"Getting staged diff{'for ' + file_path if file_path else ''}")
 
-    # Get all file diffs and their info
-    file_diffs = []
-    total_tokens = 0
+    # If a specific file is requested, handle it directly
+    if file_path:
+        command = ["git", "--no-pager", "diff", "--staged", "--", file_path]
+        diff = run_subprocess(command)
+        token_count = count_tokens(diff, model)
 
-    for file in staged_files:
-        file_diff = get_file_diff(file, model)
-        if not file_diff:
-            continue
-
-        # Check if this file was truncated
-        if "# Note: Diff has been truncated" in file_diff or "# Changes:" in file_diff:
-            truncated_files.append(file)
-
-        tokens = count_tokens(file_diff, model)
-        priority = get_file_priority(file)
-
-        file_diffs.append({"path": file, "diff": file_diff, "tokens": tokens, "priority": priority})
-
-        total_tokens += tokens
-
-    # If we're under the token limit, use all diffs
-    if total_tokens <= max_input_tokens:
-        for file_info in file_diffs:
-            diff_parts.append(file_info["diff"])
-    else:
-        # Need to prioritize and fit within token budget
-        # Sort by priority (highest first)
-        file_diffs.sort(key=lambda x: x["priority"], reverse=True)
-
-        # Budget for file diffs
-        budget_used = 0
-        budget_limit = max_input_tokens * 0.95  # Leave 5% for overhead
-
-        for file_info in file_diffs:
-            if budget_used + file_info["tokens"] <= budget_limit:
-                # This file fits in our budget
-                diff_parts.append(file_info["diff"])
-                budget_used += file_info["tokens"]
-            else:
-                # Try to include a truncated version
-                truncated_diff = smart_truncate_diff(
-                    file_info["diff"],
-                    int(max_input_tokens * 0.1),  # Allocate 10% of budget max
-                    model,
-                )
-                truncated_tokens = count_tokens(truncated_diff, model)
-
-                if budget_used + truncated_tokens <= budget_limit:
-                    diff_parts.append(truncated_diff)
-                    budget_used += truncated_tokens
-                    truncated_files.append(file_info["path"])
-                else:
-                    # Can't include even a truncated version, create a minimal summary
-                    summary = (
-                        f"# File: {file_info['path']} (omitted)\n"
-                        f"# Changes: approximately {file_info['tokens']} tokens\n"
-                    )
-                    summary_tokens = count_tokens(summary, model)
-
-                    if budget_used + summary_tokens <= budget_limit:
-                        diff_parts.append(summary)
-                        budget_used += summary_tokens
-                        truncated_files.append(file_info["path"])
-
-        # Add note about truncation
-        if len(staged_files) > len(diff_parts):
-            note = (
-                f"# Note: {len(staged_files) - len(diff_parts)} files were completely "
-                f"omitted to stay within token limit.\n"
-                f"# Total token budget: {max_input_tokens}, used approximately "
-                f"{int(budget_used)}\n"
+        if token_count > max_tokens:
+            logger.info(
+                f"Diff too large ({token_count} tokens), truncating to ~{max_tokens} tokens"
             )
-            diff_parts.insert(0, note)
+            truncated_diff = smart_truncate_diff(diff, max_tokens, model)
+            return truncated_diff, [f"{file_path} [{token_count} tokens]"]
 
-    return "\n".join(diff_parts), truncated_files
+        return diff, []
+
+    # Handle all staged files
+    staged_files = get_staged_files()
+    if not staged_files:
+        return "", []
+
+    truncated_files = []
+    truncated_files_with_counts = []
+    combined_diff = []
+    file_token_counts = {}
+
+    # Process each file individually to track which ones are truncated
+    for f in staged_files:
+        # Get raw diff to calculate token count before any truncation
+        raw_diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--", f])
+        if raw_diff:
+            file_token_count = count_tokens(raw_diff, model)
+            file_token_counts[f] = file_token_count
+
+        file_diff = get_file_diff(f, model)
+        if "Large file" in file_diff and "(truncated)" in file_diff:
+            truncated_files.append(f)
+            # Add token count to the truncated file information
+            truncated_files_with_counts.append(f"{f} [{file_token_counts.get(f, 0)} tokens]")
+        if file_diff:
+            combined_diff.append(file_diff)
+
+    full_diff = "\n".join(combined_diff)
+
+    # Final check if the combined diff is still too large
+    token_count = count_tokens(full_diff, model)
+    if token_count > max_tokens:
+        logger.info(
+            f"Combined diff too large ({token_count} tokens), truncating to ~{max_tokens} tokens"
+        )
+        truncated_diff = smart_truncate_diff(full_diff, max_tokens, model)
+
+        # Since we're further truncating, all staged files are technically affected
+        if not truncated_files_with_counts:
+            # If no individual files were truncated earlier, add all with their token counts
+            truncated_files_with_counts = [
+                f"{f} [{file_token_counts.get(f, 0)} tokens]" for f in staged_files
+            ]
+            truncated_files = staged_files
+
+        return truncated_diff, truncated_files_with_counts
+
+    return full_diff, truncated_files_with_counts
 
 
 def commit_changes(message: str) -> bool:
@@ -479,55 +491,98 @@ def stage_files(files: List[str]) -> bool:
         return False
 
 
-def get_project_description() -> str:
+@cached(cache_instance=git_cache)
+def get_project_description(cache_skip: bool = False) -> str:
     """
-    Get the Git project description and repo name if available.
+    Try to get a project description from common files and include repository name.
+
+    Args:
+        cache_skip: If True, bypass cache and force a new call
 
     Returns:
-        String containing repo name and description, or empty string if not available
+        A string description including repository name if available, or empty string if not found
     """
+    description = ""
+    repo_name = ""
+
+    # Try to get the repository name from git remote URL
     try:
-        # Get the git directory path
-        git_dir = run_subprocess(["git", "rev-parse", "--git-dir"]).strip()
-
-        # Try to get the repository name from remote URL
-        repo_name = ""
-        try:
-            remote_url = run_subprocess(["git", "config", "--get", "remote.origin.url"]).strip()
+        # Get the git directory
+        git_dir = run_subprocess(["git", "rev-parse", "--git-dir"], silent=True)
+        if git_dir:
+            # Get the remote URL
+            remote_url = run_subprocess(
+                ["git", "config", "--get", "remote.origin.url"], silent=True
+            )
             if remote_url:
-                # Extract repo name from remote URL
-                if remote_url.endswith(".git"):
-                    remote_url = remote_url[:-4]  # Remove .git suffix
-                repo_name = remote_url.split("/")[-1]
-        except subprocess.CalledProcessError:
-            # If we can't get the remote URL, try to get it from the directory name
-            try:
-                repo_dir = run_subprocess(["git", "rev-parse", "--show-toplevel"]).strip()
-                repo_name = os.path.basename(repo_dir)
-            except subprocess.CalledProcessError:
-                pass
-
-        # Check for a local description file
-        description = ""
-        description_file = os.path.join(git_dir, "description")
-        if os.path.exists(description_file):
-            with open(description_file, "r") as f:
-                file_content = f.read().strip()
-                # Check if it's not the default description
-                default_msg = (
-                    "Unnamed repository; edit this file 'description' to name the repository."
-                )
-                if file_content != default_msg:
-                    description = file_content
-
-        # Combine repo name and description
-        result = []
-        if repo_name:
-            result.append(f"Repository: {repo_name}")
-        if description:
-            result.append(f"Description: {description}")
-
-        return "\n".join(result)
+                # Extract repo name from URL (e.g., https://github.com/user/repo.git -> repo)
+                parts = remote_url.rstrip("/").split("/")
+                if parts:
+                    repo_name = parts[-1].replace(".git", "")
     except Exception as e:
-        logger.error(f"Error getting project description: {e}")
+        logger.debug(f"Error getting repository name: {e}")
+
+    # Check common locations for project descriptions
+    description_files = [
+        "README.md",
+        "README.rst",
+        "README",
+        "README.txt",
+        "DESCRIPTION",
+        "package.json",
+        "pyproject.toml",
+    ]
+
+    for file_path in description_files:
+        if os.path.exists(file_path):
+            logger.debug(f"Found potential description file: {file_path}")
+            try:
+                if file_path.endswith(("md", "rst", "txt")):
+                    # For text files, just read the first few lines
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        lines = [line.strip() for line in f.readlines()[:10] if line.strip()]
+                        if lines:
+                            # First non-empty line, usually the title
+                            description = lines[0]
+                            break
+
+                elif file_path == "package.json":
+                    # For package.json, extract the name and description
+                    import json
+
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        package_info = json.load(f)
+                        if "description" in package_info:
+                            description = package_info["description"]
+                            break
+                        elif "name" in package_info:
+                            description = package_info["name"]
+                            break
+
+                elif file_path == "pyproject.toml":
+                    # For pyproject.toml, extract the project description
+                    import tomli
+
+                    with open(file_path, "rb") as f:
+                        pyproject = tomli.load(f)
+                        if "project" in pyproject and "description" in pyproject["project"]:
+                            description = pyproject["project"]["description"]
+                            break
+                        elif "tool" in pyproject and "poetry" in pyproject["tool"]:
+                            poetry = pyproject["tool"]["poetry"]
+                            if "description" in poetry:
+                                description = poetry["description"]
+                                break
+
+            except Exception as e:
+                logger.debug(f"Error reading {file_path}: {e}")
+
+    # Combine repository name and description if available
+    if repo_name and description:
+        return f"Repository: {repo_name}; Description: {description}"
+    elif repo_name:
+        return f"Repository: {repo_name}"
+    elif description:
+        return description
+    else:
         return ""

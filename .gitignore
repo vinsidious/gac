@@ -179,3 +179,23 @@ pyrightconfig.json
 # windsurf rules
 .windsurfrules
 uv.lock
+
+# Project-specific files
+conversation_cache/
+.gac_cache/
+saved_messages/
+*.prompt
+*.response
+.DS_Store
+secrets/
+temp/
+.gac-history
+.gac-config.json
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.cursorrules

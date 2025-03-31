@@ -1,18 +1,34 @@
-"""Utility functions for the gac package."""
+"""Utility functions for gac."""
 
 import logging
 import subprocess
+import sys
+import threading
+import time
 from enum import Enum
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional
 
 import click
 from rich.console import Console
 from rich.panel import Panel
+from rich.theme import Theme
 
+# Define a rich theme for colorful output
+theme = Theme(
+    {
+        "success": "green bold",
+        "info": "blue",
+        "warning": "yellow",
+        "error": "red bold",
+        "header": "magenta",
+    }
+)
+
+# Create a console for rich output
+console = Console(theme=theme)
+
+# Set up logger
 logger = logging.getLogger(__name__)
-
-# Initialize a console for rich output
-console = Console()
 
 
 class Color(Enum):
@@ -63,93 +79,286 @@ def colorize(text: str, fg_color: Color = None, bg_color: Color = None, bold: bo
 
 
 def print_info(message: str) -> None:
-    """Print an info message in blue."""
-    console.print(f"[blue]ℹ️ {message}[/blue]")
+    """
+    Print an informational message with color.
+
+    Args:
+        message: The message to print
+    """
+    console.print(f"ℹ️ {message}", style="info")
 
 
 def print_success(message: str) -> None:
-    """Print a success message in green."""
-    console.print(f"[green]✅ {message}[/green]")
+    """
+    Print a success message with color.
+
+    Args:
+        message: The message to print
+    """
+    console.print(f"✅ {message}", style="success")
 
 
 def print_warning(message: str) -> None:
-    """Print a warning message in yellow."""
-    console.print(f"[yellow]⚠️ {message}[/yellow]")
+    """
+    Print a warning message with color.
+
+    Args:
+        message: The message to print
+    """
+    console.print(f"⚠️ {message}", style="warning")
 
 
 def print_error(message: str) -> None:
-    """Print an error message in red."""
-    console.print(f"[red]❌ {message}[/red]")
+    """
+    Print an error message with color.
+
+    Args:
+        message: The message to print
+    """
+    console.print(f"❌ {message}", style="error")
 
 
 def print_header(message: str) -> None:
-    """Print a header message in bold cyan."""
-    console.print(f"[bold cyan]== {message} ==[/bold cyan]")
+    """
+    Print a header message with color.
+
+    Args:
+        message: The message to print
+    """
+    console.print(Panel(message, style="header"))
 
 
-def format_bordered_text(
-    content: str, header: str = None, min_length: int = 0, max_length: int = 120
+def format_bordered_text(text: str, header: Optional[str] = None) -> str:
+    """
+    Format text with a border.
+
+    Args:
+        text: The text to format
+        header: Optional header
+
+    Returns:
+        Formatted text with border
+    """
+    import unicodedata
+
+    def visual_width(s):
+        """Calculate the visual width of a string, accounting for wide characters."""
+        width = 0
+        for char in s:
+            # East Asian full-width characters and emojis count as 2
+            if unicodedata.east_asian_width(char) in ("F", "W") or ord(char) > 0x1F000:
+                width += 2
+            else:
+                width += 1
+        return width
+
+    lines = text.split("\n")
+    # Calculate the maximum visual width across all lines
+    max_width = max(visual_width(line) for line in lines)
+    # Add padding for left and right margins (2 spaces on each side)
+    border_width = max_width + 4
+    result = []
+
+    # Add header if provided
+    if header:
+        result.append(f"┏{'━' * border_width}┓")
+        header_padding = (border_width - visual_width(header)) // 2
+        right_padding = border_width - header_padding - visual_width(header)
+        result.append(f"┃{' ' * header_padding}{header}{' ' * right_padding}┃")
+        result.append(f"┣{'━' * border_width}┫")
+    else:
+        result.append(f"┏{'━' * border_width}┓")
+
+    # Add content - 1 space on left, rest of padding on right
+    for line in lines:
+        line_width = visual_width(line)
+        # We need space for: left border + 1 space + content + padding + 1 space + right border
+        right_padding = border_width - line_width - 2  # -2 for the spaces on both sides
+        result.append(f"┃ {line}{' ' * right_padding} ┃")
+
+    # Close border
+    result.append(f"┗{'━' * border_width}┛")
+
+    return "\n".join(result)
+
+
+class Spinner:
+    """A simple spinner to indicate progress."""
+
+    def __init__(self, message: str = "Processing"):
+        """
+        Initialize the spinner.
+
+        Args:
+            message: The message to display with the spinner
+        """
+        self.message = message
+        self.spinning = False
+        self.spinner_chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+        self.spinner_thread = None
+        self.current_char_index = 0
+        self.stop_event = threading.Event()
+        self.message_lock = threading.Lock()  # Add lock for thread-safe message updates
+
+    def _spin(self):
+        """Spin the spinner in a separate thread."""
+        last_message_length = 0
+
+        while not self.stop_event.is_set():
+            char = self.spinner_chars[self.current_char_index]
+
+            # Get current message (thread-safe)
+            with self.message_lock:
+                current_message = self.message
+
+            # Clear the previous line completely
+            sys.stdout.write("\r" + " " * (last_message_length + 10))
+
+            # Write new message
+            display_text = f"\r{char} {current_message}..."
+            sys.stdout.write(display_text)
+            sys.stdout.flush()
+
+            # Store length for next iteration
+            last_message_length = len(display_text)
+
+            self.current_char_index = (self.current_char_index + 1) % len(self.spinner_chars)
+            time.sleep(0.1)
+
+        # Clear the line when done
+        sys.stdout.write("\r" + " " * (last_message_length + 10) + "\r")
+        sys.stdout.flush()
+
+    def update_message(self, new_message: str):
+        """
+        Update the spinner's message while it's running.
+
+        Args:
+            new_message: The new message to display
+        """
+        with self.message_lock:
+            self.message = new_message
+
+    def start(self):
+        """Start the spinner."""
+        if not self.spinning:
+            self.spinning = True
+            self.stop_event.clear()
+            self.spinner_thread = threading.Thread(target=self._spin)
+            self.spinner_thread.daemon = True
+            self.spinner_thread.start()
+
+    def stop(self):
+        """Stop the spinner."""
+        if self.spinning:
+            self.stop_event.set()
+            if self.spinner_thread:
+                self.spinner_thread.join()
+            self.spinning = False
+
+    def __enter__(self):
+        """Start the spinner when used as a context manager."""
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Stop the spinner when exiting the context manager."""
+        self.stop()
+
+
+def run_subprocess(
+    command: List[str], timeout: int = 60, silent: bool = False, test_mode: bool = False
 ) -> str:
     """
-    Format text with a border and optional header.
+    Run a subprocess command and return its output.
 
     Args:
-        content: The text content to display
-        header: Optional header text to display in the border
-        min_length: Minimum border length (default: 0)
-        max_length: Maximum border length (default: 120)
+        command: Command to run as a list of strings
+        timeout: Timeout in seconds
+        silent: Whether to suppress error output
+        test_mode: If True, prevents execution of git commands and returns simulated response
 
     Returns:
-        Formatted text with borders
-    """
-    # Get the longest line length
-    max_line_length = max(len(line) for line in content.split("\n"))
-    # Calculate border length
-    border_length = max(min_length, max_line_length)
-    # Cap at max_length
-    border_length = min(border_length, max_length)
-
-    if header:
-        # Calculate padding ensuring equal sides by rounding up
-        total_padding = border_length - len(header)
-        left_padding = (total_padding + 1) // 2
-        right_padding = left_padding
-        top_border = f"{'=' * left_padding}{header}{'=' * right_padding}"
-        bottom_border = "=" * len(top_border)
-    else:
-        # Simple border without header
-        top_border = "=" * border_length
-        bottom_border = top_border
-
-    return f"\n{top_border}\n{content}\n{bottom_border}\n"
-
-
-def run_subprocess(command: List[str], check: bool = False) -> str:
-    """
-    Run a subprocess and return its output.
-
-    Args:
-        command: List of command components
-        check: Whether to check return code
-
-    Returns:
-        Output of the command
+        Output from the command
 
     Raises:
-        subprocess.CalledProcessError: If check=True and the command fails
+        subprocess.CalledProcessError: If the command fails
     """
+    import os
+
+    # Check if we're in test mode (either explicit parameter or environment variable)
+    # The _TESTING_PRESERVE_MOCK env var is set when tests need to use their own mocks
+    is_test = test_mode or (
+        os.environ.get("GAC_TEST_MODE") == "1" and os.environ.get("_TESTING_PRESERVE_MOCK") != "1"
+    )
+
+    # If we're in test mode and this is a git command, return simulated response
+    if is_test and command and command[0] == "git":
+        logger.debug(f"TEST MODE: Simulating git command: {' '.join(command)}")
+
+        # Simulate common git commands to avoid affecting the real repository
+        if command[1:2] == ["status"]:
+            return "M src/gac/utils.py\nM tests/test_core.py\nM ROADMAP.md"
+        elif command[1:2] == ["add"]:
+            return f"Simulated adding files: {' '.join(command[2:])}"
+        elif command[1:2] == ["commit"]:
+            return "Simulated commit"
+        elif command[1:2] == ["push"]:
+            return "Simulated push"
+        elif command[1:2] == ["diff"]:
+            return "Simulated diff content"
+        elif command[:3] == ["git", "rev-parse", "--show-toplevel"]:
+            return os.getcwd()  # Simulate project root
+        else:
+            # Generic simulation for other git commands
+            return f"Simulated git command: {' '.join(command[1:])}"
+
+    # Special case for git diff --quiet --cached --exit-code
+    if command == ["git", "diff", "--quiet", "--cached", "--exit-code"]:
+        # This command is expected to fail if there are changes
+        try:
+            subprocess.run(
+                command,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=timeout,
+                text=True,
+            )
+            # If it succeeds, there are no changes
+            return ""
+        except subprocess.CalledProcessError:
+            # If it fails, there are changes
+            return "Changes detected"
+
+    logger.debug(f"Running command: {' '.join(command)}")
+
     try:
-        logger.debug(f"Running command: {' '.join(command)}")
         result = subprocess.run(
             command,
-            capture_output=True,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout,
             text=True,
-            check=check,
         )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError as e:
-        if check:
-            raise
-        logger.error(f"Command failed: {' '.join(command)}")
-        logger.error(f"Error: {e.stderr.strip() if e.stderr else str(e)}")
-        return ""
+
+        # Manually check for errors
+        if result.returncode != 0:
+            if not silent:
+                logger.error(f"Error executing '{' '.join(command)}': {result.stderr}")
+            raise subprocess.CalledProcessError(
+                result.returncode, command, result.stdout, result.stderr
+            )
+
+        output = result.stdout
+
+        if result.stderr and not silent:
+            logger.debug(f"Command stderr: {result.stderr}")
+
+        return output.strip()
+
+    except subprocess.TimeoutExpired:
+        error_msg = f"Command timed out after {timeout} seconds: {' '.join(command)}"
+        logger.error(error_msg)
+        raise subprocess.TimeoutExpired(command, timeout, output=error_msg)

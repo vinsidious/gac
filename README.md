@@ -16,6 +16,7 @@ A CLI tool (pronounced like "gak") that uses large language models to generate m
 - Automatically generates meaningful commit messages using various LLM providers
 - Supports multiple AI providers (Anthropic Claude, OpenAI, Groq, Mistral, and more)
 - Formats Python files with `black` and `isort` before committing
+- Caches responses to improve performance and reduce API calls
 - Interactive prompts for commit and push actions
 - Supports various flags for different workflows
 
@@ -87,10 +88,10 @@ You can adjust the token limits for both input and output:
 export GAC_MAX_OUTPUT_TOKENS=1024
 
 # Increase input token limit (for larger diffs)
-export GAC_MAX_INPUT_TOKENS=2048
+export GAC_MAX_INPUT_TOKENS=24000
 ```
 
-**Note:** The input token limit should be set based on your model's maximum context window size. Exceeding this limit may result in truncated diffs being sent to the model.
+**Note:** The input token limit should be set based on your model's maximum context window size. Exceeding this limit may result in truncated diffs being sent to the model. The default token limit is 16000.
 
 ### Code Formatting
 
@@ -101,6 +102,26 @@ export GAC_USE_FORMATTING=false
 ```
 
 This is useful if you're working on a project that uses different formatting tools or if you want to commit without formatting.
+
+### Caching
+
+GAC implements caching to improve performance and reduce API calls. The cache stores:
+
+- LLM responses for similar diffs
+- Git operations results
+- Project descriptions
+
+By default, the cache is stored in `~/.gac_cache/` and entries expire after 24 hours for LLM responses and 5 minutes for git operations.
+
+You can control caching behavior with these command-line options:
+
+```bash
+# Skip cache and force fresh API calls
+gac --no-cache
+
+# Clear all cached data before running
+gac --clear-cache
+```
 
 ## Usage
 
@@ -126,16 +147,19 @@ gac [OPTIONS]
 
 Available options:
 
-| Option             | Description                                       | Example                                  |
-| ------------------ | ------------------------------------------------- | ---------------------------------------- |
-| `--test`           | Run in test mode with example commit messages     | `gac --test`                             |
-| `--force, -f`      | Skip all prompts (auto-yes)                       | `gac -f`                                 |
-| `--add-all, -a`    | Stage all changes before committing               | `gac -a`                                 |
-| `--no-format, -nf` | Disable automatic code formatting                 | `gac --no-format`                        |
-| `--model`          | Specify model to use (overrides GAC_MODEL)        | `gac --model=openai:gpt-4o`              |
-| `--one-liner`      | Generate one-line commit messages                 | `gac --one-liner`                        |
-| `--show-prompt`    | Show the prompt sent to the LLM                   | `gac --show-prompt`                      |
-| `--hint`           | Provide additional context for the commit message | `gac --hint="This is a breaking change"` |
+| Option               | Description                                        | Example                                  |
+| -------------------- | -------------------------------------------------- | ---------------------------------------- |
+| `--test, -t`         | Run in test mode with example commit messages      | `gac --test`                             |
+| `--force, -f`        | Skip all prompts (auto-yes)                        | `gac -f`                                 |
+| `--add-all, -a`      | Stage all changes before committing                | `gac -a`                                 |
+| `--no-format`        | Disable automatic code formatting                  | `gac --no-format`                        |
+| `--model, -m`        | Specify model to use (overrides GAC_MODEL)         | `gac --model=openai:gpt-4o`              |
+| `--one-liner, -1`    | Generate one-line commit messages                  | `gac --one-liner`                        |
+| `--show-prompt, -s`  | Show the prompt sent to the LLM                    | `gac --show-prompt`                      |
+| `--hint, -h`         | Provide additional context for the commit message  | `gac --hint="This is a breaking change"` |
+| `--conventional, -c` | Generate commit messages using conventional format | `gac --conventional`                     |
+| `--no-cache`         | Skip cache and force fresh API calls               | `gac --no-cache`                         |
+| `--clear-cache`      | Clear all cached data before running               | `gac --clear-cache`                      |
 
 ### Common Workflows
 
@@ -175,6 +199,18 @@ gac --test
 gac --show-prompt
 ```
 
+7. Conventional commit format:
+
+```bash
+gac --conventional
+```
+
+8. Force fresh API calls (skip cache):
+
+```bash
+gac --no-cache
+```
+
 ### Best Practices
 
 1. Always stage your changes before running `gac`
@@ -182,6 +218,7 @@ gac --show-prompt
 3. Consider using `--one-liner` for smaller, focused commits
 4. Use `--test` to preview commit messages before committing
 5. If working on a project with specific formatting requirements, use `--no-format`
+6. Use the cache to improve performance unless you need fresh responses
 
 ## Project Structure
 
@@ -191,23 +228,63 @@ gac/
 │   └── gac/
 │       ├── __init__.py
 │       ├── core.py
-│       └── utils.py
+│       ├── ai_utils.py
+│       ├── git.py
+│       ├── cache.py
+│       ├── config.py
+│       ├── constants.py
+│       ├── utils.py
+│       └── formatting/
+│           └── ... formatting modules ...
 ├── tests/
 ├── .gitignore
 ├── LICENSE.txt
 ├── README.md
+├── CHANGELOG.md
+├── ROADMAP.md
 └── pyproject.toml
 ```
 
-## Contributing
+## For Developers
 
-For development instructions, see [DEVELOPMENT.md](DEVELOPMENT.md).
+### Testing
+
+When running tests, GAC automatically sets a test mode environment variable to prevent real git commands from affecting your repository. This is important when testing functionality that interacts with git.
+
+The test mode is controlled in two ways:
+
+1. Environment variable:
+
+```bash
+# Set this to prevent real git commands from running
+export GAC_TEST_MODE=1
+```
+
+2. Function parameter:
+
+```python
+# Pass test_mode=True to simulate git commands
+from gac.utils import run_subprocess
+result = run_subprocess(["git", "add", "."], test_mode=True)
+```
+
+When test mode is active, all git commands are intercepted and return simulated responses instead of executing real commands. This ensures tests don't accidentally modify your git repository.
+
+### Contributing
+
+Contributions are welcome! If you'd like to contribute to GAC, please:
 
 1. Fork the repository
 2. Create a new branch for your feature
-3. Make your changes
-4. Run tests and linting
+3. Add tests for your changes
+4. Ensure all tests pass
 5. Submit a pull request
+
+Before submitting your PR, please make sure to run the test suite:
+
+```bash
+pytest
+```
 
 ## License
 

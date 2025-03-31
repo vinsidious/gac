@@ -1,4 +1,4 @@
-.PHONY: setup install install-dev test lint format clean bump bump-patch bump-minor bump-major bump-alpha bump-beta bump-rc
+.PHONY: setup install install-dev test lint format clean bump bump-patch bump-minor bump-major bump-alpha bump-beta bump-rc coverage
 
 # Create virtual environment and install dependencies
 setup:
@@ -16,6 +16,10 @@ install-dev:
 # Run tests
 test:
 	pytest
+
+# Run tests with coverage
+coverage:
+	uv run -- python -m pytest --cov=src --cov-report=term --cov-report=html
 
 # Run linting
 lint:
