@@ -30,7 +30,6 @@ from gac.git import (
     stage_files,
 )
 from gac.utils import (
-    format_bordered_text,
     print_error,
     print_header,
     print_info,
@@ -268,15 +267,11 @@ def send_to_llm(
     # Show prompt if requested
     if show_prompt_full:
         print_info("🤖 Crafting LLM Prompt")
-        print(format_bordered_text(prompt, header="=== Full LLM Prompt ==="))
+        print(prompt)
     elif show_prompt:
         print_info("🤖 Crafting LLM Prompt")
         abbreviated_prompt = create_abbreviated_prompt(prompt)
-        print(
-            format_bordered_text(
-                abbreviated_prompt, header="=== Abbreviated LLM Prompt ===", add_border=False
-            )
-        )
+        print(abbreviated_prompt)
 
     # Get project description and include it in context if available
     project_description = get_project_description()
@@ -337,72 +332,46 @@ def send_to_llm(
     except APIConnectionError as e:
         logger.error(f"Connection error: {str(e)}")
         print(
-            format_bordered_text(
-                "Failed to connect to the AI service. Please check your internet "
-                "connection and try again.",
-                header="=== CONNECTION ERROR ===",
-            )
+            f"Failed to connect to the AI service. Please check your internet "
+            "connection and try again."
         )
         return ""
 
     except APITimeoutError as e:
         logger.error(f"Timeout error: {str(e)}")
-        print(
-            format_bordered_text(
-                "The AI service took too long to respond. Please try again later.",
-                header="=== TIMEOUT ERROR ===",
-            )
-        )
+        print("The AI service took too long to respond. Please try again later.")
         return ""
 
     except APIRateLimitError as e:
         logger.error(f"Rate limit error: {str(e)}")
-        print(
-            format_bordered_text(
-                "Rate limit exceeded for the AI service. Please wait a few minutes and try again.",
-                header="=== RATE LIMIT EXCEEDED ===",
-            )
-        )
+        print("Rate limit exceeded for the AI service. Please wait a few minutes and try again.")
         return ""
 
     except APIAuthenticationError as e:
         logger.error(f"Authentication error: {str(e)}")
         provider = model.split(":")[0] if ":" in model else "your AI"
         print(
-            format_bordered_text(
-                f"Authentication failed for {provider} API. Please check your API key and ensure "
-                f"it's properly set in your environment variables.",
-                header="=== AUTHENTICATION ERROR ===",
-            )
+            f"Authentication failed for {provider} API. Please check your API key and ensure "
+            f"it's properly set in your environment variables."
         )
         return ""
 
     except APIUnsupportedModelError as e:
         logger.error(f"Model error: {str(e)}")
         print(
-            format_bordered_text(
-                f"The model '{model}' is not supported or doesn't exist. Please check "
-                f"the model name or use a different model.",
-                header="=== MODEL ERROR ===",
-            )
+            f"The model '{model}' is not supported or doesn't exist. Please check "
+            f"the model name or use a different model."
         )
         return ""
 
     except AIError as e:
         logger.error(f"AI service error: {str(e)}")
-        print(
-            format_bordered_text(
-                f"An error occurred with the AI service: {str(e)}",
-                header="=== AI SERVICE ERROR ===",
-            )
-        )
+        print(f"An error occurred with the AI service: {str(e)}")
         return ""
 
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
-        print(
-            format_bordered_text(f"An unexpected error occurred: {str(e)}", header="=== ERROR ===")
-        )
+        print(f"An unexpected error occurred: {str(e)}")
         return ""
 
 
@@ -556,7 +525,21 @@ index 0000000..1234567
         if any_formatted:
             logger.info(f"Formatted files with extensions: {', '.join(formatted_exts)}")
             if not quiet:
-                print_success(f"Formatted files with extensions: {', '.join(formatted_exts)}")
+                for ext in formatted_exts:
+                    if ext == ".py":
+                        py_files = [f for f in staged_files if f.endswith(ext)]
+                        print_success(f"✅ Formatted {len(py_files)} Python files with Black")
+                    elif ext == ".js" or ext == ".ts":
+                        js_files = [f for f in staged_files if f.endswith(ext)]
+                        print_success(
+                            f"✅ Formatted {len(js_files)} "
+                            "JavaScript/TypeScript files with Prettier"
+                        )
+                    elif ext == ".md":
+                        md_files = [f for f in staged_files if f.endswith(ext)]
+                        print_success(f"✅ Formatted {len(md_files)} Markdown files with Prettier")
+                    else:
+                        print_success(f"✅ Formatted files with extension {ext}")
         else:
             logger.debug("No files were formatted.")
 
@@ -623,7 +606,23 @@ index 0000000..1234567
             if any_formatted:
                 logger.info(f"Formatted files with extensions: {', '.join(formatted_exts)}")
                 if not quiet:
-                    print_success(f"Formatted files with extensions: {', '.join(formatted_exts)}")
+                    for ext in formatted_exts:
+                        if ext == ".py":
+                            py_files = [f for f in staged_files if f.endswith(ext)]
+                            print_success(f"✅ Formatted {len(py_files)} Python files with Black")
+                        elif ext == ".js" or ext == ".ts":
+                            js_files = [f for f in staged_files if f.endswith(ext)]
+                            print_success(
+                                f"✅ Formatted {len(js_files)} "
+                                "JavaScript/TypeScript files with Prettier"
+                            )
+                        elif ext == ".md":
+                            md_files = [f for f in staged_files if f.endswith(ext)]
+                            print_success(
+                                f"✅ Formatted {len(md_files)} Markdown files with Prettier"
+                            )
+                        else:
+                            print_success(f"✅ Formatted files with extension {ext}")
             else:
                 logger.debug("No files were formatted.")
 
