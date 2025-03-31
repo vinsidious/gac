@@ -227,6 +227,7 @@ def chat(
     retry_delay: float = 1.0,
     cache_skip: bool = False,
     show_spinner: bool = True,
+    one_liner: bool = False,
     **kwargs,
 ) -> str:
     """
@@ -243,6 +244,7 @@ def chat(
         retry_delay: Delay between retries in seconds.
         cache_skip: If True, bypass cache and force a new API call.
         show_spinner: If True, show a spinner during API calls.
+        one_liner: If True, ensure response is a single line (no newlines).
         **kwargs: Additional keyword arguments to pass to the AI provider.
 
     Returns:
@@ -293,9 +295,6 @@ def chat(
                 messages = [system_message] + messages
                 logger.debug(f"Added system message: {system}")
 
-            # Initialize the aisuite client
-            client = ai.Client()
-
             # Create a spinner for the API call if enabled
             spinner = Spinner(f"Connecting to {provider} API")
             if show_spinner:
@@ -306,14 +305,46 @@ def chat(
                 if show_spinner:
                     spinner.update_message(f"Generating with {model_name}")
 
-                # Make the request through aisuite's unified interface
-                response = client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    temperature=temperature,
-                    max_tokens=kwargs.pop("max_tokens", MAX_OUTPUT_TOKENS),
-                    **kwargs,
-                )
+                # Handle Ollama provider directly
+                if provider.lower() == "ollama":
+                    try:
+                        formatted_messages = []
+                        system_content = None
+                        # Format messages for Ollama
+                        for msg in messages:
+                            if msg["role"] == "system":
+                                # Ollama uses system as a parameter, not a message
+                                system_content = msg["content"]
+                            else:
+                                formatted_messages.append(msg)
+
+                        # Generate with Ollama
+                        logger.debug(f"Generating with Ollama model {model_name}")
+                        response = ollama.chat(
+                            model=model_name,
+                            messages=formatted_messages,
+                            options={
+                                "temperature": temperature,
+                                **({"system": system_content} if system_content else {}),
+                            },
+                        )
+                        reply = response["message"]["content"]
+                    except Exception as e:
+                        logger.error(f"Error generating with Ollama: {e}")
+                        raise APIResponseError(f"Error with Ollama: {e}")
+                else:
+                    # Initialize the aisuite client for other providers
+                    client = ai.Client()
+                    # Make the request through aisuite's unified interface
+                    response = client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=kwargs.pop("max_tokens", MAX_OUTPUT_TOKENS),
+                        **kwargs,
+                    )
+                    # Extract the response content
+                    reply = response.choices[0].message.content
 
                 # Update spinner to show we're processing the response
                 if show_spinner:
@@ -323,8 +354,6 @@ def chat(
                 if show_spinner:
                     spinner.stop()
 
-            # Extract the response content
-            reply = response.choices[0].message.content
             end_time = time.time()
             elapsed_time = end_time - start_time
             logger.debug(f"Received response in {elapsed_time:.2f} seconds")
@@ -348,6 +377,12 @@ def chat(
                     logger.debug(f"Saved conversation to {save_conversation_path}")
                 except Exception as e:
                     logger.warning(f"Failed to save conversation: {e}")
+
+            # If one_liner is True, ensure the response is a single line
+            if one_liner:
+                # Replace all newlines with spaces and remove excess spaces
+                reply = " ".join(reply.replace("\n", " ").split())
+                logger.debug("Converted response to a single line as requested")
 
             return reply
 

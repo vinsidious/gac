@@ -69,7 +69,11 @@ def build_prompt(
     ]
 
     if one_liner:
-        prompt.append("\nFormat it as a single line (50-72 characters if possible).")
+        prompt.append(
+            "\nFormat it as a single line (50-72 characters if possible). "
+            "If applicable, still use conventional commit prefixes like feat/fix/docs/etc., "
+            "but keep everything to a single line with no bullet points."
+        )
     else:
         prompt.append(
             "\nFormat it with a concise summary line (50-72 characters) followed by a "
@@ -296,6 +300,7 @@ def send_to_llm(
             test_mode=False,
             cache_skip=cache_skip,
             show_spinner=show_spinner,
+            one_liner=one_liner,
         )
 
         response_token_count = count_tokens(response, model)

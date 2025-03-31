@@ -78,6 +78,29 @@ Available providers and their default models:
 | `aws`       | `meta.llama3-1-70b-instruct-v1:0` | AWS-hosted Llama 3 model                                |
 | `azure`     | `gpt-4o-mini`                     | Azure-hosted GPT-4 optimized model                      |
 | `google`    | `gemini-2.0-flash`                | Latest Gemini model with flash attention                |
+| `ollama`    | `llama3.2`                        | Local Llama 3 model hosted through Ollama               |
+
+### Using Local Models with Ollama
+
+You can use locally-hosted models with Ollama:
+
+1. Install Ollama from [https://ollama.com](https://ollama.com)
+2. Start the Ollama service
+3. Pull a model:
+   ```bash
+   ollama pull llama3.2
+   ```
+4. Use the model with gac:
+   ```bash
+   gac --model=ollama:llama3.2
+   ```
+
+To list available local models:
+```bash
+gac --local-models
+```
+
+**Note:** Using local models generally results in faster response times but may produce less refined commit messages than cloud-based models. For best results with local models, consider using the `--hint` option to provide additional context.
 
 ### Token Limits
 
