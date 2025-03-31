@@ -41,7 +41,7 @@ The following environment variables can be used to configure gac:
 | `GAC_MODEL`             | Fully qualified model string (provider:model) | `anthropic:claude-3-5-haiku-latest` | No                  |
 | `GAC_USE_FORMATTING`    | Enable/disable code formatting (true/false)   | `true`                              | No                  |
 | `GAC_MAX_OUTPUT_TOKENS` | Maximum tokens in model output                | `512`                               | No                  |
-| `GAC_MAX_INPUT_TOKENS`  | Maximum tokens in input prompt                | `1000`                              | No                  |
+| `GAC_WARNING LIMIT_INPUT_TOKENS`  | Maximum tokens in input prompt                | `1000`                              | No                  |
 
 ### Model Selection
 
@@ -111,7 +111,7 @@ You can adjust the token limits for both input and output:
 export GAC_MAX_OUTPUT_TOKENS=1024
 
 # Increase input token limit (for larger diffs)
-export GAC_MAX_INPUT_TOKENS=24000
+export GAC_WARNING_LIMIT_INPUT_TOKENS=24000
 ```
 
 **Note:** The input token limit should be set based on your model's maximum context window size. Exceeding this limit may result in truncated diffs being sent to the model. The default token limit is 16000.

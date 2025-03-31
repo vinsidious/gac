@@ -145,7 +145,7 @@ class TestCore:
                     # Setup mocks with required keys
                     mock_get_config.return_value = {
                         "model": "anthropic:claude-3-haiku",
-                        "max_input_tokens": 1000,
+                        "warning_limit_tokens": 1000,
                     }
                     mock_count_tokens.return_value = 100
                     mock_chat.return_value = "Generated commit message"
@@ -337,7 +337,7 @@ def setup_mocks():
         mock_get_config.return_value = {
             "model": "anthropic:claude-3-haiku",
             "use_formatting": True,
-            "max_input_tokens": 1000,
+            "warning_limit_input_tokens": 1000,
         }
         with patch("gac.core.get_staged_files") as mock_get_staged_files:
             mock_get_staged_files.return_value = ["file1.py", "file2.txt"]

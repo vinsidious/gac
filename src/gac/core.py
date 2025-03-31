@@ -246,14 +246,16 @@ def send_to_llm(
     token_count = count_tokens(prompt, model)
     logger.info(f"Prompt token count: {token_count:,}")
 
-    # Check if token count exceeds the limit
-    max_tokens = config["max_input_tokens"]
-    if token_count > max_tokens:
-        logger.warning(f"Warning: Prompt exceeds token limit ({token_count} > {max_tokens})")
+    # Check if token count exceeds the warning limit
+    warning_limit_tokens = config["warning_limit_input_tokens"]
+    if token_count > warning_limit_tokens:
+        logger.warning(
+            f"Warning: Prompt exceeds warning limit ({token_count} > {warning_limit_tokens})"
+        )
         if not force:
             prompt_msg = (
-                f"The prompt is {token_count:,} tokens, which exceeds the limit "
-                f"of {max_tokens:,}. Continue anyway?"
+                f"The prompt is {token_count:,} tokens, which exceeds the warning limit "
+                f"of {warning_limit_tokens:,}. Continue anyway?"
             )
             if not click.confirm(prompt_msg, default=False):
                 logger.info("Operation cancelled by user")

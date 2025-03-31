@@ -48,7 +48,7 @@ def mock_get_config():
         mock.return_value = {
             "model": "anthropic:claude-3-haiku",
             "use_formatting": True,
-            "max_input_tokens": 1000,
+            "warning_limit_tokens": 1000,
         }
         yield mock
 

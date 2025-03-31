@@ -28,7 +28,7 @@ DEFAULT_CONFIG = {
     "model": "anthropic:claude-3-5-haiku-latest",  # Default model with provider prefix
     "use_formatting": True,  # Format Python files with black and isort
     "max_output_tokens": 512,  # Maximum tokens in model output
-    "max_input_tokens": 16000,  # Maximum tokens in input prompt
+    "warning_limit_input_tokens": 16000,  # Maximum tokens in input prompt
 }
 
 # Environment variable names
@@ -38,7 +38,7 @@ ENV_VARS = {
     "model_name": "GAC_MODEL_NAME",
     "use_formatting": "GAC_USE_FORMATTING",
     "max_output_tokens": "GAC_MAX_OUTPUT_TOKENS",
-    "max_input_tokens": "GAC_MAX_INPUT_TOKENS",
+    "warning_limit_input_tokens": "GAC_WARNING_LIMIT_INPUT_TOKENS",
 }
 
 # API key environment variables by provider
@@ -100,11 +100,13 @@ def get_config() -> Dict[str, Any]:
         except ValueError:
             logger.warning(f"Invalid {ENV_VARS['max_output_tokens']} value, using default")
 
-    if os.environ.get(ENV_VARS["max_input_tokens"]):
+    if os.environ.get(ENV_VARS["warning_limit_input_tokens"]):
         try:
-            config["max_input_tokens"] = int(os.environ[ENV_VARS["max_input_tokens"]])
+            config["warning_limit_input_tokens"] = int(
+                os.environ[ENV_VARS["warning_limit_input_tokens"]]
+            )
         except ValueError:
-            logger.warning(f"Invalid {ENV_VARS['max_input_tokens']} value, using default")
+            logger.warning(f"Invalid {ENV_VARS['warning_limit_input_tokens']} value, using default")
 
     return config
 
@@ -154,12 +156,14 @@ def validate_config(config: Dict[str, Any]) -> bool:
     if config["max_output_tokens"] <= 0:
         raise ConfigError(f"max_output_tokens must be positive (got {config['max_output_tokens']})")
 
-    if config["max_input_tokens"] <= 0:
-        raise ConfigError(f"max_input_tokens must be positive (got {config['max_input_tokens']})")
+    if config["warning_limit_input_tokens"] <= 0:
+        raise ConfigError(
+            f"warning_limit_input_tokens must be positive (got {config['warning_limit_input_tokens']})"
+        )
 
-    if config["max_input_tokens"] > 32000:
+    if config["warning_limit_input_tokens"] > 32000:
         logger.warning(
-            "max_input_tokens is set very high (>32000). This might cause issues with some models"
+            "warning_limit_input_tokens is set very high (>32000). This might cause issues with some models"
         )
 
     # Check formatting option
