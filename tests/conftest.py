@@ -12,7 +12,9 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
 # Set environment variable to prevent real git commands during tests
-os.environ["GAC_TEST_MODE"] = "1"
+# Only set it if not already set, allowing it to be overridden for normal usage
+if "GAC_TEST_MODE" not in os.environ:
+    os.environ["GAC_TEST_MODE"] = "1"
 
 
 # Disable coverage warnings about modules already imported
