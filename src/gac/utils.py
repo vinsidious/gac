@@ -130,7 +130,7 @@ def print_header(message: str) -> None:
 
 def format_bordered_text(text: str, header: Optional[str] = None) -> str:
     """
-    Format text with a border.
+    Format text with a simple border that handles long lines well.
 
     Args:
         text: The text to format
@@ -139,45 +139,26 @@ def format_bordered_text(text: str, header: Optional[str] = None) -> str:
     Returns:
         Formatted text with border
     """
-    import unicodedata
-
-    def visual_width(s):
-        """Calculate the visual width of a string, accounting for wide characters."""
-        width = 0
-        for char in s:
-            # East Asian full-width characters and emojis count as 2
-            if unicodedata.east_asian_width(char) in ("F", "W") or ord(char) > 0x1F000:
-                width += 2
-            else:
-                width += 1
-        return width
-
+    # Split text into lines
     lines = text.split("\n")
-    # Calculate the maximum visual width across all lines
-    max_width = max(visual_width(line) for line in lines)
-    # Add padding for left and right margins (2 spaces on each side)
-    border_width = max_width + 4
+
+    # Create the border line
+    border = "─" * 4  # Short border for visual separation
+
     result = []
 
     # Add header if provided
     if header:
-        result.append(f"┏{'━' * border_width}┓")
-        header_padding = (border_width - visual_width(header)) // 2
-        right_padding = border_width - header_padding - visual_width(header)
-        result.append(f"┃{' ' * header_padding}{header}{' ' * right_padding}┃")
-        result.append(f"┣{'━' * border_width}┫")
+        result.append(f"╭{border} {header} {border}╮")
     else:
-        result.append(f"┏{'━' * border_width}┓")
+        result.append(f"╭{border}╮")
 
-    # Add content - 1 space on left, rest of padding on right
+    # Add content with simple left border
     for line in lines:
-        line_width = visual_width(line)
-        # We need space for: left border + 1 space + content + padding + 1 space + right border
-        right_padding = border_width - line_width - 2  # -2 for the spaces on both sides
-        result.append(f"┃ {line}{' ' * right_padding} ┃")
+        result.append(f"│ {line}")
 
     # Close border
-    result.append(f"┗{'━' * border_width}┛")
+    result.append(f"╰{border}╯")
 
     return "\n".join(result)
 
