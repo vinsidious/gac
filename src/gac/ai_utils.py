@@ -360,7 +360,7 @@ def chat(
 
             # Show success message with response time
             if show_spinner:
-                print_success(f"Response generated in {elapsed_time:.2f} seconds")
+                print_success(f"Response generated in {elapsed_time:.2f} seconds\n")
 
             # Save conversation history if requested
             if save_conversation_path:
