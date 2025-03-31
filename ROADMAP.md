@@ -8,28 +8,46 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
 
 ### Short-term Goals
 
-1. **Performance Optimization**
+1. **Architecture and Code Quality Improvements**
+
+   - [ ] Refactor `core.py` into smaller, focused modules with clear responsibilities
+   - [ ] Address f-string linter error in `core.py`
+   - [ ] Reduce function complexity, particularly in the `main()` function
+   - [ ] Standardize error handling across all modules
+   - [ ] Implement more consistent parameter naming across functions
+   - [ ] Extract duplicated code into reusable helper functions
+
+2. **Performance Optimization**
 
    - [x] Optimize token usage for large diffs
    - [x] Implement caching for repeated operations
    - [ ] Reduce startup time
    - [ ] Optimize memory usage during diff processing
+   - [ ] Improve efficiency of diff processing logic in `git.py`
+   - [ ] Enhance cache implementation with thread safety considerations
 
-2. **Improve Error Handling**
+3. **Improve Error Handling**
 
    - [x] Add more descriptive error messages
    - [x] Implement graceful fallbacks when API calls fail
    - [x] Add error logging capability
    - [x] Improve error handling for git stash operations
    - [ ] Add more granular error recovery mechanisms
+   - [ ] Replace empty string returns with proper error objects
+   - [ ] Improve error message clarity with specific remediation steps
+   - [ ] Consolidate exception handling patterns
 
-3. **Enhanced Testing**
+4. **Enhanced Testing**
+
    - [x] Increase test coverage (cache module now at 93%)
    - [x] Fix core testing infrastructure for cache module
    - [x] Fix test failures in AI utils module
    - [ ] Add integration tests with actual API calls (using mocks)
    - [ ] Create more test fixtures for different git scenarios
    - [ ] Implement property-based testing for commit message generation
+   - [ ] Add tests for edge cases and error conditions
+   - [ ] Add end-to-end workflow tests with real git repositories
+   - [ ] Reduce reliance on mocks for more realistic testing
 
 ### Medium-term Goals
 
@@ -43,6 +61,8 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [ ] Add support for multilingual commit messages
    - [ ] Create interactive mode for refining generated messages
    - [ ] Add semantic versioning support for commit message analysis
+   - [ ] Make hard-coded constants configurable (e.g., `MAX_DIFF_TOKENS`)
+   - [ ] Implement more robust string processing for commit message cleaning
 
 2. **Provider Expansion**
 
@@ -52,6 +72,8 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [ ] Integrate more specialized code-focused models
    - [ ] Add support for local code analysis models
    - [ ] Implement model performance benchmarking
+   - [ ] Improve provider abstraction to reduce provider-specific code
+   - [ ] Add automatic fallback to alternative providers on failure
 
 3. **User Experience Improvements**
    - [x] Implement a configuration wizard
@@ -60,19 +82,23 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [ ] Add command completion for shells
    - [ ] Develop a web-based configuration interface
    - [ ] Create a VS Code/IDE extension
+   - [ ] Simplify model and provider configuration for users
+   - [ ] Improve handling of large repositories with better progress indicators
+   - [ ] Add detailed debug mode for troubleshooting
 
 ## Current Sprint Focus
 
-- Improve prompt display formatting
-- Enhance error handling and recovery
-- Optimize memory usage during diff processing
+- Refactor `core.py` into smaller, focused modules
+- Standardize error handling across all modules
+- Address f-string linter error in `core.py`
+- Extract duplicated code into reusable helper functions
 
 ## Next Sprint Focus
 
-- Implement customizable commit templates
-- Add semantic versioning support
-- Develop a configuration wizard
-- Explore IDE extension possibilities
+- Improve testing with focus on edge cases and error conditions
+- Enhance cache implementation with thread safety
+- Replace empty string returns with proper error objects
+- Improve error message clarity with specific remediation steps
 
 ## Completed Items
 
