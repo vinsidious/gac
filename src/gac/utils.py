@@ -130,7 +130,7 @@ def print_header(message: str) -> None:
 
 def format_bordered_text(text: str, header: Optional[str] = None) -> str:
     """
-    Format text with a simple border that handles long lines well.
+    Format text with a simple border using '===' style.
 
     Args:
         text: The text to format
@@ -142,23 +142,22 @@ def format_bordered_text(text: str, header: Optional[str] = None) -> str:
     # Split text into lines
     lines = text.split("\n")
 
-    # Create the border line
-    border = "─" * 4  # Short border for visual separation
-
     result = []
 
     # Add header if provided
     if header:
-        result.append(f"╭{border} {header} {border}╮")
-    else:
-        result.append(f"╭{border}╮")
+        # Calculate the length of the header, capped at 80 characters
+        header_length = min(len(header), 80)
 
-    # Add content with simple left border
+        # Add the header
+        result.append(header)
+
+        # Add the "=" underline
+        result.append("=" * header_length)
+
+    # Add content
     for line in lines:
-        result.append(f"│ {line}")
-
-    # Close border
-    result.append(f"╰{border}╯")
+        result.append(line)
 
     return "\n".join(result)
 

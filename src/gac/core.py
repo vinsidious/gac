@@ -263,10 +263,17 @@ def send_to_llm(
 
     # Show prompt if requested
     if show_prompt_full:
+        print_info("🤖 Creating LLM Prompt")
         print(format_bordered_text(prompt, header="=== Full LLM Prompt ==="))
+        print_info("ℹ️ Generating commit message...")
     elif show_prompt:
+        print_info("🤖 Creating LLM Prompt")
         abbreviated_prompt = create_abbreviated_prompt(prompt)
         print(format_bordered_text(abbreviated_prompt, header="=== Abbreviated LLM Prompt ==="))
+        print_info("ℹ️ Generating commit message...")
+    else:
+        # Only show the message if we're not displaying a prompt
+        print_info("ℹ️ Generating commit message...")
 
     # Get project description and include it in context if available
     project_description = get_project_description()
@@ -771,6 +778,11 @@ index 0000000..1234567
     is_flag=True,
     help="List available local Ollama models and exit",
 )
+@click.option(
+    "--config-wizard",
+    is_flag=True,
+    help="Run the interactive configuration wizard",
+)
 def cli(
     test: bool,
     force: bool,
@@ -789,23 +801,27 @@ def cli(
     clear_cache: bool,
     no_spinner: bool,
     local_models: bool,
+    config_wizard: bool,
 ) -> None:
-    """A CLI tool to generate commit messages using LLMs.
+    """Git Auto Commit CLI."""
+    # Configuration wizard takes precedence
+    if config_wizard:
+        from gac.config import run_config_wizard
 
-    Supports cloud providers like Anthropic, OpenAI, Groq, Mistral, and local models via Ollama.
+        config = run_config_wizard()
+        if config:
+            # Save configuration to environment variables
+            os.environ["GAC_MODEL"] = config["model"]
+            os.environ["GAC_USE_FORMATTING"] = str(config["use_formatting"]).lower()
+            print("Configuration saved successfully!")
+        return
 
-    To use local models:
-    1. Install Ollama from https://ollama.com
-    2. Pull a model: ollama pull llama3.2
-    3. Run gac with --model ollama:llama3.2
+    # Rest of the existing CLI logic remains the same
+    if local_models:
+        list_local_models()
+        return
 
-    Use --local-models to see what Ollama models are available locally.
-    """
     try:
-        if local_models:
-            list_local_models()
-            return
-
         if quiet:
             # Suppress logging for non-error messages
             logging.getLogger().setLevel(logging.ERROR)

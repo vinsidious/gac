@@ -7,7 +7,9 @@ default values.
 
 import logging
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+
+import questionary
 
 logger = logging.getLogger(__name__)
 
@@ -189,3 +191,82 @@ def get_provider_from_model(model: str) -> str:
     if ":" not in model:
         raise ValueError("Model string must be in format 'provider:model_name'")
     return model.split(":")[0]
+
+
+def run_config_wizard() -> Optional[Dict[str, Any]]:
+    """Interactive configuration wizard for GAC.
+
+    Guides the user through setting up their preferred AI provider and model.
+
+    Returns:
+        Optional[Dict[str, Any]]: Configured settings or None if wizard is cancelled
+    """
+    # Supported providers for this wizard
+    supported_providers = ["anthropic", "openai", "groq", "mistral"]
+
+    # Welcome message
+    print("\n🚀 Git Auto Commit (GAC) Configuration Wizard")
+    print("-------------------------------------------")
+
+    # Provider selection
+    provider = questionary.select(
+        "Select your preferred AI provider:", choices=supported_providers
+    ).ask()
+
+    if not provider:
+        print("Configuration wizard cancelled.")
+        return None
+
+    # Model selection based on provider
+    models = {
+        "anthropic": [
+            "claude-3-5-haiku-latest",
+            "claude-3-sonnet-20240229",
+            "claude-3-opus-20240229",
+        ],
+        "openai": ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"],
+        "groq": ["llama3-70b-8192", "mixtral-8x7b-32768"],
+        "mistral": ["mistral-large-latest", "mistral-medium-latest"],
+    }
+
+    model_name = questionary.select(f"Select a {provider} model:", choices=models[provider]).ask()
+
+    if not model_name:
+        print("Configuration wizard cancelled.")
+        return None
+
+    # Formatting preference
+    use_formatting = questionary.confirm(
+        "Would you like to automatically format Python files?", default=True
+    ).ask()
+
+    # Construct full model configuration
+    full_model = f"{provider}:{model_name}"
+
+    # Confirm configuration
+    print("\n📋 Configuration Summary:")
+    print(f"Provider: {provider}")
+    print(f"Model: {model_name}")
+    print(f"Auto-formatting: {'Enabled' if use_formatting else 'Disabled'}")
+
+    confirm = questionary.confirm("Do you want to save these settings?", default=True).ask()
+
+    if not confirm:
+        print("Configuration wizard cancelled.")
+        return None
+
+    # Create configuration dictionary
+    config = {
+        "model": full_model,
+        "use_formatting": use_formatting,
+        "max_output_tokens": DEFAULT_CONFIG["max_output_tokens"],
+        "warning_limit_input_tokens": DEFAULT_CONFIG["warning_limit_input_tokens"],
+    }
+
+    try:
+        validate_config(config)
+        print("\n✅ Configuration validated successfully!")
+        return config
+    except ConfigError as e:
+        print(f"❌ Configuration validation failed: {e}")
+        return None

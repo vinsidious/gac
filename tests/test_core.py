@@ -145,7 +145,8 @@ class TestCore:
                     # Setup mocks with required keys
                     mock_get_config.return_value = {
                         "model": "anthropic:claude-3-haiku",
-                        "warning_limit_tokens": 1000,
+                        "warning_limit_input_tokens": 1000,
+                        "max_output_tokens": 512,
                     }
                     mock_count_tokens.return_value = 100
                     mock_chat.return_value = "Generated commit message"

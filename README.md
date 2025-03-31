@@ -28,20 +28,51 @@ pipx install gac
 
 ## Configuration
 
+### Interactive Configuration Wizard
+
+Git Auto Commit provides an interactive configuration wizard to help you set up your preferred AI provider and model:
+
+```bash
+gac --config-wizard
+```
+
+The wizard will guide you through:
+
+- Selecting an AI provider (Anthropic, OpenAI, Groq, Mistral)
+- Choosing a specific model
+- Configuring code formatting preferences
+
+### Manual Configuration
+
+You can also configure GAC using environment variables:
+
+- `GAC_MODEL`: Full model specification (e.g., `anthropic:claude-3-5-haiku-latest`)
+- `GAC_PROVIDER`: AI provider (e.g., `anthropic`)
+- `GAC_MODEL_NAME`: Specific model name (e.g., `claude-3-5-haiku-latest`)
+- `GAC_USE_FORMATTING`: Enable/disable code formatting (`true`/`false`)
+
+Example:
+
+```bash
+export GAC_MODEL=anthropic:claude-3-5-haiku-latest
+export GAC_USE_FORMATTING=true
+gac
+```
+
 ### Environment Variables
 
 The following environment variables can be used to configure gac:
 
-| Variable                | Description                                   | Default                             | Required            |
-| ----------------------- | --------------------------------------------- | ----------------------------------- | ------------------- |
-| `ANTHROPIC_API_KEY`     | API key for Anthropic Claude                  | -                                   | Yes (for Anthropic) |
-| `OPENAI_API_KEY`        | API key for OpenAI models                     | -                                   | Yes (for OpenAI)    |
-| `GROQ_API_KEY`          | API key for Groq models                       | -                                   | Yes (for Groq)      |
-| `MISTRAL_API_KEY`       | API key for Mistral models                    | -                                   | Yes (for Mistral)   |
-| `GAC_MODEL`             | Fully qualified model string (provider:model) | `anthropic:claude-3-5-haiku-latest` | No                  |
-| `GAC_USE_FORMATTING`    | Enable/disable code formatting (true/false)   | `true`                              | No                  |
-| `GAC_MAX_OUTPUT_TOKENS` | Maximum tokens in model output                | `512`                               | No                  |
-| `GAC_WARNING LIMIT_INPUT_TOKENS`  | Maximum tokens in input prompt                | `1000`                              | No                  |
+| Variable                         | Description                                   | Default                             | Required            |
+| -------------------------------- | --------------------------------------------- | ----------------------------------- | ------------------- |
+| `ANTHROPIC_API_KEY`              | API key for Anthropic Claude                  | -                                   | Yes (for Anthropic) |
+| `OPENAI_API_KEY`                 | API key for OpenAI models                     | -                                   | Yes (for OpenAI)    |
+| `GROQ_API_KEY`                   | API key for Groq models                       | -                                   | Yes (for Groq)      |
+| `MISTRAL_API_KEY`                | API key for Mistral models                    | -                                   | Yes (for Mistral)   |
+| `GAC_MODEL`                      | Fully qualified model string (provider:model) | `anthropic:claude-3-5-haiku-latest` | No                  |
+| `GAC_USE_FORMATTING`             | Enable/disable code formatting (true/false)   | `true`                              | No                  |
+| `GAC_MAX_OUTPUT_TOKENS`          | Maximum tokens in model output                | `512`                               | No                  |
+| `GAC_WARNING LIMIT_INPUT_TOKENS` | Maximum tokens in input prompt                | `1000`                              | No                  |
 
 ### Model Selection
 
@@ -96,6 +127,7 @@ You can use locally-hosted models with Ollama:
    ```
 
 To list available local models:
+
 ```bash
 gac --local-models
 ```

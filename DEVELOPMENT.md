@@ -209,3 +209,40 @@ gac/
 3. Make your changes
 4. Run tests and linting: `make test && make lint`
 5. Submit a pull request
+
+## Configuration Management
+
+### Configuration Wizard
+
+The configuration wizard is implemented in `src/gac/config.py` with the `run_config_wizard()` function. It uses the `questionary` library to provide an interactive CLI experience.
+
+#### Key Components
+
+- Provider selection from a predefined list
+- Model selection based on the chosen provider
+- Formatting preference toggle
+- Configuration validation
+
+#### Testing
+
+- Tests are located in `tests/test_config.py`
+- Uses `unittest.mock` to simulate user interactions
+- Covers various scenarios like provider selection, cancellation, and validation
+
+### Environment Variable Configuration
+
+Supports configuration via environment variables:
+
+- `GAC_MODEL`: Full model specification
+- `GAC_PROVIDER`: AI provider
+- `GAC_MODEL_NAME`: Specific model name
+- `GAC_USE_FORMATTING`: Enable/disable code formatting
+
+### Adding New Providers or Models
+
+To add new providers or models:
+
+1. Update `PROVIDER_MODELS` in `config.py`
+2. Add corresponding API key environment variable in `API_KEY_ENV_VARS`
+3. Update tests in `test_config.py`
+4. Update documentation in README.md

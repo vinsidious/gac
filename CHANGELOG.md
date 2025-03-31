@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `--no-cache` and `--clear-cache` options to CLI
 - Colorized terminal output for better readability and user experience
 - Safety mechanism to prevent real git commands from running during tests
+- Interactive configuration wizard (`gac --config-wizard`) to simplify provider and model selection
+- Support for configuration via environment variables
+- Expanded documentation for configuration options
 
 ### Changed
 
@@ -35,6 +38,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced error messages with more descriptive information
 - Updated test suite for better reliability and coverage
 - Improved mocking for user input in core module tests with more resilient fixtures
+- Improved configuration handling with more robust validation
+- Updated README with configuration wizard instructions
 
 ### Fixed
 

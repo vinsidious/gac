@@ -180,3 +180,12 @@ line_length = 100
 [template.plugins.default]
 tests = true
 src-layout = true
+
+[tool.poetry.dependencies]
+python = "^3.9"
+anthropic = "^0.28.0"
+openai = "^1.14.0"
+groq = "^0.7.0"
+mistralai = "^0.1.4"
+aisuite = "^0.1.0"
+questionary = "^2.0.0"

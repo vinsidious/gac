@@ -13,6 +13,7 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [x] Optimize token usage for large diffs
    - [x] Implement caching for repeated operations
    - [ ] Reduce startup time
+   - [ ] Optimize memory usage during diff processing
 
 2. **Improve Error Handling**
 
@@ -20,6 +21,7 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [x] Implement graceful fallbacks when API calls fail
    - [x] Add error logging capability
    - [x] Improve error handling for git stash operations
+   - [ ] Add more granular error recovery mechanisms
 
 3. **Enhanced Testing**
    - [x] Increase test coverage (cache module now at 93%)
@@ -27,6 +29,7 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [x] Fix test failures in AI utils module
    - [ ] Add integration tests with actual API calls (using mocks)
    - [ ] Create more test fixtures for different git scenarios
+   - [ ] Implement property-based testing for commit message generation
 
 ### Medium-term Goals
 
@@ -35,9 +38,11 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [x] Add support for conventional commits format
    - [x] Enhance conventional commit quality to improve structure and detail
    - [x] Improve one-liner commit consistency with the same style conventions as regular messages
+   - [x] Improve prompt display formatting
    - [ ] Implement customizable commit templates
    - [ ] Add support for multilingual commit messages
    - [ ] Create interactive mode for refining generated messages
+   - [ ] Add semantic versioning support for commit message analysis
 
 2. **Provider Expansion**
 
@@ -45,24 +50,29 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [x] Complete Ollama integration with direct API calls
    - [x] Support for Anthropic's Claude 3 Sonnet and Opus
    - [ ] Integrate more specialized code-focused models
+   - [ ] Add support for local code analysis models
+   - [ ] Implement model performance benchmarking
 
 3. **User Experience Improvements**
-   - [ ] Implement a configuration wizard
+   - [x] Implement a configuration wizard
    - [x] Add colorized output
    - [x] Create progress indicators for API calls
    - [ ] Add command completion for shells
+   - [ ] Develop a web-based configuration interface
+   - [ ] Create a VS Code/IDE extension
 
 ## Current Sprint Focus
 
-- Fix git module test issues
-- Update README and project documentation
+- Improve prompt display formatting
+- Enhance error handling and recovery
+- Optimize memory usage during diff processing
 
 ## Next Sprint Focus
 
 - Implement customizable commit templates
-- Add support for Ollama and local models
-- Reduce startup time
-- Add command completion for shells
+- Add semantic versioning support
+- Develop a configuration wizard
+- Explore IDE extension possibilities
 
 ## Completed Items
 
@@ -88,3 +98,5 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
 - Improved one-liner commit consistency with the same style conventions as regular messages
 - Improved error handling for git stash operations
 - Added full support for local Ollama models with direct API integration
+- Improved prompt display formatting with dynamic "=" underline
+- Added visual indicator for LLM prompt creation with emoji and blue info message
