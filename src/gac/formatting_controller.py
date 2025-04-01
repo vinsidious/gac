@@ -2,6 +2,7 @@
 """Module for managing file formatting operations."""
 
 import logging
+import os
 from typing import Dict, List, Optional, Set
 
 from gac.errors import FormattingError, convert_exception, handle_error
@@ -171,19 +172,32 @@ class FormattingController:
         if not files:
             return formatted
 
+        # Filter files to ensure they exist
+        existing_files = [f for f in files if os.path.exists(f)]
+
+        if not existing_files:
+            logger.warning("None of the specified Python files exist.")
+            return formatted
+
+        if len(existing_files) < len(files) and not quiet:
+            missing = set(files) - set(existing_files)
+            logger.warning(
+                f"Some Python files do not exist and will be skipped: {', '.join(missing)}"
+            )
+
         if not quiet:
-            print_info(f"💅 Formatting {len(files)} Python files...")
+            print_info(f"💅 Formatting {len(existing_files)} Python files...")
 
         try:
             # Format with isort
-            isort_result = run_isort(files)
+            isort_result = run_isort(existing_files)
             if isort_result:
-                formatted["isort"] = files
+                formatted["isort"] = existing_files
 
             # Format with black
-            black_result = run_black(files)
+            black_result = run_black(existing_files)
             if black_result:
-                formatted["black"] = files
+                formatted["black"] = existing_files
 
         except Exception as e:
             error = convert_exception(e, FormattingError, "Failed to format Python files")
@@ -207,16 +221,32 @@ class FormattingController:
         if not files:
             return formatted
 
+        # Filter files to ensure they exist
+        existing_files = [f for f in files if os.path.exists(f)]
+
+        if not existing_files:
+            logger.warning("None of the specified JS/TS files exist.")
+            return formatted
+
+        if len(existing_files) < len(files) and not quiet:
+            missing = set(files) - set(existing_files)
+            logger.warning(
+                f"Some JS/TS files do not exist and will be skipped: {', '.join(missing)}"
+            )
+
         if not quiet:
-            print_info(f"💅 Formatting {len(files)} JS/TS files...")
+            print_info(f"💅 Formatting {len(existing_files)} JavaScript/TypeScript files...")
 
         try:
-            prettier_result = run_prettier(files)
+            # Format with prettier
+            prettier_result = run_prettier(files=existing_files)
             if prettier_result:
-                formatted["prettier"] = files
+                formatted["prettier"] = existing_files
 
         except Exception as e:
-            error = convert_exception(e, FormattingError, "Failed to format JS/TS files")
+            error = convert_exception(
+                e, FormattingError, "Failed to format JavaScript/TypeScript files"
+            )
             handle_error(error, quiet=quiet, exit_program=False)
 
         return formatted
@@ -237,13 +267,27 @@ class FormattingController:
         if not files:
             return formatted
 
+        # Filter files to ensure they exist
+        existing_files = [f for f in files if os.path.exists(f)]
+
+        if not existing_files:
+            logger.warning("None of the specified Rust files exist.")
+            return formatted
+
+        if len(existing_files) < len(files) and not quiet:
+            missing = set(files) - set(existing_files)
+            logger.warning(
+                f"Some Rust files do not exist and will be skipped: {', '.join(missing)}"
+            )
+
         if not quiet:
-            print_info(f"💅 Formatting {len(files)} Rust files...")
+            print_info(f"💅 Formatting {len(existing_files)} Rust files...")
 
         try:
-            rustfmt_result = run_rustfmt(files)
+            # Format with rustfmt
+            rustfmt_result = run_rustfmt(existing_files)
             if rustfmt_result:
-                formatted["rustfmt"] = files
+                formatted["rustfmt"] = existing_files
 
         except Exception as e:
             error = convert_exception(e, FormattingError, "Failed to format Rust files")
@@ -267,13 +311,25 @@ class FormattingController:
         if not files:
             return formatted
 
+        # Filter files to ensure they exist
+        existing_files = [f for f in files if os.path.exists(f)]
+
+        if not existing_files:
+            logger.warning("None of the specified Go files exist.")
+            return formatted
+
+        if len(existing_files) < len(files) and not quiet:
+            missing = set(files) - set(existing_files)
+            logger.warning(f"Some Go files do not exist and will be skipped: {', '.join(missing)}")
+
         if not quiet:
-            print_info(f"💅 Formatting {len(files)} Go files...")
+            print_info(f"💅 Formatting {len(existing_files)} Go files...")
 
         try:
-            gofmt_result = run_gofmt(files)
+            # Format with gofmt
+            gofmt_result = run_gofmt(existing_files)
             if gofmt_result:
-                formatted["gofmt"] = files
+                formatted["gofmt"] = existing_files
 
         except Exception as e:
             error = convert_exception(e, FormattingError, "Failed to format Go files")

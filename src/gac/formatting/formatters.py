@@ -11,6 +11,7 @@ It includes functions to format individual files or all staged files of supporte
 """
 
 import logging
+import os
 from typing import Callable, List, Optional, Tuple
 
 from gac.git import get_staged_files, stage_files
@@ -51,9 +52,19 @@ def run_formatter(
         logger.info(f"No existing files to format with {formatter_name}.")
         return False
 
+    # Filter files to make sure they exist
+    existing_files = [f for f in files if os.path.exists(f)]
+    if not existing_files:
+        logger.warning(f"None of the files to format with {formatter_name} exist.")
+        return False
+
+    if len(existing_files) < len(files):
+        missing = set(files) - set(existing_files)
+        logger.debug(f"Some files will be skipped by {formatter_name}: {', '.join(missing)}")
+
     try:
-        run_subprocess(command + files)
-        logger.info(f"{formatter_name} formatted {len(files)} files.")
+        run_subprocess(command + existing_files)
+        logger.info(f"{formatter_name} formatted {len(existing_files)} files.")
         return True
     except Exception as e:
         logger.error(f"Error running {formatter_name}: {e}")
