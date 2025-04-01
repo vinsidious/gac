@@ -451,21 +451,23 @@ def commit_changes(
         The generated commit message or None if failed
     """
     try:
+        logger.debug(f"commit_changes called with add_all={add_all}")
+
         # Ensure we're in a git repository
         if not ensure_git_directory():
             return None
 
-        # Stage all files if requested
+        # Stage all files if requested - do this first before any other operations
         if add_all:
             logger.debug("Staging all files")
-            stage_all_files()
-            # Re-check for staged files after staging all
-            if staged_files is None:
-                logger.debug("Re-checking for staged files after staging all")
-                staged_files = get_staged_files()
-                logger.debug(f"Staged files after staging all: {staged_files}")
+            success = stage_all_files()
+            logger.debug(f"stage_all_files result: {success}")
 
-        # Get staged files if not already done
+            # Check git status after staging
+            status_output = run_git_command(["status", "-s"], silent=True)
+            logger.debug(f"Git status after staging all: {status_output}")
+
+        # Get staged files
         if staged_files is None:
             logger.debug("Getting staged files")
             staged_files = get_staged_files()

@@ -95,7 +95,20 @@ def cli(
 
     # If no subcommand is specified, invoke commit by default
     if ctx.invoked_subcommand is None:
-        ctx.invoke(commit)
+        # Pass the flags explicitly to the commit function
+        ctx.invoke(
+            commit,
+            force=force,
+            add_all=add_all,
+            no_format=no_format,
+            model=model,
+            one_liner=one_liner,
+            show_prompt=show_prompt,
+            show_prompt_full=show_prompt_full,
+            hint=hint,
+            no_spinner=no_spinner,
+            push=push,
+        )
 
 
 @cli.command()
@@ -151,6 +164,10 @@ def commit(
     hint = hint if hint is not None else ctx.obj.get("hint", "")
     no_spinner = no_spinner if no_spinner is not None else ctx.obj.get("no_spinner", False)
     push = push if push is not None else ctx.obj.get("push", False)
+
+    # Debug logging for flags
+    logger.debug(f"CLI commit function - add_all: {add_all}, force: {force}, push: {push}")
+    logger.debug(f"CLI commit function - ctx.obj: {ctx.obj}")
 
     try:
         commit_message = commit_changes(
