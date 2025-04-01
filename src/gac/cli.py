@@ -15,12 +15,35 @@ from gac.utils import print_error, print_info, print_success, setup_logging
 logger = logging.getLogger(__name__)
 
 
-@click.group()
+@click.group(invoke_without_command=True)
 @click.option("--DEBUG", "log_level_debug", is_flag=True, help="Set log level to DEBUG")
 @click.option("--INFO", "log_level_info", is_flag=True, help="Set log level to INFO")
 @click.option("--WARNING", "log_level_warning", is_flag=True, help="Set log level to WARNING")
 @click.option("--ERROR", "log_level_error", is_flag=True, help="Set log level to ERROR")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
+# Add commit options to main command
+@click.option("--force", "-f", is_flag=True, help="Skip all confirmation prompts")
+@click.option("--add-all", "-a", is_flag=True, help="Stage all changes before committing")
+@click.option("--no-format", is_flag=True, help="Skip formatting of staged files")
+@click.option(
+    "--model",
+    "-m",
+    help="Override the default model (format: 'provider:model_name', e.g. 'ollama:llama3.2')",
+)
+@click.option("--one-liner", "-o", is_flag=True, help="Generate a single-line commit message")
+@click.option(
+    "--show-prompt",
+    "-s",
+    is_flag=True,
+    help="Show an abbreviated version of the prompt sent to the LLM",
+)
+@click.option(
+    "--show-prompt-full",
+    is_flag=True,
+    help="Show the complete prompt sent to the LLM, including full diff",
+)
+@click.option("--hint", "-h", default="", help="Additional context to include in the prompt")
+@click.option("--push", "-p", is_flag=True, help="Push changes to remote after committing")
 @click.pass_context
 def cli(
     ctx,
@@ -29,11 +52,33 @@ def cli(
     log_level_warning: bool,
     log_level_error: bool,
     quiet: bool,
+    force: bool = False,
+    add_all: bool = False,
+    no_format: bool = False,
+    model: Optional[str] = None,
+    one_liner: bool = False,
+    show_prompt: bool = False,
+    show_prompt_full: bool = False,
+    hint: str = "",
+    no_spinner: bool = False,
+    push: bool = False,
 ) -> None:
     """Git Auto Commit - Generate commit messages with AI."""
     # Set up context for all commands
     ctx.ensure_object(dict)
     ctx.obj["quiet"] = quiet
+
+    # Store commit options in context
+    ctx.obj["force"] = force
+    ctx.obj["add_all"] = add_all
+    ctx.obj["no_format"] = no_format
+    ctx.obj["model"] = model
+    ctx.obj["one_liner"] = one_liner
+    ctx.obj["show_prompt"] = show_prompt
+    ctx.obj["show_prompt_full"] = show_prompt_full
+    ctx.obj["hint"] = hint
+    ctx.obj["no_spinner"] = no_spinner
+    ctx.obj["push"] = push
 
     # Determine log level from flags
     log_level = logging.WARNING  # Default - only show warnings and errors
@@ -47,6 +92,10 @@ def cli(
         log_level = logging.ERROR
 
     setup_logging(log_level, quiet=quiet, force=True)
+
+    # If no subcommand is specified, invoke commit by default
+    if ctx.invoked_subcommand is None:
+        ctx.invoke(commit)
 
 
 @cli.command()
@@ -71,28 +120,37 @@ def cli(
     help="Show the complete prompt sent to the LLM, including full diff",
 )
 @click.option("--hint", "-h", default="", help="Additional context to include in the prompt")
-@click.option(
-    "--no-spinner",
-    is_flag=True,
-    help="Disable progress spinner during API calls",
-)
 @click.option("--push", "-p", is_flag=True, help="Push changes to remote after committing")
 @click.pass_context
 def commit(
     ctx,
-    force: bool,
-    add_all: bool,
-    no_format: bool,
-    model: Optional[str],
-    one_liner: bool,
-    show_prompt: bool,
-    show_prompt_full: bool,
-    hint: str,
-    no_spinner: bool,
-    push: bool,
+    force: bool = None,
+    add_all: bool = None,
+    no_format: bool = None,
+    model: Optional[str] = None,
+    one_liner: bool = None,
+    show_prompt: bool = None,
+    show_prompt_full: bool = None,
+    hint: str = None,
+    no_spinner: bool = None,
+    push: bool = None,
 ) -> None:
     """Generate a commit message and commit changes."""
     quiet = ctx.obj["quiet"]
+
+    # Use values from context if not provided directly to the command
+    force = force if force is not None else ctx.obj.get("force", False)
+    add_all = add_all if add_all is not None else ctx.obj.get("add_all", False)
+    no_format = no_format if no_format is not None else ctx.obj.get("no_format", False)
+    model = model if model is not None else ctx.obj.get("model")
+    one_liner = one_liner if one_liner is not None else ctx.obj.get("one_liner", False)
+    show_prompt = show_prompt if show_prompt is not None else ctx.obj.get("show_prompt", False)
+    show_prompt_full = (
+        show_prompt_full if show_prompt_full is not None else ctx.obj.get("show_prompt_full", False)
+    )
+    hint = hint if hint is not None else ctx.obj.get("hint", "")
+    no_spinner = no_spinner if no_spinner is not None else ctx.obj.get("no_spinner", False)
+    push = push if push is not None else ctx.obj.get("push", False)
 
     try:
         commit_message = commit_changes(

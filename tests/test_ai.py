@@ -3,10 +3,9 @@
 import unittest
 from unittest.mock import patch
 
-import pytest
 import tiktoken
 
-from gac.ai import chat, count_tokens, extract_provider_and_model
+from gac.ai import chat, count_tokens
 
 
 class TestAiUtils(unittest.TestCase):
@@ -132,33 +131,6 @@ class TestAiUtils(unittest.TestCase):
         self.assertEqual(result, 2)
 
 
-def test_extract_model_name():
-    """Test the extract_model_name function."""
-    assert extract_provider_and_model("anthropic:claude-3") == ("anthropic", "claude-3")
-    assert extract_provider_and_model("openai:gpt-4") == ("openai", "gpt-4")
-    assert extract_provider_and_model("ollama:llama3.2") == ("ollama", "llama3.2")
-    # Default provider should be anthropic
-    assert extract_provider_and_model("model-without-provider") == (
-        "anthropic",
-        "model-without-provider",
-    )
-    # Handle multiple colons
-    assert extract_provider_and_model("provider:with:colons") == ("provider", "with:colons")
-
-
-# Skip the Ollama tests since they require mocking modules that might not be available
-@pytest.mark.skip(reason="Ollama module not available")
-def test_is_ollama_available():
-    """Test the is_ollama_available function."""
-    pass
-
-
-@pytest.mark.skip(reason="Ollama module not available")
-def test_is_ollama_model_available():
-    """Test the is_ollama_model_available function."""
-    pass
-
-
 @patch("gac.ai.is_ollama_available")
 @patch("gac.ai.is_ollama_model_available")
 @patch("gac.ai.generate_commit_message")
@@ -197,12 +169,6 @@ def test_chat_with_ollama_model_not_available(
     mock_generate.assert_called_once()
 
 
-@pytest.mark.skip(reason="Ollama module not available")
-def test_chat_with_ollama_direct():
-    """Test chat uses Ollama directly when provider is ollama."""
-    pass
-
-
 @patch("gac.ai.generate_commit_message")
 def test_chat_with_one_liner(mock_generate_commit_message):
     """Test chat with one_liner=True converts multiline responses to single line."""
@@ -219,12 +185,6 @@ def test_chat_with_one_liner(mock_generate_commit_message):
     # Check result has no newlines and extra spaces removed
     assert result == "Line 1"
     assert "\n" not in result
-
-
-@pytest.mark.skip(reason="Ollama module not available")
-def test_chat_with_ollama_one_liner():
-    """Test chat with Ollama and one_liner=True."""
-    pass
 
 
 if __name__ == "__main__":

@@ -161,22 +161,6 @@ def count_tokens(
         return 0
 
 
-def extract_provider_and_model(model: str) -> tuple:
-    """
-    Extract the provider and model name from a model string.
-
-    Args:
-        model: The model identifier in the format "provider:model_name"
-
-    Returns:
-        Tuple containing (provider, model_name)
-    """
-    if ":" in model:
-        provider, model_name = model.split(":", 1)
-        return provider.lower(), model_name
-    return "anthropic", model  # Default to Anthropic if no provider specified
-
-
 def truncate_to_token_limit(text: str, model: str, max_tokens: int, buffer: int = 100) -> str:
     """
     Truncate text to fit within a token limit.
@@ -531,7 +515,7 @@ def generate_commit_message(
     if not aisuite:
         raise AIError("aisuite is not installed. Try: pip install aisuite")
 
-    provider_name, model_name = extract_provider_and_model(model)
+    provider_name, model_name = model.split(":", 1)
     retries = 0
     retry_delay = 1.0
 
@@ -572,9 +556,16 @@ def generate_commit_message(
                     spinner.update_message(f"Generating with model {model_name}")
 
                 # Initialize and call aisuite client
-                client = aisuite.Client(provider=provider_name, api_key=api_key)
+                if provider_name.lower() == "ollama":
+                    client = aisuite.Client(provider_configs={"ollama": {}})
+                else:
+                    client = aisuite.Client(
+                        provider_configs={provider_name.lower(): {"api_key": api_key}}
+                    )
+
+                # The provider is specified in the model parameter as "provider:model_name"
                 response = client.chat.completions.create(
-                    model=model_name,
+                    model=model,  # Use the full model string with provider prefix
                     messages=messages,
                     temperature=temperature,
                     max_tokens=max_tokens,
