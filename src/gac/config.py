@@ -1,9 +1,4 @@
-"""Configuration settings for gac.
-
-This module handles all configuration-related functionality for the gac tool,
-including loading environment variables, validating settings, and providing
-default values.
-"""
+"""Configuration settings for gac."""
 
 import logging
 import os

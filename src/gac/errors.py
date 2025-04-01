@@ -1,9 +1,4 @@
-"""
-Error handling module for GAC.
-
-This module provides standardized error types and handling functions for consistent
-error management across the application.
-"""
+"""Error handling module for GAC."""
 
 import logging
 import sys

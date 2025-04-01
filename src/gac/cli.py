@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
     help="Set log level (default: WARNING)",
 )
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
-# Add commit options to main command
 @click.option("--force", "-f", is_flag=True, help="Skip all confirmation prompts")
 @click.option("--add-all", "-a", is_flag=True, help="Stage all changes before committing")
 @click.option("--no-format", is_flag=True, help="Skip formatting of staged files")
@@ -73,11 +72,9 @@ def cli(
     config: bool = False,
 ) -> None:
     """Git Auto Commit - Generate commit messages with AI."""
-    # Set up context for all commands
     ctx.ensure_object(dict)
     ctx.obj["quiet"] = quiet
 
-    # Store commit options in context
     ctx.obj["force"] = force
     ctx.obj["add_all"] = add_all
     ctx.obj["no_format"] = no_format
@@ -90,9 +87,8 @@ def cli(
     ctx.obj["push"] = push
     ctx.obj["template"] = template
 
-    # Determine log level from flags
     log_level = log_level.upper()
-    log_level = logging.WARNING  # Default - only show warnings and errors
+    log_level = logging.WARNING
     if log_level == "DEBUG":
         log_level = logging.DEBUG
     elif log_level == "INFO":
@@ -104,21 +100,17 @@ def cli(
 
     setup_logging(log_level, quiet=quiet, force=True)
 
-    # Handle --config flag
     if config:
         from gac.config import run_config_wizard
 
         result = run_config_wizard()
         if result:
-            # Save configuration to environment variables
             os.environ["GAC_MODEL"] = result["model"]
             os.environ["GAC_USE_FORMATTING"] = str(result["use_formatting"]).lower()
             print_success("Configuration saved successfully!")
         return
 
-    # If no subcommand is specified, invoke commit by default
     if ctx.invoked_subcommand is None:
-        # Pass the flags explicitly to the commit function
         ctx.invoke(
             commit,
             force=force,
@@ -173,10 +165,8 @@ def commit(
     template: Optional[str] = None,
 ) -> None:
     """Generate a commit message using an LLM and commit your staged changes."""
-    # Start with parent context values
     parent_ctx = ctx.parent.params
 
-    # Create options dictionary using parent values but override with command-specific values
     args = {
         "force": force if force is not None else parent_ctx.get("force", False),
         "add_all": add_all if add_all is not None else parent_ctx.get("add_all", False),
@@ -200,7 +190,6 @@ def commit(
         "template": template if template is not None else parent_ctx.get("template"),
     }
 
-    # Run the commit workflow using the functional API
     result = commit_workflow(
         message=None,
         stage_all=args["add_all"],
@@ -215,7 +204,6 @@ def commit(
         template=args["template"],
     )
 
-    # Check the result
     if not result["success"]:
         print_error(result["error"])
         sys.exit(1)
@@ -226,7 +214,6 @@ def commit(
     sys.exit(0)
 
 
-# For backward compatibility with existing scripts
 def main():
     """Entry point for setup.py console_scripts."""
     cli(obj={})

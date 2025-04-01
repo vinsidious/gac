@@ -1,7 +1,4 @@
-"""Code formatting module for GAC.
-
-This module handles code formatting for different languages.
-"""
+"""Code formatting module for GAC."""
 
 import logging
 import os
@@ -52,17 +49,7 @@ FORMATTERS = {
 
 
 def run_formatter(command: List[str], files: List[str], formatter_name: str) -> bool:
-    """
-    Run a formatter on the specified files.
-
-    Args:
-        command: The formatter command to run
-        files: List of files to format
-        formatter_name: Name of the formatter for logging
-
-    Returns:
-        True if formatting succeeded, False otherwise
-    """
+    """Run a formatter on the specified files."""
     if not files:
         return False
 
@@ -104,15 +91,7 @@ def run_formatter(command: List[str], files: List[str], formatter_name: str) -> 
 
 
 def check_formatter_available(formatter_config: Dict) -> bool:
-    """
-    Check if a formatter is available on the system.
-
-    Args:
-        formatter_config: Formatter configuration dictionary
-
-    Returns:
-        True if formatter is available, False otherwise
-    """
+    """Check if a formatter is available on the system."""
     check_command = formatter_config.get(
         "check_command", formatter_config["command"][:1] + ["--version"]
     )
@@ -130,18 +109,7 @@ def check_formatter_available(formatter_config: Dict) -> bool:
 
 
 def format_files(files) -> Dict[str, List[str]]:
-    """
-    Format the given files.
-
-    Args:
-        files: Can be either:
-            - A list of file paths
-            - A dictionary mapping file paths to their status (e.g. from
-              get_staged_files_with_status)
-
-    Returns:
-        Dictionary mapping formatter names to lists of successfully formatted files
-    """
+    """Format the given files."""
     if not files:
         return {}
 

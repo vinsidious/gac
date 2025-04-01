@@ -1,12 +1,5 @@
-# SPDX-FileCopyrightText: 2024-present cellwebb <cellwebb@users.noreply.github.com>
-#
-# SPDX-License-Identifier: MIT
 # flake8: noqa: F401
-
-"""Git Auto Commit (GAC) package.
-
-A tool to generate commit messages using AI.
-"""
+"""Git Auto Commit (GAC) - Generate commit messages using AI."""
 
 from gac.__about__ import __version__
 from gac.ai import generate_commit_message
