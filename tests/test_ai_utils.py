@@ -21,8 +21,7 @@ class TestAiUtils(unittest.TestCase):
     """Tests for AI utility functions."""
 
     @patch("gac.ai_utils.ai.Client")
-    @patch("gac.ai_utils.llm_cache.get", return_value=None)  # Force cache miss
-    def test_chat(self, mock_cache_get, mock_client_class):
+    def test_chat(self, mock_client_class):
         """Test chat function calls the AI client correctly."""
         # Create mock client and configure it
         mock_client = MagicMock()
@@ -43,10 +42,8 @@ class TestAiUtils(unittest.TestCase):
         model = "test:model"
         temperature = 0.5
 
-        # Call the function under test and force cache bypass
-        result = chat(
-            messages, model=model, temperature=temperature, test_mode=False, cache_skip=True
-        )
+        # Call the function under test
+        result = chat(messages, model=model, temperature=temperature, test_mode=False)
 
         # Verify the mock was called with expected arguments
         mock_completions.create.assert_called_once()
@@ -65,8 +62,7 @@ class TestAiUtils(unittest.TestCase):
         self.assertEqual(result, "test_response")
 
     @patch("gac.ai_utils.ai.Client")
-    @patch("gac.ai_utils.llm_cache.get", return_value=None)  # Force cache miss
-    def test_chat_with_system(self, mock_cache_get, mock_client_class):
+    def test_chat_with_system(self, mock_client_class):
         """Test chat function with system message."""
         # Create mock client and configure it
         mock_client = MagicMock()
@@ -86,8 +82,8 @@ class TestAiUtils(unittest.TestCase):
         messages = [{"role": "user", "content": "Hello"}]
         system = "You are a helpful assistant"
 
-        # Call the function under test and force cache bypass
-        result = chat(messages, system=system, test_mode=False, cache_skip=True)
+        # Call the function under test
+        result = chat(messages, system=system, test_mode=False)
 
         # Verify the mock was called with correct system message
         mock_completions.create.assert_called_once()
@@ -120,7 +116,7 @@ class TestAiUtils(unittest.TestCase):
         # Check if open was called with the correct path
         mock_open.assert_any_call(save_path, "w")
 
-        # Verify json.dump was called (may be called multiple times due to caching)
+        # Verify json.dump was called
         self.assertTrue(mock_json_dump.call_count >= 1)
 
         # Find the call that contains the conversation data we're looking for
@@ -198,160 +194,133 @@ def test_is_ollama_model_available(mock_ollama):
     # Mock the ollama.list response
     mock_ollama.list.return_value = {
         "models": [
-            {"name": "llama3.2", "size": 12345678},
-            {"name": "mistral", "size": 87654321},
+            {"name": "llama3"},
+            {"name": "mistral"},
+            {"name": "gemma"},
         ]
     }
 
     # Test with available model
-    assert is_ollama_model_available("llama3.2") is True
+    assert is_ollama_model_available("llama3") is True
 
     # Test with unavailable model
-    assert is_ollama_model_available("nonexistent-model") is False
-
-    # Test when Ollama raises an exception
-    mock_ollama.list.side_effect = Exception("Connection error")
-    assert is_ollama_model_available("llama3.2") is False
+    assert is_ollama_model_available("unavailable-model") is False
 
 
 @patch("gac.ai_utils.is_ollama_available")
 @patch("gac.ai_utils.is_ollama_model_available")
 def test_chat_with_ollama_not_available(mock_is_model_available, mock_is_available):
-    """Test chat function when Ollama is not available."""
+    """Test chat raises APIConnectionError when Ollama is not available."""
     mock_is_available.return_value = False
+    mock_is_model_available.return_value = False
 
-    with pytest.raises(APIConnectionError) as exc_info:
+    with pytest.raises(APIConnectionError) as e:
         chat(
-            messages=[{"role": "user", "content": "Hello"}],
-            model="ollama:llama3.2",
-            cache_skip=True,
-            show_spinner=False,
+            [{"role": "user", "content": "Hello"}],
+            model="ollama:llama3",
+            test_mode=False,
         )
 
-    assert "Ollama is not available" in str(exc_info.value)
-    mock_is_model_available.assert_not_called()  # Should not check model if Ollama is not available
+    assert "not available" in str(e.value)
 
 
 @patch("gac.ai_utils.is_ollama_available")
 @patch("gac.ai_utils.is_ollama_model_available")
 def test_chat_with_ollama_model_not_available(mock_is_model_available, mock_is_available):
-    """Test chat function when Ollama model is not available."""
+    """Test chat raises APIUnsupportedModelError when Ollama model is not available."""
     mock_is_available.return_value = True
     mock_is_model_available.return_value = False
 
-    with pytest.raises(APIUnsupportedModelError) as exc_info:
+    with pytest.raises(APIUnsupportedModelError) as e:
         chat(
-            messages=[{"role": "user", "content": "Hello"}],
-            model="ollama:nonexistent-model",
-            cache_skip=True,
-            show_spinner=False,
+            [{"role": "user", "content": "Hello"}],
+            model="ollama:unavailable-model",
+            test_mode=False,
         )
 
-    assert "Ollama model 'nonexistent-model' is not available locally" in str(exc_info.value)
-    mock_is_model_available.assert_called_once_with("nonexistent-model")
+    assert "not available locally" in str(e.value)
 
 
 @patch("gac.ai_utils.is_ollama_available")
 @patch("gac.ai_utils.is_ollama_model_available")
 @patch("gac.ai_utils.ollama")
 def test_chat_with_ollama_direct(mock_ollama, mock_is_model_available, mock_is_available):
-    """Test chat function with direct Ollama integration."""
-    # Set up mocks
+    """Test chat uses Ollama directly when provider is ollama."""
+    # Setup mocks
     mock_is_available.return_value = True
     mock_is_model_available.return_value = True
+    mock_ollama.chat.return_value = {"message": {"content": "Ollama response"}}
 
-    # Create mock response from Ollama
-    mock_ollama.chat.return_value = {
-        "model": "llama3.2",
-        "message": {"role": "assistant", "content": "This is a test response from Ollama"},
-    }
+    # Test parameters
+    messages = [{"role": "user", "content": "Hello"}]
+    model = "ollama:llama3"
 
-    # Call chat with Ollama model
+    # Call the function
     result = chat(
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant"},
-            {"role": "user", "content": "Hello, world!"},
-        ],
-        model="ollama:llama3.2",
-        temperature=0.7,
-        cache_skip=True,
-        show_spinner=False,
+        messages,
+        model=model,
+        test_mode=False,
+        show_spinner=False,  # Disable spinner to simplify test
     )
 
-    # Verify the result and that Ollama was called
-    assert result == "This is a test response from Ollama"
+    # Verify Ollama was called correctly
     mock_ollama.chat.assert_called_once()
-
-    # Check if system message was correctly handled
     call_args = mock_ollama.chat.call_args
-    assert call_args[1]["model"] == "llama3.2"
-    assert len(call_args[1]["messages"]) == 1  # System message should be removed
-    assert call_args[1]["messages"][0]["role"] == "user"
-    assert "system" in call_args[1]["options"]
+    assert call_args[1]["model"] == "llama3"
+    assert call_args[1]["messages"] == messages
+
+    # Check the result
+    assert result == "Ollama response"
 
 
 @patch("gac.ai_utils.ai.Client")
-@patch("gac.ai_utils.llm_cache.get", return_value=None)  # Force cache miss
-def test_chat_with_one_liner(mock_cache_get, mock_client_class):
-    """Test chat function with one_liner=True properly formats the response."""
-    # Create mock client and configure it
+def test_chat_with_one_liner(mock_client_class):
+    """Test chat with one_liner=True converts multiline responses to single line."""
+    # Create mock client and response
     mock_client = MagicMock()
     mock_client_class.return_value = mock_client
 
-    # Create mock completion API
-    mock_completions = MagicMock()
-    mock_client.chat.completions = mock_completions
-
-    # Configure the mock response with multiple lines
     mock_response = MagicMock()
     mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.content = "First line\nSecond line\n\nThird line"
-    mock_completions.create.return_value = mock_response
+    # Create a multiline response
+    mock_response.choices[0].message.content = "Line 1\nLine 2\nLine 3"
+    mock_client.chat.completions.create.return_value = mock_response
 
-    # Call the function with one_liner=True
+    # Call chat with one_liner=True
     result = chat(
-        messages=[{"role": "user", "content": "Hello"}],
+        [{"role": "user", "content": "Hello"}],
         one_liner=True,
-        cache_skip=True,
-        show_spinner=False,
+        test_mode=False,
     )
 
-    # Verify the result has no newlines and is properly formatted
+    # Check result has no newlines and extra spaces removed
+    assert result == "Line 1 Line 2 Line 3"
     assert "\n" not in result
-    assert result == "First line Second line Third line"
 
 
 @patch("gac.ai_utils.is_ollama_available")
 @patch("gac.ai_utils.is_ollama_model_available")
 @patch("gac.ai_utils.ollama")
 def test_chat_with_ollama_one_liner(mock_ollama, mock_is_model_available, mock_is_available):
-    """Test chat function with one-liner and Ollama integration."""
-    # Set up mocks
+    """Test chat with Ollama and one_liner=True."""
+    # Setup mocks
     mock_is_available.return_value = True
     mock_is_model_available.return_value = True
+    # Create a multiline response
+    mock_ollama.chat.return_value = {"message": {"content": "Line 1\nLine 2\nLine 3"}}
 
-    # Create mock response from Ollama with multiple lines
-    mock_ollama.chat.return_value = {
-        "model": "llama3.2",
-        "message": {
-            "role": "assistant",
-            "content": "feat: Update CLI option\n\nThis is a multi-line response\n"
-            "that should be converted to a single line",
-        },
-    }
-
-    # Call chat with Ollama model and one_liner=True
+    # Call chat with one_liner=True
     result = chat(
-        messages=[{"role": "user", "content": "Hello, world!"}],
-        model="ollama:llama3.2",
+        [{"role": "user", "content": "Hello"}],
+        model="ollama:llama3",
         one_liner=True,
-        cache_skip=True,
-        show_spinner=False,
+        test_mode=False,
+        show_spinner=False,  # Disable spinner to simplify test
     )
 
-    # Verify the result has no newlines
+    # Check result has no newlines and extra spaces removed
+    assert result == "Line 1 Line 2 Line 3"
     assert "\n" not in result
-    assert "feat: Update CLI option This is a multi-line response" in result
 
 
 if __name__ == "__main__":

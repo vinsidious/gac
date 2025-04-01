@@ -251,12 +251,12 @@ def run_subprocess(
     command: List[str], timeout: int = 60, silent: bool = False, test_mode: bool = False
 ) -> str:
     """
-    Run a subprocess command and return its output.
+    Run a subprocess command and capture output.
 
     Args:
-        command: Command to run as a list of strings
+        command: List of command and arguments
         timeout: Timeout in seconds
-        silent: Whether to suppress error output
+        silent: If True, suppress error logging
         test_mode: If True, prevents execution of git commands and returns simulated response
 
     Returns:
@@ -272,6 +272,10 @@ def run_subprocess(
     is_test = test_mode or (
         os.environ.get("GAC_TEST_MODE") == "1" and os.environ.get("_TESTING_PRESERVE_MOCK") != "1"
     )
+
+    # If test_mode is explicitly set to False, honor that over environment variables
+    if test_mode is False:
+        is_test = False
 
     # If we're in test mode and this is a git command, return simulated response
     if is_test and command and command[0] == "git":

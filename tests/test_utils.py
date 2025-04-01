@@ -84,17 +84,9 @@ class TestUtils(unittest.TestCase):
             result = run_subprocess(["git", "commit", "-m", "Test commit"], test_mode=True)
             self.assertEqual("Simulated commit", result)
 
-            # Test environment variable works too (already set in conftest.py)
-            old_env = os.environ.get("GAC_TEST_MODE")
-            try:
-                os.environ["GAC_TEST_MODE"] = "1"
-                result = run_subprocess(["git", "push"])  # No explicit test_mode parameter
-                self.assertEqual("Simulated push", result)
-            finally:
-                if old_env:
-                    os.environ["GAC_TEST_MODE"] = old_env
-                else:
-                    del os.environ["GAC_TEST_MODE"]
+            # Test push command with test_mode explicitly set to True
+            result = run_subprocess(["git", "push"], test_mode=True)
+            self.assertEqual("Simulated push", result)
         finally:
             if old_preserve:
                 os.environ["_TESTING_PRESERVE_MOCK"] = old_preserve

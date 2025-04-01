@@ -9,26 +9,16 @@ from typing import Any, Dict, List, Optional, Union
 import aisuite as ai
 import tiktoken
 
-from gac.cache import Cache, cached
-
-# Try to import ollama, but don't fail if it's not installed
 try:
     import ollama
 except ImportError:
     ollama = None
 
-# Set up logging
 logger = logging.getLogger(__name__)
 
-# Default maximum output tokens
-MAX_OUTPUT_TOKENS = 8192
-# Default encoding to use as fallback
-DEFAULT_ENCODING = "cl100k_base"
-# Default cache expiration time for LLM responses (12 hours)
-LLM_CACHE_EXPIRATION = 12 * 60 * 60
+MAX_OUTPUT_TOKENS = 256
 
-# Create a global cache instance for LLM responses
-llm_cache = Cache(expiration=LLM_CACHE_EXPIRATION)
+DEFAULT_ENCODING = "cl100k_base"
 
 
 class AIError(Exception):
@@ -216,7 +206,6 @@ def is_ollama_available() -> bool:
         return False
 
 
-@cached(cache_instance=llm_cache)
 def chat(
     messages: List[Dict[str, str]],
     model: str = "anthropic:claude-3-5-sonnet-20240620",
@@ -226,7 +215,6 @@ def chat(
     system: Optional[str] = None,
     max_retries: int = 3,
     retry_delay: float = 1.0,
-    cache_skip: bool = False,
     show_spinner: bool = True,
     one_liner: bool = False,
     **kwargs,
@@ -243,7 +231,6 @@ def chat(
         system: Optional system message to set the behavior of the assistant.
         max_retries: Maximum number of retries for transient errors.
         retry_delay: Delay between retries in seconds.
-        cache_skip: If True, bypass cache and force a new API call.
         show_spinner: If True, show a spinner during API calls.
         one_liner: If True, ensure response is a single line (no newlines).
         **kwargs: Additional keyword arguments to pass to the AI provider.
@@ -407,70 +394,44 @@ def chat(
             if retries < max_retries:
                 wait_time = retry_delay * (2**retries)  # Exponential backoff
                 logger.info(f"Retrying in {wait_time:.1f} seconds...")
-
-                if show_spinner:
-                    retry_spinner = Spinner(f"Retrying in {wait_time:.1f} seconds...")
-                    retry_spinner.start()
-                    time.sleep(wait_time)
-                    retry_spinner.stop()
-                else:
-                    time.sleep(wait_time)
-
+                time.sleep(wait_time)
                 retries += 1
             else:
                 raise APIConnectionError(err_msg)
 
         except ai.APITimeoutError as e:
-            err_msg = f"Timeout while waiting for {provider} API response: {str(e)}"
+            err_msg = f"Timeout from {provider} API: {str(e)}"
             logger.error(err_msg)
 
             if show_spinner:
-                print_error(f"Timeout while waiting for {provider} API response")
+                print_error(f"Timeout from {provider} API")
 
             if retries < max_retries:
                 wait_time = retry_delay * (2**retries)
                 logger.info(f"Retrying in {wait_time:.1f} seconds...")
-
-                if show_spinner:
-                    retry_spinner = Spinner(f"Retrying in {wait_time:.1f} seconds...")
-                    retry_spinner.start()
-                    time.sleep(wait_time)
-                    retry_spinner.stop()
-                else:
-                    time.sleep(wait_time)
-
+                time.sleep(wait_time)
                 retries += 1
             else:
                 raise APITimeoutError(err_msg)
 
         except ai.APIRateLimitError as e:
-            err_msg = f"Rate limit exceeded for {provider} API: {str(e)}. Try again later."
+            err_msg = f"Rate limit exceeded for {provider} API: {str(e)}"
             logger.error(err_msg)
 
             if show_spinner:
                 print_error(f"Rate limit exceeded for {provider} API")
 
             if retries < max_retries:
-                wait_time = retry_delay * (2**retries) * 2  # Longer backoff for rate limits
+                # Use longer delays for rate limiting
+                wait_time = retry_delay * (4**retries)
                 logger.info(f"Retrying in {wait_time:.1f} seconds...")
-
-                if show_spinner:
-                    retry_spinner = Spinner(f"Retrying in {wait_time:.1f} seconds...")
-                    retry_spinner.start()
-                    time.sleep(wait_time)
-                    retry_spinner.stop()
-                else:
-                    time.sleep(wait_time)
-
+                time.sleep(wait_time)
                 retries += 1
             else:
                 raise APIRateLimitError(err_msg)
 
         except ai.APIAuthenticationError as e:
-            err_msg = (
-                f"Authentication error with {provider} API: {str(e)}. "
-                f"Check your {provider.upper()}_API_KEY environment variable."
-            )
+            err_msg = f"Authentication error with {provider} API: {str(e)}"
             logger.error(err_msg)
 
             if show_spinner:
@@ -478,27 +439,18 @@ def chat(
 
             raise APIAuthenticationError(err_msg)
 
-        except ai.APINotFoundError as e:
-            if "model" in str(e).lower():
-                err_msg = f"Model '{model}' not supported by {provider}: {str(e)}"
-                logger.error(err_msg)
-                raise APIUnsupportedModelError(err_msg)
-            else:
-                err_msg = f"Resource not found on {provider} API: {str(e)}"
-                logger.error(err_msg)
-                raise APIResponseError(err_msg)
-
         except Exception as e:
-            err_msg = f"Error with {provider} API: {str(e)}"
+            err_msg = f"Error generating with {provider} API: {type(e).__name__}: {str(e)}"
             logger.error(err_msg)
 
-            if retries < max_retries and any(
-                keyword in str(e).lower()
-                for keyword in ["timeout", "connection", "network", "temporary", "retry"]
-            ):
+            if show_spinner:
+                print_error(f"Error with {provider} API: {type(e).__name__}")
+
+            if retries < max_retries:
                 wait_time = retry_delay * (2**retries)
-                logger.info(f"Possible transient error, retrying in {wait_time:.1f} seconds...")
+                logger.info(f"Retrying in {wait_time:.1f} seconds...")
                 time.sleep(wait_time)
                 retries += 1
             else:
+                # Raise as a generic AI error
                 raise AIError(err_msg)

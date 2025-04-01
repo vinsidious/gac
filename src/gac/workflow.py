@@ -9,7 +9,15 @@ from typing import Optional
 from gac.config import get_config
 from gac.errors import GACError, convert_exception, handle_error
 from gac.formatting_controller import FormattingController
-from gac.git import commit_changes, get_staged_diff, get_staged_files, get_status, stage_files
+from gac.git import (
+    TestGitOperations,
+    commit_changes,
+    get_staged_diff,
+    get_staged_files,
+    get_status,
+    set_git_operations,
+    stage_files,
+)
 from gac.prompts import build_prompt, clean_commit_message
 
 logger = logging.getLogger(__name__)
@@ -48,11 +56,8 @@ def send_to_llm(prompt, model=None, api_key=None, max_tokens_to_sample=4096):
         one_liner=False,
         show_prompt=False,
         show_prompt_full=False,
-        test_with_real_diff=False,
         hint="",
         conventional=False,
-        no_cache=False,
-        clear_cache=False,
         no_spinner=False,
     )
     # Call with correct parameters
@@ -77,8 +82,6 @@ class CommitWorkflow:
         test_with_real_diff: bool = False,
         hint: str = "",
         conventional: bool = False,
-        no_cache: bool = False,
-        clear_cache: bool = False,
         no_spinner: bool = False,
         formatter: str = None,
         formatting: bool = True,
@@ -101,8 +104,6 @@ class CommitWorkflow:
             test_with_real_diff: Test with real staged changes
             hint: Additional context to include in the prompt
             conventional: Generate a conventional commit format message
-            no_cache: Skip cache and force fresh API calls
-            clear_cache: Clear all cached data before running
             no_spinner: Disable progress spinner during API calls
             formatter: Specific formatter to use
             formatting: Whether to perform code formatting
@@ -123,8 +124,6 @@ class CommitWorkflow:
         self.show_prompt_full = show_prompt_full
         self.test_with_real_diff = test_with_real_diff
         self.conventional = conventional
-        self.no_cache = no_cache
-        self.clear_cache = clear_cache
         self.no_spinner = no_spinner
 
         # If verbose is set, ensure logging level is DEBUG
@@ -145,26 +144,14 @@ class CommitWorkflow:
         # Initialize formatting controller
         self.formatting_controller = FormattingController()
 
+        # Configure test mode if needed
+        if self.test and not self.test_with_real_diff:
+            # Set up the mock git operations
+            set_git_operations(TestGitOperations())
+
     def run(self):
         """Execute the full commit workflow."""
         try:
-            # Set up caching if needed
-            if self.clear_cache:
-                try:
-                    from gac.cache import clear_cache
-
-                    logger.info("Clearing cache...")
-                    clear_cache()
-                    logger.info("Cache cleared")
-                except ImportError:
-                    logger.warning("Cache module not available, skipping cache clear")
-
-            # Handle cache disabling
-            if self.no_cache:
-                # Set environment variable or config flag to disable cache
-                os.environ["GAC_NO_CACHE"] = "1"
-                logger.info("Cache disabled for this run")
-
             # Stage all files if requested
             if self.add_all:
                 self._stage_all_files()

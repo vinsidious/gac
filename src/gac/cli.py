@@ -49,16 +49,6 @@ logger = logging.getLogger(__name__)
     help="Generate a conventional commit format message",
 )
 @click.option(
-    "--no-cache",
-    is_flag=True,
-    help="Skip cache and force fresh API calls",
-)
-@click.option(
-    "--clear-cache",
-    is_flag=True,
-    help="Clear all cached data before running",
-)
-@click.option(
     "--no-spinner",
     is_flag=True,
     help="Disable progress spinner during API calls",
@@ -90,8 +80,6 @@ def cli(
     test_with_diff: bool,
     hint: str,
     conventional: bool,
-    no_cache: bool,
-    clear_cache: bool,
     no_spinner: bool,
     local_models: bool,
     config_wizard: bool,
@@ -178,8 +166,6 @@ def cli(
             test_with_real_diff=test_with_diff,
             hint=hint,
             conventional=conventional,
-            no_cache=no_cache,
-            clear_cache=clear_cache,
             no_spinner=no_spinner,
         )
         workflow.run()

@@ -1,13 +1,13 @@
 """Git-related utility functions."""
 
+import abc
 import logging
 import os
 import re
 import subprocess
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from gac.ai_utils import count_tokens
-from gac.cache import Cache, cached
 from gac.utils import run_subprocess
 
 # Set up logger
@@ -30,14 +30,6 @@ LARGE_FILE_PATTERNS = [
     "dist/*",
     "build/*",
 ]
-
-# Cache expiration times (in seconds)
-GIT_CACHE_EXPIRATION = 5 * 60  # 5 minutes for most git operations
-DIFF_CACHE_EXPIRATION = 60  # 1 minute for diff operations (more volatile)
-
-# Create cache instances
-git_cache = Cache(expiration=GIT_CACHE_EXPIRATION)
-diff_cache = Cache(expiration=DIFF_CACHE_EXPIRATION)
 
 # Priorities for different file types (higher = more important)
 FILE_PRIORITY = {
@@ -73,16 +65,550 @@ class FileStatus:
     ADDED = "A"
     DELETED = "D"
     RENAMED = "R"
+    COPIED = "C"
+    TYPE_CHANGED = "T"
 
     @classmethod
     def is_valid_status(cls, status: str) -> bool:
         """Check if a status code is valid."""
-        return status in [cls.MODIFIED, cls.ADDED, cls.DELETED, cls.RENAMED]
+        if not status:
+            return False
+        first_char = status[0]
+        return first_char in [
+            cls.MODIFIED,
+            cls.ADDED,
+            cls.DELETED,
+            cls.RENAMED,
+            cls.COPIED,
+            cls.TYPE_CHANGED,
+        ]
+
+
+class GitOperations(abc.ABC):
+    """Abstract base class for git operations."""
+
+    @abc.abstractmethod
+    def get_status(self) -> str:
+        """Get the current git status."""
+        pass
+
+    @abc.abstractmethod
+    def get_staged_files(
+        self, file_type: Optional[str] = None, existing_only: bool = False
+    ) -> Dict[str, str]:
+        """Get list of staged files with optional filtering."""
+        pass
+
+    @abc.abstractmethod
+    def get_staged_diff(self, file_path: Optional[str] = None) -> str:
+        """Get the diff of staged changes, optionally for a specific file."""
+        pass
+
+    @abc.abstractmethod
+    def commit_changes(self, message: str) -> bool:
+        """Commit changes with the given message."""
+        pass
+
+    @abc.abstractmethod
+    def stage_files(self, files: List[str]) -> bool:
+        """Stage files for commit."""
+        pass
+
+    @abc.abstractmethod
+    def get_project_description(self) -> str:
+        """Try to get a project description from common files and include repository name."""
+        pass
+
+
+class RealGitOperations(GitOperations):
+    """Implementation of GitOperations that interacts with a real git repository."""
+
+    def get_status(self) -> str:
+        """Get the current git status."""
+        try:
+            output = run_subprocess(["git", "status"], silent=True, timeout=10)
+            return output
+        except subprocess.CalledProcessError:
+            logger.error("Failed to get git status. Are you in a git repository?")
+            return ""
+
+    def get_staged_files(
+        self, file_type: Optional[str] = None, existing_only: bool = False
+    ) -> Dict[str, str]:
+        """
+        Get list of staged files with optional filtering.
+
+        Args:
+            file_type: Optional file extension to filter by (e.g., ".py")
+            existing_only: If True, only return files that exist on disk
+
+        Returns:
+            Dictionary mapping file paths to their status (M, A, D, R)
+        """
+        logger.debug("Checking staged files...")
+        result = run_subprocess(["git", "status", "-s"])
+
+        # Parse the output to get files and their statuses
+        file_statuses = {}
+        for line in result.splitlines():
+            if not line or line[0] not in "MADR":
+                continue
+
+            status = line[0]
+            file_path = line.split(maxsplit=1)[1]
+
+            # Apply filters if needed
+            if file_type and not file_path.endswith(file_type):
+                continue
+
+            if existing_only and not os.path.exists(file_path):
+                continue
+
+            file_statuses[file_path] = status
+
+        return file_statuses
+
+    def get_staged_diff(self, file_path: Optional[str] = None) -> str:
+        """
+        Get the diff of staged changes, optionally for a specific file.
+
+        Args:
+            file_path: Optional specific file to get diff for
+
+        Returns:
+            The diff as a string
+        """
+        logger.debug(f"Getting staged diff{'for ' + file_path if file_path else ''}")
+
+        # If a specific file is requested, handle it directly
+        if file_path:
+            command = ["git", "--no-pager", "diff", "--staged", "--", file_path]
+            return run_subprocess(command)
+
+        # Handle all staged files
+        staged_files = self.get_staged_files()
+        if not staged_files:
+            return ""
+
+        combined_diff = []
+
+        # Process each file individually
+        for f in staged_files:
+            file_diff = self._get_file_diff(f)
+            if file_diff:
+                combined_diff.append(file_diff)
+
+        return "\n".join(combined_diff)
+
+    def _get_file_diff(
+        self, file_path: str, model: str = "anthropic:claude-3-5-haiku-latest"
+    ) -> str:
+        """
+        Get the diff for a single file, with appropriate handling for large files.
+
+        Args:
+            file_path: Path to the file to get diff for
+            model: Model to use for token counting
+
+        Returns:
+            The diff string for the file, potentially truncated if it's large
+        """
+        try:
+            file_diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--", file_path])
+            if not file_diff:
+                return ""
+
+            token_count = count_tokens(file_diff, model)
+            is_large = self._is_large_file(file_path, model) or token_count > MAX_DIFF_TOKENS
+
+            if is_large:
+                # For large files, apply smart truncation
+                truncated_diff = smart_truncate_diff(file_diff, MAX_DIFF_TOKENS, model)
+                truncation_msg = f"Large file {file_path} ({token_count} tokens, "
+                truncation_msg += f"truncated to ~{MAX_DIFF_TOKENS} tokens):"
+                return f"{truncation_msg}\n{truncated_diff}"
+            else:
+                return file_diff
+        except Exception as e:
+            logger.error(f"Error getting diff for {file_path}: {e}")
+            return f"# Error processing {file_path}: {str(e)}"
+
+    def _is_large_file(
+        self, file_path: str, model: str = "anthropic:claude-3-5-haiku-latest"
+    ) -> bool:
+        """
+        Check if a file should be treated as a large file based on its name and diff size.
+
+        Args:
+            file_path: Path to the file to check
+            model: Model to use for token counting
+
+        Returns:
+            bool: True if the file should be treated as large
+        """
+        # Check if file matches any of the large file patterns
+        if any(pattern in file_path for pattern in LARGE_FILE_PATTERNS):
+            return True
+
+        # Get the diff size for this file
+        try:
+            diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--", file_path])
+            if not diff:
+                return False
+            # Count tokens using the specified model
+            token_count = count_tokens(diff, model)
+            return token_count > MAX_DIFF_TOKENS
+        except Exception as e:
+            logger.error(f"Error checking if {file_path} is large: {e}")
+            return False
+
+    def commit_changes(self, message: str) -> bool:
+        """
+        Commit changes with the given message.
+
+        Args:
+            message: The commit message to use
+
+        Returns:
+            True if commit successful, False otherwise
+        """
+        if not message:
+            logger.error("Commit message cannot be empty")
+            return False
+
+        try:
+            run_subprocess(["git", "commit", "-m", message])
+            return True
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error committing changes: {e}")
+            return False
+
+    def stage_files(self, files: List[str]) -> bool:
+        """
+        Stage files for commit.
+
+        Args:
+            files: List of files to stage (e.g., ["file1.py", "file2.py"])
+                   To stage all files, use ["."]
+
+        Returns:
+            True if successful, False otherwise
+        """
+        if not files:
+            logger.error("No files provided to stage")
+            return False
+
+        try:
+            result = run_subprocess(["git", "add"] + files)
+            logger.info("Files staged.")
+            return "fatal" not in result.lower()
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Error staging files: {e}")
+            return False
+
+    def get_project_description(self) -> str:
+        """
+        Try to get a project description from common files and include repository name.
+
+        Returns:
+            A string description including repository name if available,
+            or empty string if not found
+        """
+        description = ""
+        repo_name = ""
+
+        # Try to get the repository name from git remote URL
+        try:
+            # Get the git directory
+            git_dir = run_subprocess(["git", "rev-parse", "--git-dir"], silent=True)
+            if git_dir:
+                # Get the remote URL
+                remote_url = run_subprocess(
+                    ["git", "config", "--get", "remote.origin.url"], silent=True
+                )
+                if remote_url:
+                    # Extract repo name from URL (e.g., https://github.com/user/repo.git -> repo)
+                    parts = remote_url.rstrip("/").split("/")
+                    if parts:
+                        repo_name = parts[-1].replace(".git", "")
+        except Exception as e:
+            logger.debug(f"Error getting repository name: {e}")
+
+        # Check common locations for project descriptions
+        description_files = [
+            "README.md",
+            "README.rst",
+            "README",
+            "README.txt",
+            "DESCRIPTION",
+            "package.json",
+            "pyproject.toml",
+        ]
+
+        for file_path in description_files:
+            if os.path.exists(file_path):
+                logger.debug(f"Found potential description file: {file_path}")
+                try:
+                    if file_path.endswith(("md", "rst", "txt")):
+                        # For text files, just read the first few lines
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            lines = [line.strip() for line in f.readlines()[:10] if line.strip()]
+                            if lines:
+                                # First non-empty line, usually the title
+                                description = lines[0]
+                                break
+
+                    elif file_path == "package.json":
+                        # For package.json, extract the name and description
+                        import json
+
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            package_info = json.load(f)
+                            if "description" in package_info:
+                                description = package_info["description"]
+                                break
+                            elif "name" in package_info:
+                                description = package_info["name"]
+                                break
+
+                    elif file_path == "pyproject.toml":
+                        # For pyproject.toml, extract the project description
+                        import tomli
+
+                        with open(file_path, "rb") as f:
+                            pyproject = tomli.load(f)
+                            if "project" in pyproject and "description" in pyproject["project"]:
+                                description = pyproject["project"]["description"]
+                                break
+                            elif "tool" in pyproject and "poetry" in pyproject["tool"]:
+                                poetry = pyproject["tool"]["poetry"]
+                                if "description" in poetry:
+                                    description = poetry["description"]
+                                    break
+
+                except Exception as e:
+                    logger.debug(f"Error reading {file_path}: {e}")
+
+        # Combine repository name and description if available
+        if repo_name and description:
+            return f"Repository: {repo_name}; Description: {description}"
+        elif repo_name:
+            return f"Repository: {repo_name}"
+        elif description:
+            return description
+        else:
+            return ""
+
+
+class TestGitOperations(GitOperations):
+    """Mock implementation of GitOperations for testing."""
+
+    def __init__(
+        self,
+        mock_status: str = "",
+        mock_staged_files: Dict[str, str] = None,
+        mock_staged_diff: str = "",
+        mock_project_description: str = "",
+    ):
+        """
+        Initialize with mock responses.
+
+        Args:
+            mock_status: Mock git status output
+            mock_staged_files: Mock staged files mapping paths to statuses
+            mock_staged_diff: Mock git diff output
+            mock_project_description: Mock project description
+        """
+        self.mock_status = (
+            mock_status or "On branch main\nChanges to be committed:\n  modified: file1.py"
+        )
+        self.mock_staged_files = mock_staged_files or {"file1.py": "M"}
+        self.mock_staged_diff = (
+            mock_staged_diff or "diff --git a/file1.py b/file1.py\n+Test content"
+        )
+        self.mock_project_description = mock_project_description or "Repository: test-repo"
+
+        # Track calls for verification in tests
+        self.calls = []
+        self.commit_messages = []
+        self.staged_file_lists = []
+
+    def get_status(self) -> str:
+        """Get mock git status."""
+        self.calls.append(("get_status", {}))
+        return self.mock_status
+
+    def get_staged_files(
+        self, file_type: Optional[str] = None, existing_only: bool = False
+    ) -> Dict[str, str]:
+        """Get mock staged files."""
+        self.calls.append(
+            ("get_staged_files", {"file_type": file_type, "existing_only": existing_only})
+        )
+
+        # Apply filters if needed
+        result = {}
+        for file_path, status in self.mock_staged_files.items():
+            if file_type and not file_path.endswith(file_type):
+                continue
+            result[file_path] = status
+
+        return result
+
+    def get_staged_diff(self, file_path: Optional[str] = None) -> str:
+        """Get mock git diff."""
+        self.calls.append(("get_staged_diff", {"file_path": file_path}))
+        return self.mock_staged_diff
+
+    def commit_changes(self, message: str) -> bool:
+        """Record commit message and return success."""
+        self.calls.append(("commit_changes", {"message": message}))
+        self.commit_messages.append(message)
+        return True
+
+    def stage_files(self, files: List[str]) -> bool:
+        """Record staged files and return success."""
+        self.calls.append(("stage_files", {"files": files}))
+        self.staged_file_lists.append(files)
+        return True
+
+    def get_project_description(self) -> str:
+        """Get mock project description."""
+        self.calls.append(("get_project_description", {}))
+        return self.mock_project_description
+
+    def reset_calls(self):
+        """Reset tracked calls for a fresh test."""
+        self.calls = []
+        self.commit_messages = []
+        self.staged_file_lists = []
+
+
+# Global git operations instance
+_git_operations = RealGitOperations()
+
+
+def set_git_operations(operations: GitOperations):
+    """
+    Set the git operations implementation.
+
+    This allows for dependency injection, particularly useful for testing.
+
+    Args:
+        operations: The GitOperations implementation to use
+    """
+    global _git_operations
+    _git_operations = operations
+
+
+def get_git_operations() -> GitOperations:
+    """
+    Get the current git operations implementation.
+
+    Returns:
+        The current GitOperations instance
+    """
+    return _git_operations
+
+
+# Functions that delegate to the current GitOperations implementation
+def get_status() -> str:
+    """Get the current git status."""
+    return _git_operations.get_status()
+
+
+def get_staged_files(file_type: Optional[str] = None, existing_only: bool = False) -> List[str]:
+    """
+    Get list of filenames of staged files with optional filtering.
+
+    Args:
+        file_type: Optional file extension to filter by (e.g., ".py")
+        existing_only: If True, only return files that exist on disk
+
+    Returns:
+        List of staged file paths
+    """
+    return list(_git_operations.get_staged_files(file_type, existing_only).keys())
+
+
+def get_staged_diff(
+    file_path: Optional[str] = None,
+    max_tokens: int = 16000,
+    model: str = "anthropic:claude-3-5-haiku-latest",
+) -> str:
+    """
+    Get the diff of staged changes, optionally for a specific file.
+
+    Args:
+        file_path: Optional specific file to get diff for
+        max_tokens: Maximum tokens to include in the diff
+        model: Model to use for token counting
+
+    Returns:
+        The diff as a string
+    """
+    diff = _git_operations.get_staged_diff(file_path)
+
+    # Check if truncation is needed based on token count
+    token_count = count_tokens(diff, model)
+    if token_count > max_tokens:
+        logger.info(f"Diff too large ({token_count} tokens), truncating to ~{max_tokens} tokens")
+        return smart_truncate_diff(diff, max_tokens, model)
+
+    return diff
+
+
+def commit_changes(message: str) -> bool:
+    """
+    Commit changes with the given message.
+
+    Args:
+        message: The commit message to use
+
+    Returns:
+        True if commit successful, False otherwise
+    """
+    return _git_operations.commit_changes(message)
+
+
+def stage_files(files: List[str]) -> bool:
+    """
+    Stage files for commit.
+
+    Args:
+        files: List of files to stage (e.g., ["file1.py", "file2.py"])
+               To stage all files, use ["."]
+
+    Returns:
+        True if successful, False otherwise
+    """
+    return _git_operations.stage_files(files)
+
+
+def get_project_description() -> str:
+    """
+    Try to get a project description from common files and include repository name.
+
+    Returns:
+        A string description including repository name if available, or empty string if not found
+    """
+    return _git_operations.get_project_description()
+
+
+def has_staged_changes() -> bool:
+    """
+    Check if there are staged changes.
+
+    Returns:
+        True if there are staged changes, False otherwise
+    """
+    return bool(get_staged_files())
 
 
 def is_large_file(file_path: str, model: str = "anthropic:claude-3-5-haiku-latest") -> bool:
     """
     Check if a file should be treated as a large file based on its name and diff size.
+    Kept for backward compatibility.
 
     Args:
         file_path: Path to the file to check
@@ -106,6 +632,39 @@ def is_large_file(file_path: str, model: str = "anthropic:claude-3-5-haiku-lates
     except Exception as e:
         logger.error(f"Error checking if {file_path} is large: {e}")
         return False
+
+
+def get_file_diff(file_path: str, model: str = "anthropic:claude-3-5-haiku-latest") -> str:
+    """
+    Get the diff for a single file, with appropriate handling for large files.
+    Kept for backward compatibility.
+
+    Args:
+        file_path: Path to the file to get diff for
+        model: Model to use for token counting
+
+    Returns:
+        The diff string for the file, potentially truncated if it's large
+    """
+    try:
+        file_diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--", file_path])
+        if not file_diff:
+            return ""
+
+        token_count = count_tokens(file_diff, model)
+        is_large = is_large_file(file_path, model) or token_count > MAX_DIFF_TOKENS
+
+        if is_large:
+            # For large files, apply smart truncation
+            truncated_diff = smart_truncate_diff(file_diff, MAX_DIFF_TOKENS, model)
+            truncation_msg = f"Large file {file_path} ({token_count} tokens, "
+            truncation_msg += f"truncated to ~{MAX_DIFF_TOKENS} tokens):"
+            return f"{truncation_msg}\n{truncated_diff}"
+        else:
+            return file_diff
+    except Exception as e:
+        logger.error(f"Error getting diff for {file_path}: {e}")
+        return f"# Error processing {file_path}: {str(e)}"
 
 
 def get_file_priority(file_path: str) -> int:
@@ -142,37 +701,6 @@ def get_file_priority(file_path: str) -> int:
         priority += 2
 
     return priority
-
-
-@cached(cache_instance=git_cache)
-def get_staged_files(
-    file_type: Optional[str] = None, existing_only: bool = False, cache_skip: bool = False
-) -> List[str]:
-    """
-    Get list of filenames of staged files with optional filtering.
-
-    Args:
-        file_type: Optional file extension to filter by (e.g., ".py")
-        existing_only: If True, only return files that exist on disk
-        cache_skip: If True, bypass cache and force a new call
-
-    Returns:
-        List of staged file paths
-    """
-    logger.debug("Checking staged files...")
-    result = run_subprocess(["git", "status", "-s"])
-
-    # Get all staged files
-    files = [line.split()[1] for line in result.splitlines() if line and line[0] in "MADR"]
-
-    # Apply filters if needed
-    if file_type:
-        files = [f for f in files if f.endswith(file_type)]
-
-    if existing_only:
-        files = [f for f in files if os.path.exists(f)]
-
-    return files
 
 
 def smart_truncate_diff(diff: str, max_tokens: int, model: str) -> str:
@@ -324,284 +852,3 @@ def prioritize_and_truncate_diffs(diff_chunks: List[str], max_tokens: int, model
             tokens_used += info["tokens"]
 
     return header + "\n".join(result_chunks)
-
-
-def get_file_diff(file_path: str, model: str = "anthropic:claude-3-5-haiku-latest") -> str:
-    """
-    Get the diff for a single file, with appropriate handling for large files.
-
-    Args:
-        file_path: Path to the file to get diff for
-        model: Model to use for token counting
-
-    Returns:
-        The diff string for the file, potentially truncated if it's large
-    """
-    try:
-        file_diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--", file_path])
-        if not file_diff:
-            return ""
-
-        token_count = count_tokens(file_diff, model)
-        is_large = is_large_file(file_path, model) or token_count > MAX_DIFF_TOKENS
-
-        if is_large:
-            # For large files, apply smart truncation
-            truncated_diff = smart_truncate_diff(file_diff, MAX_DIFF_TOKENS, model)
-            truncation_msg = f"Large file {file_path} ({token_count} tokens, "
-            truncation_msg += f"truncated to ~{MAX_DIFF_TOKENS} tokens):"
-            return f"{truncation_msg}\n{truncated_diff}"
-        else:
-            return file_diff
-    except Exception as e:
-        logger.error(f"Error getting diff for {file_path}: {e}")
-        return f"# Error processing {file_path}: {str(e)}"
-
-
-@cached(cache_instance=diff_cache)
-def get_staged_diff(
-    file_path: Optional[str] = None,
-    max_tokens: int = 16000,
-    model: str = "anthropic:claude-3-5-haiku-latest",
-    cache_skip: bool = False,
-) -> Tuple[str, List[str]]:
-    """
-    Get the diff of staged changes, optionally for a specific file.
-
-    Args:
-        file_path: Optional specific file to get diff for
-        max_tokens: Maximum tokens to include in the diff
-        model: Model to use for token counting
-        cache_skip: If True, bypass cache and force a new call
-
-    Returns:
-        A tuple containing:
-        - The diff as a string
-        - A list of files that were truncated due to size, with token counts
-    """
-    logger.debug(f"Getting staged diff{'for ' + file_path if file_path else ''}")
-
-    # If a specific file is requested, handle it directly
-    if file_path:
-        command = ["git", "--no-pager", "diff", "--staged", "--", file_path]
-        diff = run_subprocess(command)
-        token_count = count_tokens(diff, model)
-
-        if token_count > max_tokens:
-            logger.info(
-                f"Diff too large ({token_count} tokens), truncating to ~{max_tokens} tokens"
-            )
-            truncated_diff = smart_truncate_diff(diff, max_tokens, model)
-            return truncated_diff, [f"{file_path} [{token_count} tokens]"]
-
-        return diff, []
-
-    # Handle all staged files
-    staged_files = get_staged_files()
-    if not staged_files:
-        return "", []
-
-    truncated_files = []
-    truncated_files_with_counts = []
-    combined_diff = []
-    file_token_counts = {}
-
-    # Process each file individually to track which ones are truncated
-    for f in staged_files:
-        # Get raw diff to calculate token count before any truncation
-        raw_diff = run_subprocess(["git", "--no-pager", "diff", "--staged", "--", f])
-        if raw_diff:
-            file_token_count = count_tokens(raw_diff, model)
-            file_token_counts[f] = file_token_count
-
-        file_diff = get_file_diff(f, model)
-        if "Large file" in file_diff and "(truncated)" in file_diff:
-            truncated_files.append(f)
-            # Add token count to the truncated file information
-            truncated_files_with_counts.append(f"{f} [{file_token_counts.get(f, 0)} tokens]")
-        if file_diff:
-            combined_diff.append(file_diff)
-
-    full_diff = "\n".join(combined_diff)
-
-    # Final check if the combined diff is still too large
-    token_count = count_tokens(full_diff, model)
-    if token_count > max_tokens:
-        logger.info(
-            f"Combined diff too large ({token_count} tokens), truncating to ~{max_tokens} tokens"
-        )
-        truncated_diff = smart_truncate_diff(full_diff, max_tokens, model)
-
-        # Since we're further truncating, all staged files are technically affected
-        if not truncated_files_with_counts:
-            # If no individual files were truncated earlier, add all with their token counts
-            truncated_files_with_counts = [
-                f"{f} [{file_token_counts.get(f, 0)} tokens]" for f in staged_files
-            ]
-            truncated_files = staged_files
-
-        return truncated_diff, truncated_files_with_counts
-
-    return full_diff, truncated_files_with_counts
-
-
-def commit_changes(message: str) -> bool:
-    """
-    Commit changes with the given message.
-
-    Args:
-        message: The commit message to use
-
-    Returns:
-        True if commit successful, False otherwise
-    """
-    if not message:
-        logger.error("Commit message cannot be empty")
-        return False
-
-    try:
-        run_subprocess(["git", "commit", "-m", message])
-        return True
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Error committing changes: {e}")
-        return False
-
-
-def stage_files(files: List[str]) -> bool:
-    """
-    Stage files for commit.
-
-    Args:
-        files: List of files to stage (e.g., ["file1.py", "file2.py"])
-               To stage all files, use ["."]
-
-    Returns:
-        True if successful, False otherwise
-    """
-    if not files:
-        logger.error("No files provided to stage")
-        return False
-
-    try:
-        result = run_subprocess(["git", "add"] + files)
-        logger.info("Files staged.")
-        return "fatal" not in result.lower()
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Error staging files: {e}")
-        return False
-
-
-@cached(cache_instance=git_cache)
-def get_project_description(cache_skip: bool = False) -> str:
-    """
-    Try to get a project description from common files and include repository name.
-
-    Args:
-        cache_skip: If True, bypass cache and force a new call
-
-    Returns:
-        A string description including repository name if available, or empty string if not found
-    """
-    description = ""
-    repo_name = ""
-
-    # Try to get the repository name from git remote URL
-    try:
-        # Get the git directory
-        git_dir = run_subprocess(["git", "rev-parse", "--git-dir"], silent=True)
-        if git_dir:
-            # Get the remote URL
-            remote_url = run_subprocess(
-                ["git", "config", "--get", "remote.origin.url"], silent=True
-            )
-            if remote_url:
-                # Extract repo name from URL (e.g., https://github.com/user/repo.git -> repo)
-                parts = remote_url.rstrip("/").split("/")
-                if parts:
-                    repo_name = parts[-1].replace(".git", "")
-    except Exception as e:
-        logger.debug(f"Error getting repository name: {e}")
-
-    # Check common locations for project descriptions
-    description_files = [
-        "README.md",
-        "README.rst",
-        "README",
-        "README.txt",
-        "DESCRIPTION",
-        "package.json",
-        "pyproject.toml",
-    ]
-
-    for file_path in description_files:
-        if os.path.exists(file_path):
-            logger.debug(f"Found potential description file: {file_path}")
-            try:
-                if file_path.endswith(("md", "rst", "txt")):
-                    # For text files, just read the first few lines
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        lines = [line.strip() for line in f.readlines()[:10] if line.strip()]
-                        if lines:
-                            # First non-empty line, usually the title
-                            description = lines[0]
-                            break
-
-                elif file_path == "package.json":
-                    # For package.json, extract the name and description
-                    import json
-
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        package_info = json.load(f)
-                        if "description" in package_info:
-                            description = package_info["description"]
-                            break
-                        elif "name" in package_info:
-                            description = package_info["name"]
-                            break
-
-                elif file_path == "pyproject.toml":
-                    # For pyproject.toml, extract the project description
-                    import tomli
-
-                    with open(file_path, "rb") as f:
-                        pyproject = tomli.load(f)
-                        if "project" in pyproject and "description" in pyproject["project"]:
-                            description = pyproject["project"]["description"]
-                            break
-                        elif "tool" in pyproject and "poetry" in pyproject["tool"]:
-                            poetry = pyproject["tool"]["poetry"]
-                            if "description" in poetry:
-                                description = poetry["description"]
-                                break
-
-            except Exception as e:
-                logger.debug(f"Error reading {file_path}: {e}")
-
-    # Combine repository name and description if available
-    if repo_name and description:
-        return f"Repository: {repo_name}; Description: {description}"
-    elif repo_name:
-        return f"Repository: {repo_name}"
-    elif description:
-        return description
-    else:
-        return ""
-
-
-@cached(cache_instance=git_cache)
-def get_status(cache_skip: bool = False) -> str:
-    """
-    Get the current git status.
-
-    Args:
-        cache_skip: If True, bypass cache and force a new call
-
-    Returns:
-        String containing git status output
-    """
-    try:
-        logger.debug("Getting git status...")
-        return run_subprocess(["git", "status", "--porcelain", "--branch"])
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Error getting git status: {e}")
-        return "Error getting git status"
