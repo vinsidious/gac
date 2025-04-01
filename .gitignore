@@ -184,8 +184,6 @@ uv.lock
 conversation_cache/
 .gac_cache/
 saved_messages/
-*.prompt
-*.response
 .DS_Store
 secrets/
 temp/
