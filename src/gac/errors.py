@@ -49,7 +49,13 @@ class GitError(GACError):
     exit_code = 3
 
 
-class AIProviderError(GACError):
+class AIError(GACError):
+    """Base class for AI-related errors."""
+
+    exit_code = 4
+
+
+class AIProviderError(AIError):
     """Base class for AI provider related errors."""
 
     exit_code = 4

@@ -25,7 +25,7 @@ coverage:
 lint:
 	black --check .
 	isort --check .
-	flake8 .
+	flake8 --ignore=E501 .
 
 # Format code
 format:

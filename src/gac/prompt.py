@@ -1,4 +1,7 @@
-"""Module for prompt-related functionality for gac."""
+"""Module for prompt-related functionality for GAC.
+
+This module handles building and cleaning prompts for AI providers.
+"""
 
 
 def build_prompt(
@@ -86,8 +89,7 @@ def build_prompt(
 
 def clean_commit_message(message: str) -> str:
     """
-    Clean the commit message to ensure it doesn't contain triple backticks or XML tags
-    at the beginning or end, or around individual bullet points.
+    Clean the commit message to ensure it doesn't contain triple backticks or XML tags.
 
     Args:
         message: The commit message to clean
@@ -95,53 +97,6 @@ def clean_commit_message(message: str) -> str:
     Returns:
         The cleaned commit message
     """
-    # Special handling for test cases
-    import inspect
-
-    caller_filename = inspect.currentframe().f_back.f_code.co_filename
-    if "test_prompts.py" in caller_filename:
-        # Handle specific test cases in test_prompts.py by simulating fixed output
-        if "<git-status>" in message:
-            # Special case for the git tags test
-            return "chore: Test message"
-        if "```python" in message:
-            # Special case for the Python test
-            return "chore: Test message"
-        if "- ```Point 1```" in message:
-            # Special case for bullet points
-            return "feat: Test feature\n- Point 1\n- Point 2"
-        if "<git-diff>diff content</git-diff>" in message:
-            # Special case for bullet points with git tags
-            return "feat: Test feature\n- Point 1"
-
-        message = message.strip()
-        # Remove starting backticks
-        if message.startswith("```"):
-            message = message[3:].lstrip()
-        # Remove ending backticks
-        if message.endswith("```"):
-            message = message[:-3].rstrip()
-        # Remove any XML tags
-        for tag in ["<git-status>", "</git-status>", "<git-diff>", "</git-diff>"]:
-            message = message.replace(tag, "")
-        # Add chore prefix if no conventional prefix exists
-        prefixes = [
-            "feat:",
-            "fix:",
-            "docs:",
-            "style:",
-            "refactor:",
-            "perf:",
-            "test:",
-            "build:",
-            "ci:",
-            "chore:",
-        ]
-        if not any(message.startswith(prefix) for prefix in prefixes):
-            message = f"chore: {message}"
-        return message
-
-    # Normal cleaning logic for production use
     message = message.strip()
 
     # Remove leading and trailing backticks
@@ -153,15 +108,13 @@ def clean_commit_message(message: str) -> str:
 
     # Handle markdown-style language specification like ```python
     if message.startswith("```") and "\n" in message:
-        parts = message.split("\n", 1)
-        if len(parts) > 1:
-            message = parts[1].lstrip()
+        message = message.split("\n", 1)[1].lstrip()
 
     # Remove any XML tags that might have been included
     for tag in ["<git-status>", "</git-status>", "<git-diff>", "</git-diff>"]:
         message = message.replace(tag, "")
 
-    # Add conventional commit prefix if not present
+    # Add conventional commit prefix if not present (for backward compatibility with tests)
     if not any(
         message.startswith(prefix)
         for prefix in [
@@ -217,10 +170,7 @@ def create_abbreviated_prompt(prompt: str, max_diff_lines: int = 50) -> str:
 
     # Create the message about hidden lines
     hidden_count = len(diff_lines) - max_diff_lines
-    hidden_msg = (
-        f"\n\n... {hidden_count} lines hidden ...\n\n"
-        "Use --show-prompt-full to see the complete prompt.\n\n"
-    )
+    hidden_msg = f"\n\n... {hidden_count} lines hidden ...\n\nUse --show-prompt-full to see the complete prompt.\n\n"
 
     # Create the abbreviated diff and reconstruct the prompt
     abbreviated_diff = "\n".join(first_half) + hidden_msg + "\n".join(second_half)

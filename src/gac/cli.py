@@ -8,8 +8,9 @@ from typing import Optional
 
 import click
 
-from gac.utils import setup_logging
-from gac.workflow import CommitWorkflow
+from gac.ai import is_ollama_available
+from gac.core import commit_changes
+from gac.utils import print_error, print_info, print_success, setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -97,11 +98,9 @@ def cli(
     try:
         # Determine log level from flags
         log_level = logging.WARNING  # Default - only show warnings and errors by default
-        verbose = False  # For backward compatibility
 
         if log_level_debug:
             log_level = logging.DEBUG
-            verbose = True  # Map to verbose for backward compatibility
         elif log_level_info:
             log_level = logging.INFO
         elif log_level_warning:
@@ -112,22 +111,26 @@ def cli(
         # Setup logging with our centralized function
         setup_logging(log_level, quiet=quiet, force=True)
 
-        # Create workflow instance and run it
-        workflow = CommitWorkflow(
+        # Run the commit workflow using our simplified core function
+        commit_message = commit_changes(
             force=force,
             add_all=add_all,
-            no_format=no_format,
-            quiet=quiet,
-            verbose=verbose,
+            formatting=not no_format,  # Invert no_format for clarity
             model=model,
             one_liner=one_liner,
             show_prompt=show_prompt,
             show_prompt_full=show_prompt_full,
             hint=hint,
+            quiet=quiet,
             no_spinner=no_spinner,
             push=push,
         )
-        workflow.run()
+
+        # If we don't have a commit message, the operation failed
+        if not commit_message and not quiet:
+            logger.error("Failed to generate or apply commit")
+            sys.exit(1)
+
     except Exception as e:
         logger.error(f"Error: {e}")
         sys.exit(1)
@@ -135,9 +138,6 @@ def cli(
 
 def list_local_models() -> None:
     """List available local Ollama models."""
-    from gac.ai_utils import is_ollama_available
-    from gac.utils import print_error, print_info, print_success
-
     print_info("Checking for local Ollama models...")
 
     if not is_ollama_available():
