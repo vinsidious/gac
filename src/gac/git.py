@@ -457,11 +457,19 @@ def commit_changes(
 
         # Stage all files if requested
         if add_all:
+            logger.debug("Staging all files")
             stage_all_files()
+            # Re-check for staged files after staging all
+            if staged_files is None:
+                logger.debug("Re-checking for staged files after staging all")
+                staged_files = get_staged_files()
+                logger.debug(f"Staged files after staging all: {staged_files}")
 
-        # Get staged files
+        # Get staged files if not already done
         if staged_files is None:
+            logger.debug("Getting staged files")
             staged_files = get_staged_files()
+            logger.debug(f"Staged files: {staged_files}")
 
         if not staged_files:
             logger.error("No staged changes found. Stage your changes with git add first.")
@@ -692,122 +700,6 @@ class RealGitOperations(GitOperations):
     def has_staged_changes(self) -> bool:
         """Check if there are any staged changes."""
         return has_staged_changes()
-
-
-# Test implementation for unit testing
-class TestGitOperations(GitOperations):
-    """Test implementation of Git operations."""
-
-    def __init__(
-        self,
-        mock_status=None,
-        mock_staged_files=None,
-        mock_staged_diff=None,
-        mock_project_description=None,
-    ):
-        """Initialize with mocks for testing.
-
-        Args:
-            mock_status: Mock git status output
-            mock_staged_files: Mock dictionary of staged files with status
-            mock_staged_diff: Mock git diff output
-            mock_project_description: Mock project description
-        """
-        self.status = mock_status or "On branch main\nNothing to commit, working tree clean"
-        self.mock_staged_files = mock_staged_files or {}
-        self.mock_staged_diff = (
-            mock_staged_diff or "diff --git a/test.py b/test.py\n@@ -1,1 +1,1 @@\n-test\n+updated"
-        )
-        self.mock_project_description = mock_project_description or "Repository: test-repo"
-
-        # For tracking calls
-        self.calls = []
-        self.commit_messages = []
-        self.staged_file_lists = []
-
-    def run_git_command(self, args: List[str], silent: bool = False) -> str:
-        """Mock git command execution."""
-        self.calls.append(("run_git_command", {"args": args, "silent": silent}))
-
-        # Return mocks for specific commands
-        if "status" in args:
-            return self.status
-        elif "diff" in args and "--cached" in args:
-            return self.mock_staged_diff
-        elif "rev-parse" in args and "--show-toplevel" in args:
-            return "/mock/git/dir"
-        elif args == ["config", "--get", "remote.origin.url"]:
-            return "git@github.com:user/test-repo.git"
-
-        return ""
-
-    def ensure_git_directory(self) -> Optional[str]:
-        """Mock git directory check."""
-        self.calls.append(("ensure_git_directory", {}))
-        return "/mock/git/dir"
-
-    def get_status(self) -> str:
-        """Get mock git status."""
-        self.calls.append(("get_status", {}))
-        return self.status
-
-    def get_staged_files(
-        self, file_type: Optional[str] = None, existing_only: bool = False
-    ) -> List[str]:
-        """Get mock staged files with optional filtering."""
-        self.calls.append(
-            ("get_staged_files", {"file_type": file_type, "existing_only": existing_only})
-        )
-
-        files = list(self.mock_staged_files.keys())
-
-        # Apply filters if needed
-        if file_type:
-            files = [f for f in files if f.endswith(file_type)]
-
-        return files
-
-    def get_staged_diff(self, file_path: Optional[str] = None) -> str:
-        """Get mock staged diff."""
-        self.calls.append(("get_staged_diff", {"file_path": file_path}))
-        return self.mock_staged_diff
-
-    def stage_files(self, files: List[str]) -> bool:
-        """Mock stage files."""
-        self.calls.append(("stage_files", {"files": files}))
-        self.staged_file_lists.append(files)
-        return True
-
-    def stage_all_files(self) -> bool:
-        """Mock stage all files."""
-        self.calls.append(("stage_all_files", {}))
-        return True
-
-    def commit_changes(self, message: str) -> bool:
-        """Mock commit changes."""
-        self.calls.append(("commit_changes", {"message": message}))
-        self.commit_messages.append(message)
-        return True
-
-    def push_changes(self) -> bool:
-        """Mock push changes."""
-        self.calls.append(("push_changes", {}))
-        return True
-
-    def has_staged_changes(self) -> bool:
-        """Check if mock has staged changes."""
-        self.calls.append(("has_staged_changes", {}))
-        return bool(self.mock_staged_files)
-
-    def _get_file_diff(self, file_path: str) -> str:
-        """Mock getting diff for a specific file."""
-        self.calls.append(("_get_file_diff", {"file_path": file_path}))
-        return f"diff --git a/{file_path} b/{file_path}\n+New line"
-
-    def get_project_description(self) -> str:
-        """Get mock project description."""
-        self.calls.append(("get_project_description", {}))
-        return self.mock_project_description
 
 
 # For compatibility with existing code that might use the class-based interface
