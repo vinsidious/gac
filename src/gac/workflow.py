@@ -219,8 +219,12 @@ class CommitWorkflow:
 
     def _stage_all_files(self):
         """Stage all files in the repository."""
-        if logging.getLogger().getEffectiveLevel() <= logging.INFO:
-            logger.info("ℹ️ Staging all changes...")
+        # Always show basic staging message
+        if not self.quiet:
+            print("ℹ️ Staging all changes...")
+        else:
+            if logging.getLogger().getEffectiveLevel() <= logging.INFO:
+                logger.info("ℹ️ Staging all changes...")
         try:
             # Check if this is an empty repository
             status = get_status()
@@ -281,7 +285,9 @@ class CommitWorkflow:
             # Normal case - just stage all files
             success = stage_files(["."])
             if success:
-                if logging.getLogger().getEffectiveLevel() <= logging.INFO:
+                if not self.quiet:
+                    print("✅ All changes staged")
+                elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
                     logger.info("✅ All changes staged")
             else:
                 logger.error("Failed to stage changes")
@@ -292,10 +298,16 @@ class CommitWorkflow:
 
     def _format_staged_files(self, staged_files):
         """Format the staged files."""
-        if logging.getLogger().getEffectiveLevel() <= logging.INFO:
+        if not self.quiet:
+            print("ℹ️ Formatting staged files...")
+        elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
             logger.info("ℹ️ Formatting staged files...")
+            
         self.formatting_controller.format_staged_files(staged_files, self.quiet)
-        if logging.getLogger().getEffectiveLevel() <= logging.INFO:
+        
+        if not self.quiet:
+            print("✅ Formatting complete")
+        elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
             logger.info("✅ Formatting complete")
 
     def generate_message(self, diff):
@@ -333,6 +345,16 @@ class CommitWorkflow:
                 logger.info("Full prompt sent to LLM:\n%s", prompt)
 
             # Generate the commit message
+            # Always show a minimal message when generating the commit message
+            if not self.quiet:
+                model = self.config.get('model', 'unknown')
+                # Split provider:model if applicable
+                if ":" in model:
+                    provider, model_name = model.split(":", 1)
+                    print(f"Using model: {model_name} with provider: {provider}")
+                else:
+                    print(f"Using model: {model}")
+                
             message = self._send_to_llm(status, diff, one_liner, self.hint, conventional)
             if message:
                 return clean_commit_message(message)
@@ -356,7 +378,13 @@ class CommitWorkflow:
         try:
             # Commit the changes
             commit_changes(commit_message)
-            logger.info("✅ Changes committed successfully")
+            
+            # Always show commit success message, even at WARNING level
+            if not self.quiet:
+                print("✅ Changes committed successfully")
+            else:
+                logger.info("✅ Changes committed successfully")
+                
             return True
 
         except Exception as e:
@@ -403,7 +431,8 @@ class CommitWorkflow:
                 logger.error(f"No API key found for {provider_name} in {api_key_env}")
                 raise GACError(f"Missing API key: {api_key_env} not set in environment")
 
-            logger.info(f"Using model: {model_name} with provider: {provider_name}")
+            # We'll show this at the workflow level now, so just log it at INFO level
+            logger.debug(f"Using model: {model_name} with provider: {provider_name}")
 
             # Handle different providers
             if provider_name.lower() == "anthropic":

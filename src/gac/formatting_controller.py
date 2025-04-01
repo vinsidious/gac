@@ -345,17 +345,17 @@ class FormattingController:
             formatted_files: Dictionary mapping formatter names to lists of formatted files
         """
         total_files = sum(len(files) for files in formatted_files.values())
-
-        # Only show output if log level is INFO or lower
-        if logging.getLogger().getEffectiveLevel() > logging.INFO:
-            return
-
+            
         if total_files == 0:
+            # Always show a warning if no files were formatted
             print_warning("No files were formatted")
             return
 
+        # Always show a minimal summary, regardless of log level
         print_success(f"Formatted {total_files} files:")
 
-        for formatter, files in formatted_files.items():
-            if files:
-                print_info(f"  - {formatter}: {len(files)} files")
+        # Only show detailed breakdown if in verbose mode
+        if logging.getLogger().getEffectiveLevel() <= logging.INFO:
+            for formatter, files in formatted_files.items():
+                if files:
+                    print_info(f"  - {formatter}: {len(files)} files")
