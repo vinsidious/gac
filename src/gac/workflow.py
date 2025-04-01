@@ -201,6 +201,47 @@ class CommitWorkflow:
             if not commit_message:
                 logger.error("Failed to generate commit message.")
                 return None
+                
+            # Always display the commit message
+            if not self.quiet:
+                print("\nGenerated commit message:")
+                print("------------------------")
+                print(commit_message)
+                print("------------------------")
+
+            # If force mode is not enabled, prompt for confirmation
+            if not self.force and not self.quiet:
+                confirm = input("\nProceed with this commit message? (y/n/e[dit]): ").strip().lower()
+                if confirm == 'n':
+                    print("Commit canceled.")
+                    return None
+                elif confirm == 'e' or confirm == 'edit':
+                    import tempfile
+                    import subprocess
+                    
+                    # Create a temporary file with the commit message for editing
+                    with tempfile.NamedTemporaryFile(suffix=".txt", mode="w+", delete=False) as temp:
+                        temp.write(commit_message)
+                        temp_path = temp.name
+                    
+                    # Use the user's preferred editor or fall back to nano
+                    editor = os.environ.get("EDITOR", "nano")
+                    try:
+                        subprocess.run([editor, temp_path], check=True)
+                        with open(temp_path, "r") as temp:
+                            edited_message = temp.read().strip()
+                        if edited_message:
+                            commit_message = edited_message
+                        else:
+                            print("Empty commit message. Using original message.")
+                    except Exception as e:
+                        logger.warning(f"Failed to open editor: {e}. Using original message.")
+                    finally:
+                        # Clean up the temporary file
+                        try:
+                            os.unlink(temp_path)
+                        except:
+                            pass
 
             # Execute the commit
             if self.test and not self.test_with_real_diff:
@@ -302,9 +343,9 @@ class CommitWorkflow:
             print("ℹ️ Formatting staged files...")
         elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
             logger.info("ℹ️ Formatting staged files...")
-            
+
         self.formatting_controller.format_staged_files(staged_files, self.quiet)
-        
+
         if not self.quiet:
             print("✅ Formatting complete")
         elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
@@ -347,14 +388,14 @@ class CommitWorkflow:
             # Generate the commit message
             # Always show a minimal message when generating the commit message
             if not self.quiet:
-                model = self.config.get('model', 'unknown')
+                model = self.config.get("model", "unknown")
                 # Split provider:model if applicable
                 if ":" in model:
                     provider, model_name = model.split(":", 1)
                     print(f"Using model: {model_name} with provider: {provider}")
                 else:
                     print(f"Using model: {model}")
-                
+
             message = self._send_to_llm(status, diff, one_liner, self.hint, conventional)
             if message:
                 return clean_commit_message(message)
@@ -378,13 +419,13 @@ class CommitWorkflow:
         try:
             # Commit the changes
             commit_changes(commit_message)
-            
+
             # Always show commit success message, even at WARNING level
             if not self.quiet:
                 print("✅ Changes committed successfully")
             else:
                 logger.info("✅ Changes committed successfully")
-                
+
             return True
 
         except Exception as e:

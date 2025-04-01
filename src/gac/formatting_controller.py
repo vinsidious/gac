@@ -345,7 +345,7 @@ class FormattingController:
             formatted_files: Dictionary mapping formatter names to lists of formatted files
         """
         total_files = sum(len(files) for files in formatted_files.values())
-            
+
         if total_files == 0:
             # Always show a warning if no files were formatted
             print_warning("No files were formatted")
