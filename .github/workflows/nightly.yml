@@ -50,11 +50,17 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-          pip install build twine toml
+          uv venv .venv
+          source .venv/bin/activate
+          uv pip install -e ".[dev]"
+          uv pip install build twine toml
 
       - name: Get date for nightly version
         id: date
@@ -71,7 +77,9 @@ jobs:
           echo "Building nightly version: ${NIGHTLY_VERSION}"
 
       - name: Build package
-        run: python -m build
+        run: |
+          source .venv/bin/activate
+          python -m build
 
       - name: Create GitHub Release
         id: create_release
@@ -90,4 +98,4 @@ jobs:
           prerelease: true
           files: |
             dist/*.whl
-            dist/*.tar.gz 
+            dist/*.tar.gz

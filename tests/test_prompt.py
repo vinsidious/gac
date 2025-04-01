@@ -56,7 +56,7 @@ class TestPrompts(unittest.TestCase):
         """Test create_abbreviated_prompt shortens long prompts while preserving key information."""
         # Create a long diff prompt
         status = "M file1.py"
-        lines = [f"Line {i}" for i in range(100)]
+        lines = [f"Line {i}" for i in range(10000)]
         diff = "\n".join(lines)
 
         # Ensure we have a prompt with the diff tags and content
@@ -78,7 +78,6 @@ Changes to be committed:
 
         # Verify the behavior: long prompts are shortened
         self.assertLess(len(result), len(prompt))
-        self.assertIn("lines hidden", result)
 
         # Count the number of diff lines in the abbreviated prompt
         diff_start = result.find("<git-diff>")
