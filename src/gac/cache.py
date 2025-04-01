@@ -4,6 +4,8 @@ import hashlib
 import json
 import logging
 import os
+import tempfile
+import threading
 import time
 from pathlib import Path
 from typing import Any, Callable, Optional, TypeVar, cast
@@ -34,13 +36,15 @@ class Cache:
         """
         self.cache_dir = Path(cache_dir or DEFAULT_CACHE_DIR)
         self.expiration = expiration
+        self._lock = threading.RLock()  # Reentrant lock for thread safety
         self._ensure_cache_dir()
 
     def _ensure_cache_dir(self) -> None:
         """Ensure the cache directory exists."""
-        if not self.cache_dir.exists():
-            self.cache_dir.mkdir(parents=True, exist_ok=True)
-            logger.debug(f"Created cache directory: {self.cache_dir}")
+        with self._lock:
+            if not self.cache_dir.exists():
+                self.cache_dir.mkdir(parents=True, exist_ok=True)
+                logger.debug(f"Created cache directory: {self.cache_dir}")
 
     def _get_cache_key(self, key_data: Any) -> str:
         """
@@ -86,30 +90,31 @@ class Cache:
         Returns:
             The cached value or the default
         """
-        key = self._get_cache_key(key_data)
-        cache_path = self._get_cache_path(key)
+        with self._lock:
+            key = self._get_cache_key(key_data)
+            cache_path = self._get_cache_path(key)
 
-        if not cache_path.exists():
-            logger.debug(f"Cache miss for key: {key}")
-            return default
-
-        try:
-            with open(cache_path, "r") as f:
-                cache_data = json.load(f)
-
-            # Check if cache has expired
-            if time.time() - cache_data["timestamp"] > self.expiration:
-                logger.debug(f"Cache expired for key: {key}")
-                cache_path.unlink(missing_ok=True)
+            if not cache_path.exists():
+                logger.debug(f"Cache miss for key: {key}")
                 return default
 
-            logger.debug(f"Cache hit for key: {key}")
-            return cache_data["value"]
-        except (json.JSONDecodeError, KeyError, IOError) as e:
-            logger.warning(f"Error reading cache for key {key}: {e}")
-            # Remove invalid cache file
-            cache_path.unlink(missing_ok=True)
-            return default
+            try:
+                with open(cache_path, "r") as f:
+                    cache_data = json.load(f)
+
+                # Check if cache has expired
+                if time.time() - cache_data["timestamp"] > self.expiration:
+                    logger.debug(f"Cache expired for key: {key}")
+                    cache_path.unlink(missing_ok=True)
+                    return default
+
+                logger.debug(f"Cache hit for key: {key}")
+                return cache_data["value"]
+            except (json.JSONDecodeError, KeyError, IOError) as e:
+                logger.warning(f"Error reading cache for key {key}: {e}")
+                # Remove invalid cache file
+                cache_path.unlink(missing_ok=True)
+                return default
 
     def set(self, key_data: Any, value: Any) -> None:
         """
@@ -119,18 +124,29 @@ class Cache:
             key_data: Data to generate a key from
             value: Value to store
         """
-        key = self._get_cache_key(key_data)
-        cache_path = self._get_cache_path(key)
+        with self._lock:
+            key = self._get_cache_key(key_data)
+            cache_path = self._get_cache_path(key)
 
-        # Create cache data with timestamp
-        cache_data = {"timestamp": time.time(), "value": value}
+            # Create cache data with timestamp
+            cache_data = {"timestamp": time.time(), "value": value}
 
-        try:
-            with open(cache_path, "w") as f:
-                json.dump(cache_data, f)
-            logger.debug(f"Cached value for key: {key}")
-        except (TypeError, IOError) as e:
-            logger.warning(f"Error writing cache for key {key}: {e}")
+            try:
+                # Write to a temporary file first, then rename for atomicity
+                fd, temp_path = tempfile.mkstemp(dir=self.cache_dir)
+                try:
+                    with os.fdopen(fd, "w") as f:
+                        json.dump(cache_data, f)
+                    # Use os.replace for atomic operation
+                    os.replace(temp_path, cache_path)
+                    logger.debug(f"Cached value for key: {key}")
+                except (IOError, TypeError, json.JSONDecodeError):
+                    # Clean up the temporary file if an error occurs
+                    if os.path.exists(temp_path):
+                        os.unlink(temp_path)
+                    raise
+            except (TypeError, IOError) as e:
+                logger.warning(f"Error writing cache for key {key}: {e}")
 
     def delete(self, key_data: Any) -> None:
         """
@@ -139,18 +155,20 @@ class Cache:
         Args:
             key_data: Data to generate a key from
         """
-        key = self._get_cache_key(key_data)
-        cache_path = self._get_cache_path(key)
+        with self._lock:
+            key = self._get_cache_key(key_data)
+            cache_path = self._get_cache_path(key)
 
-        if cache_path.exists():
-            cache_path.unlink()
-            logger.debug(f"Deleted cache for key: {key}")
+            if cache_path.exists():
+                cache_path.unlink()
+                logger.debug(f"Deleted cache for key: {key}")
 
     def clear(self) -> None:
         """Clear all cached values."""
-        for cache_file in self.cache_dir.glob("*.json"):
-            cache_file.unlink()
-        logger.debug("Cleared all cached values")
+        with self._lock:
+            for cache_file in self.cache_dir.glob("*.json"):
+                cache_file.unlink()
+            logger.debug("Cleared all cached values")
 
     def clear_expired(self) -> int:
         """
@@ -159,23 +177,24 @@ class Cache:
         Returns:
             Number of entries cleared
         """
-        cleared_count = 0
-        for cache_file in self.cache_dir.glob("*.json"):
-            try:
-                with open(cache_file, "r") as f:
-                    cache_data = json.load(f)
+        with self._lock:
+            cleared_count = 0
+            for cache_file in self.cache_dir.glob("*.json"):
+                try:
+                    with open(cache_file, "r") as f:
+                        cache_data = json.load(f)
 
-                # Check if cache has expired
-                if time.time() - cache_data["timestamp"] > self.expiration:
-                    cache_file.unlink()
+                    # Check if cache has expired
+                    if time.time() - cache_data["timestamp"] > self.expiration:
+                        cache_file.unlink()
+                        cleared_count += 1
+                except (json.JSONDecodeError, KeyError, IOError):
+                    # Invalid cache file, remove it
+                    cache_file.unlink(missing_ok=True)
                     cleared_count += 1
-            except (json.JSONDecodeError, KeyError, IOError):
-                # Invalid cache file, remove it
-                cache_file.unlink(missing_ok=True)
-                cleared_count += 1
 
-        logger.debug(f"Cleared {cleared_count} expired cache entries")
-        return cleared_count
+            logger.debug(f"Cleared {cleared_count} expired cache entries")
+            return cleared_count
 
 
 def cached(

@@ -586,3 +586,22 @@ def get_project_description(cache_skip: bool = False) -> str:
         return description
     else:
         return ""
+
+
+@cached(cache_instance=git_cache)
+def get_status(cache_skip: bool = False) -> str:
+    """
+    Get the current git status.
+
+    Args:
+        cache_skip: If True, bypass cache and force a new call
+
+    Returns:
+        String containing git status output
+    """
+    try:
+        logger.debug("Getting git status...")
+        return run_subprocess(["git", "status", "--porcelain", "--branch"])
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error getting git status: {e}")
+        return "Error getting git status"

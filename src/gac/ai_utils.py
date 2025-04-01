@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import time
 from typing import Any, Dict, List, Optional, Union
 
@@ -265,6 +266,15 @@ def chat(
     provider = model.split(":")[0] if ":" in model else "unknown"
     model_name = extract_model_name(model)
     retries = 0
+
+    logger.debug(f"Chat function called with model: {model}")
+
+    # Check for API key via environment variable
+    api_key_env_var = f"{provider.upper()}_API_KEY"
+    if os.environ.get(api_key_env_var):
+        logger.debug(f"Found API key for {provider} from environment variable")
+    else:
+        logger.debug(f"No API key found in {api_key_env_var}, will need to be provided by client")
 
     # Check if provider is Ollama and verify it's available
     if provider.lower() == "ollama":

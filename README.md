@@ -63,16 +63,17 @@ gac
 
 The following environment variables can be used to configure gac:
 
-| Variable                         | Description                                   | Default                             | Required            |
-| -------------------------------- | --------------------------------------------- | ----------------------------------- | ------------------- |
-| `ANTHROPIC_API_KEY`              | API key for Anthropic Claude                  | -                                   | Yes (for Anthropic) |
-| `OPENAI_API_KEY`                 | API key for OpenAI models                     | -                                   | Yes (for OpenAI)    |
-| `GROQ_API_KEY`                   | API key for Groq models                       | -                                   | Yes (for Groq)      |
-| `MISTRAL_API_KEY`                | API key for Mistral models                    | -                                   | Yes (for Mistral)   |
-| `GAC_MODEL`                      | Fully qualified model string (provider:model) | `anthropic:claude-3-5-haiku-latest` | No                  |
-| `GAC_USE_FORMATTING`             | Enable/disable code formatting (true/false)   | `true`                              | No                  |
-| `GAC_MAX_OUTPUT_TOKENS`          | Maximum tokens in model output                | `512`                               | No                  |
-| `GAC_WARNING LIMIT_INPUT_TOKENS` | Maximum tokens in input prompt                | `1000`                              | No                  |
+| Variable                         | Description                                      | Default                             | Required            |
+| -------------------------------- | ------------------------------------------------ | ----------------------------------- | ------------------- |
+| `ANTHROPIC_API_KEY`              | API key for Anthropic Claude                     | -                                   | Yes (for Anthropic) |
+| `OPENAI_API_KEY`                 | API key for OpenAI models                        | -                                   | Yes (for OpenAI)    |
+| `GROQ_API_KEY`                   | API key for Groq models                          | -                                   | Yes (for Groq)      |
+| `MISTRAL_API_KEY`                | API key for Mistral models                       | -                                   | Yes (for Mistral)   |
+| `GAC_MODEL`                      | Fully qualified model string (provider:model)    | `anthropic:claude-3-5-haiku-latest` | No                  |
+| `GAC_USE_FORMATTING`             | Enable/disable code formatting (true/false)      | `true`                              | No                  |
+| `GAC_MAX_OUTPUT_TOKENS`          | Maximum tokens in model output                   | `512`                               | No                  |
+| `GAC_WARNING LIMIT_INPUT_TOKENS` | Maximum tokens in input prompt                   | `1000`                              | No                  |
+| `GAC_LOG_LEVEL`                  | Set logging verbosity (DEBUG/INFO/WARNING/ERROR) | `INFO`                              | No                  |
 
 ### Model Selection
 
@@ -158,6 +159,43 @@ export GAC_USE_FORMATTING=false
 
 This is useful if you're working on a project that uses different formatting tools or if you want to commit without formatting.
 
+### Logging Control
+
+GAC provides flexible logging control to adjust the verbosity of output. You can set the logging level in two ways:
+
+1. Using command-line flags:
+
+```bash
+# Detailed debug logging
+gac --DEBUG
+
+# Default information level
+gac --INFO
+
+# Only show warnings
+gac --WARNING
+
+# Only show errors
+gac --ERROR
+```
+
+2. Using the environment variable:
+
+```bash
+# Set to any of: DEBUG, INFO, WARNING, ERROR
+export GAC_LOG_LEVEL=DEBUG
+gac
+```
+
+The logging levels control what information is displayed:
+
+- **DEBUG**: Detailed information for debugging and troubleshooting
+- **INFO** (default): General information about the commit process
+- **WARNING**: Only show warnings and more severe issues
+- **ERROR**: Only show error messages
+
+Use `--DEBUG` when you need to troubleshoot issues with API connections or unexpected behavior.
+
 ### Caching
 
 GAC implements caching to improve performance and reduce API calls. The cache stores:
@@ -215,6 +253,10 @@ Available options:
 | `--conventional, -c` | Generate commit messages using conventional format | `gac --conventional`                     |
 | `--no-cache`         | Skip cache and force fresh API calls               | `gac --no-cache`                         |
 | `--clear-cache`      | Clear all cached data before running               | `gac --clear-cache`                      |
+| `--DEBUG`            | Set logging level to DEBUG                         | `gac --DEBUG`                            |
+| `--INFO`             | Set logging level to INFO (default)                | `gac --INFO`                             |
+| `--WARNING`          | Set logging level to WARNING                       | `gac --WARNING`                          |
+| `--ERROR`            | Set logging level to ERROR                         | `gac --ERROR`                            |
 
 ### Common Workflows
 

@@ -46,8 +46,11 @@ class TestConfig(unittest.TestCase):
         # Call get_config
         config = get_config()
 
-        # Assert default values are returned
-        self.assertEqual(config, DEFAULT_CONFIG)
+        # Create a copy of the config without api_key for comparison
+        config_without_api_key = {k: v for k, v in config.items() if k != "api_key"}
+
+        # Assert default values are returned (ignoring api_key)
+        self.assertEqual(config_without_api_key, DEFAULT_CONFIG)
         self.assertEqual(config["model"], DEFAULT_CONFIG["model"])
         self.assertTrue(config["use_formatting"])
         self.assertEqual(config["max_output_tokens"], DEFAULT_CONFIG["max_output_tokens"])

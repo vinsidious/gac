@@ -236,10 +236,10 @@ gac -m openai:gpt-4o
 
 If you continue to experience issues:
 
-1. Run GAC in verbose mode for more information:
+1. Run GAC in debug mode for more information:
 
    ```bash
-   gac -v
+   gac --DEBUG
    ```
 
 2. Check the [GitHub issues](https://github.com/cellwebb/gac/issues) for similar problems and solutions

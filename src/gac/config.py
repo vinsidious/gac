@@ -28,7 +28,7 @@ PROVIDER_MODELS = {
 # Default settings
 DEFAULT_CONFIG = {
     "model": "anthropic:claude-3-5-haiku-latest",  # Default model with provider prefix
-    "use_formatting": True,  # Format Python files with black and isort
+    "use_formatting": True,  # Whether to format code
     "max_output_tokens": 512,  # Maximum tokens in model output
     "warning_limit_input_tokens": 16000,  # Maximum tokens in input prompt
 }
@@ -76,6 +76,24 @@ def get_config() -> Dict[str, Any]:
     """
     config = DEFAULT_CONFIG.copy()
 
+    # Debug logging of environment variables
+    logger.debug("Loading configuration...")
+
+    # Extract provider from current model setting
+    current_model = config.get("model", "")
+    if ":" in current_model:
+        provider = current_model.split(":")[0]
+        api_key_env = API_KEY_ENV_VARS.get(provider)
+        if api_key_env:
+            api_key = os.environ.get(api_key_env)
+            if api_key:
+                masked_key = api_key[:4] + "..." + api_key[-4:] if len(api_key) > 8 else "****"
+                logger.debug(f"Found API key for {provider}: {masked_key}")
+                # Store the API key in the config
+                config["api_key"] = api_key
+            else:
+                logger.debug(f"No API key found for {provider} in {api_key_env}")
+
     # Handle model selection with precedence
     if os.environ.get(ENV_VARS["model"]):
         model = os.environ[ENV_VARS["model"]]
@@ -88,6 +106,20 @@ def get_config() -> Dict[str, Any]:
             model = f"anthropic:{model}"
         config["model"] = model
         logger.debug(f"Using model from {ENV_VARS['model']}: {model}")
+
+        # Update API key based on the new model
+        if ":" in model:
+            provider = model.split(":")[0]
+            api_key_env = API_KEY_ENV_VARS.get(provider)
+            if api_key_env:
+                api_key = os.environ.get(api_key_env)
+                if api_key:
+                    masked_key = api_key[:4] + "..." + api_key[-4:] if len(api_key) > 8 else "****"
+                    logger.debug(f"Found API key for {provider}: {masked_key}")
+                    # Store the API key in the config
+                    config["api_key"] = api_key
+                else:
+                    logger.debug(f"No API key found for {provider} in {api_key_env}")
 
     # Handle formatting preference
     if os.environ.get(ENV_VARS["use_formatting"]) is not None:
