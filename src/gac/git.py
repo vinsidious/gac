@@ -4,18 +4,15 @@ import logging
 import os
 import subprocess
 import warnings
-from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from rich.panel import Panel
 
 from gac.ai import count_tokens, generate_commit_message
-from gac.config import get_config
-from gac.errors import GACError, handle_error
+from gac.errors import GACError, GitError, handle_error, with_error_handling
 from gac.files import file_matches_pattern
-from gac.format import format_files
-from gac.prompt import build_prompt, clean_commit_message
+from gac.prompt import build_prompt, clean_commit_message, create_abbreviated_prompt
 from gac.utils import console
 
 # Set up logger
@@ -152,6 +149,7 @@ def run_git_command(args: List[str], silent: bool = False, timeout: int = 30) ->
         return ""
 
 
+@with_error_handling(GitError, "Failed to determine git directory")
 def ensure_git_directory() -> Optional[str]:
     """
     Ensure we're in a git repository and change to the root directory if needed.
@@ -159,23 +157,19 @@ def ensure_git_directory() -> Optional[str]:
     Returns:
         The git repository root directory or None if not a git repository
     """
-    try:
-        # Try to get the git root directory
-        git_dir = run_git_command(["rev-parse", "--show-toplevel"])
-        if not git_dir:
-            logger.error("Not in a git repository")
-            return None
-
-        # Change to the git repository root if we're not already there
-        current_dir = os.getcwd()
-        if git_dir and git_dir != current_dir:
-            logger.debug(f"Changing directory to git root: {git_dir}")
-            os.chdir(git_dir)
-
-        return git_dir
-    except Exception as e:
-        logger.error(f"Error determining git directory: {e}")
+    # Try to get the git root directory
+    git_dir = run_git_command(["rev-parse", "--show-toplevel"])
+    if not git_dir:
+        logger.error("Not in a git repository")
         return None
+
+    # Change to the git repository root if we're not already there
+    current_dir = os.getcwd()
+    if git_dir and git_dir != current_dir:
+        logger.debug(f"Changing directory to git root: {git_dir}")
+        os.chdir(git_dir)
+
+    return git_dir
 
 
 def get_status() -> str:
@@ -255,6 +249,7 @@ def get_staged_diff() -> str:
     return run_git_command(["diff", "--staged"])
 
 
+@with_error_handling(GitError, "Failed to stage files")
 def stage_files(files: List[str]) -> bool:
     """
     Stage the specified files.
@@ -268,14 +263,11 @@ def stage_files(files: List[str]) -> bool:
     if not files:
         return False
 
-    try:
-        run_git_command(["add"] + files)
-        return True
-    except Exception as e:
-        logger.error(f"Error staging files: {e}")
-        return False
+    run_git_command(["add"] + files)
+    return True
 
 
+@with_error_handling(GitError, "Failed to stage all files")
 def stage_all_files() -> bool:
     """
     Stage all changes.
@@ -283,17 +275,14 @@ def stage_all_files() -> bool:
     Returns:
         True if successful, False otherwise
     """
-    try:
-        run_git_command(["add", "--all"])
-        return True
-    except Exception as e:
-        logger.error(f"Error staging all files: {e}")
-        return False
+    run_git_command(["add", "--all"])
+    return True
 
 
+@with_error_handling(GitError, "Failed to commit changes")
 def perform_commit(message: str) -> bool:
     """
-    Commit changes with the specified message.
+    Commit staged changes with the given message.
 
     Args:
         message: Commit message
@@ -301,27 +290,23 @@ def perform_commit(message: str) -> bool:
     Returns:
         True if successful, False otherwise
     """
-    try:
-        run_git_command(["commit", "-m", message])
-        return True
-    except Exception as e:
-        logger.error(f"Error committing changes: {e}")
+    if not message:
         return False
 
+    run_git_command(["commit", "-m", message])
+    return True
 
+
+@with_error_handling(GitError, "Failed to push changes")
 def push_changes() -> bool:
     """
-    Push changes to the remote repository.
+    Push committed changes to the remote repository.
 
     Returns:
         True if successful, False otherwise
     """
-    try:
-        run_git_command(["push"])
-        return True
-    except Exception as e:
-        logger.error(f"Error pushing changes: {e}")
-        return False
+    run_git_command(["push"])
+    return True
 
 
 def generate_commit(
@@ -336,7 +321,11 @@ def generate_commit(
     no_spinner: bool = False,
 ) -> Optional[str]:
     """
-    Generate a commit message for staged changes.
+    Generate a commit message based on staged changes.
+
+    DEPRECATED: This function is deprecated and will be removed in a future version.
+    Use generate_commit_with_options with a dictionary created by create_generate_options
+    instead.
 
     Args:
         staged_files: Optional list of staged files (if None, all staged files are used)
@@ -350,144 +339,34 @@ def generate_commit(
         no_spinner: Disable progress spinner during API calls
 
     Returns:
-        The generated commit message or None if failed
+        Generated commit message or None if failed
     """
-    try:
-        # Ensure we're in a git repository
-        if not ensure_git_directory():
-            return None
-
-        # Get staged files if not provided
-        if staged_files is None:
-            staged_files = get_staged_files()
-
-        if not staged_files:
-            logger.error("No staged changes found. Stage your changes with git add first.")
-            return None
-
-        # Format staged files if requested
-        if formatting:
-            formatted = format_files(staged_files)
-            if formatted:
-                # Re-stage the formatted files
-                all_formatted = []
-                for files_list in formatted.values():
-                    all_formatted.extend(files_list)
-
-                if all_formatted:
-                    stage_files(all_formatted)
-
-        # Get the diff of staged changes
-        diff = get_staged_diff()
-        if not diff:
-            logger.error("No diff found for staged changes.")
-            return None
-
-        # Get git status
-        status = get_status()
-
-        # Build the prompt
-        prompt = build_prompt(status, diff, one_liner, hint)
-
-        # Show prompt if requested
-        if show_prompt:
-            # Create an abbreviated version
-            abbrev_prompt = (
-                prompt.split("DIFF:")[0] + "DIFF: [truncated - diff content omitted for brevity]"
-            )
-            logger.info("Prompt sent to LLM:\n%s", abbrev_prompt)
-
-        if show_prompt_full:
-            logger.info("Full prompt sent to LLM:\n%s", prompt)
-
-        # Get configuration
-        config = get_config()
-        if model:
-            config["model"] = model
-
-        # Use the model from config
-        model_to_use = config.get("model", "anthropic:claude-3-5-haiku-latest")
-
-        # Always show a minimal message when generating the commit message
-        if not quiet:
-            # Split provider:model if applicable
-            if ":" in model_to_use:
-                provider, model_name = model_to_use.split(":", 1)
-                print(f"Using model: {model_name} with provider: {provider}")
-            else:
-                print(f"Using model: {model_to_use}")
-
-        # Generate the commit message
-        temperature = float(config.get("temperature", 0.7))
-        message = generate_commit_message(
-            prompt,
-            model=model_to_use,
-            temperature=temperature,
-            show_spinner=not no_spinner,
-            test_mode="PYTEST_CURRENT_TEST" in os.environ,
-        )
-
-        # Clean and return the message
-        if message:
-            return clean_commit_message(message)
-        return None
-
-    except Exception as e:
-        logger.error(f"Error generating commit message: {e}")
-        return None
-
-
-@dataclass
-class CommitOptions:
-    """Options for commit operations."""
-
-    force: bool = False
-    add_all: bool = False
-    formatting: bool = True
-    model: Optional[str] = None
-    hint: str = ""
-    one_liner: bool = False
-    show_prompt: bool = False
-    show_prompt_full: bool = False
-    quiet: bool = False
-    no_spinner: bool = False
-    push: bool = False
-
-
-def commit_changes_with_options(
-    options: CommitOptions,
-    message: Optional[str] = None,
-    staged_files: Optional[List[str]] = None,
-) -> Optional[str]:
-    """
-    Generate commit message and commit staged changes using a CommitOptions object.
-
-    Args:
-        options: CommitOptions object with commit settings
-        message: Optional pre-generated commit message
-        staged_files: Optional list of staged files (if None, all staged files are used)
-
-    Returns:
-        The generated commit message or None if failed
-    """
-    return commit_changes(
-        message=message,
-        staged_files=staged_files,
-        force=options.force,
-        add_all=options.add_all,
-        formatting=options.formatting,
-        model=options.model,
-        hint=options.hint,
-        one_liner=options.one_liner,
-        show_prompt=options.show_prompt,
-        show_prompt_full=options.show_prompt_full,
-        quiet=options.quiet,
-        no_spinner=options.no_spinner,
-        push=options.push,
+    warnings.warn(
+        "generate_commit with individual parameters is deprecated and will be removed "
+        "in a future version. Use generate_commit_with_options with a dictionary "
+        "created by create_generate_options instead.",
+        DeprecationWarning,
+        stacklevel=2,
     )
 
+    # Create options dictionary
+    options = create_generate_options(
+        staged_files=staged_files,
+        formatting=formatting,
+        model=model,
+        hint=hint,
+        one_liner=one_liner,
+        show_prompt=show_prompt,
+        show_prompt_full=show_prompt_full,
+        quiet=quiet,
+        no_spinner=no_spinner,
+    )
 
-def commit_changes(
+    # Delegate to generate_commit_with_options
+    return generate_commit_with_options(options)
+
+
+def create_commit_options(
     message: Optional[str] = None,
     staged_files: Optional[List[str]] = None,
     force: bool = False,
@@ -501,13 +380,13 @@ def commit_changes(
     quiet: bool = False,
     no_spinner: bool = False,
     push: bool = False,
-) -> Optional[str]:
+) -> Dict[str, Any]:
     """
-    Generate commit message and commit staged changes.
+    Create a dictionary with commit options.
 
     Args:
         message: Optional pre-generated commit message
-        staged_files: Optional list of staged files (if None, all staged files are used)
+        staged_files: Optional list of staged files
         force: Skip all confirmation prompts
         add_all: Stage all changes before committing
         formatting: Whether to format code
@@ -521,99 +400,98 @@ def commit_changes(
         push: Push changes to remote after committing
 
     Returns:
+        Dictionary with commit options
+    """
+    return {
+        "message": message,
+        "staged_files": staged_files,
+        "force": force,
+        "add_all": add_all,
+        "formatting": formatting,
+        "model": model,
+        "hint": hint,
+        "one_liner": one_liner,
+        "show_prompt": show_prompt,
+        "show_prompt_full": show_prompt_full,
+        "quiet": quiet,
+        "no_spinner": no_spinner,
+        "push": push,
+    }
+
+
+@with_error_handling(GitError, "Failed to commit changes", exit_on_error=False)
+def commit_changes_with_options(options: Dict[str, Any]) -> Optional[str]:
+    """
+    Generate commit message and commit staged changes using an options dictionary.
+
+    This is the preferred function for committing changes, as it uses a
+    dictionary of options instead of numerous individual parameters.
+
+    Args:
+        options: Dictionary with commit options
+
+    Returns:
         The generated commit message or None if failed
     """
-    try:
-        logger.debug(f"commit_changes called with add_all={add_all}")
+    logger.debug(f"commit_changes_with_options called with add_all={options.get('add_all')}")
 
-        # Ensure we're in a git repository
-        if not ensure_git_directory():
-            return None
-
-        # Stage all files if requested - do this first before any other operations
-        if add_all:
-            logger.debug("Staging all files")
-            success = stage_all_files()
-            logger.debug(f"stage_all_files result: {success}")
-
-            # Check git status after staging
-            status_output = run_git_command(["status", "-s"], silent=True)
-            logger.debug(f"Git status after staging all: {status_output}")
-
-            # Force refresh of staged files after staging all
-            staged_files = None
-
-        # Get staged files
-        if staged_files is None:
-            logger.debug("Getting staged files")
-            staged_files = get_staged_files()
-            logger.debug(f"Staged files: {staged_files}")
-
-        # Check if there are any changes to commit
-        if not staged_files:
-            # If add_all was requested but no files were staged, check if there are any unstaged changes  # noqa: E501
-            if add_all:
-                status_output = run_git_command(["status", "-s"], silent=True)
-                if not status_output:
-                    logger.error("No changes found in the repository.")
-                    return None
-                else:
-                    logger.error("Failed to stage changes. Check your git configuration.")
-                    return None
-            else:
-                logger.error("No staged changes found. Stage your changes with git add first.")
-                return None
-
-        # Generate commit message if not provided
-        if not message:
-            message = generate_commit(
-                staged_files=staged_files,
-                formatting=formatting,
-                model=model,
-                hint=hint,
-                one_liner=one_liner,
-                show_prompt=show_prompt,
-                show_prompt_full=show_prompt_full,
-                quiet=quiet,
-                no_spinner=no_spinner,
-            )
-
-        if not message:
-            logger.error("Failed to generate commit message.")
-            return None
-
-        # Always display the commit message
-        if not quiet:
-            console.print(
-                Panel(message, title="Suggested Commit Message", border_style="bright_blue")
-            )
-
-        # If force mode is not enabled, prompt for confirmation
-        if not force and not quiet:
-            confirm = input("\nProceed with this commit message? (y/n): ").strip().lower()
-            if confirm == "n":
-                print("Commit cancelled.")
-                return None
-
-        # Execute the commit
-        success = perform_commit(message)
-        if not success:
-            handle_error(GACError("Failed to commit changes"), quiet=quiet)
-            return None
-
-        # Push changes if requested
-        if push and success:
-            push_success = push_changes()
-            if not push_success:
-                handle_error(GACError("Failed to push changes"), quiet=quiet, exit_program=False)
-
-        return message
-
-    except Exception as e:
-        logger.error(f"Error during commit workflow: {e}")
+    # Ensure we're in a git repository and prepare for commit
+    prep_result = prepare_commit(options)
+    if not prep_result.get("success"):
+        logger.error(prep_result.get("error", "Failed to prepare commit"))
         return None
 
+    # Use provided message or generate one
+    message = options.get("message")
+    if not message:
+        # Create generation options dictionary for generate_commit
+        gen_options = {
+            "staged_files": prep_result["staged_files"],
+            "formatting": False,  # Formatting already done in prepare_commit
+            "model": options.get("model"),
+            "hint": options.get("hint", ""),
+            "one_liner": options.get("one_liner", False),
+            "show_prompt": options.get("show_prompt", False),
+            "show_prompt_full": options.get("show_prompt_full", False),
+            "quiet": options.get("quiet", False),
+            "no_spinner": options.get("no_spinner", False),
+        }
 
+        message = generate_commit_with_options(gen_options)
+
+    if not message:
+        logger.error("Failed to generate commit message.")
+        return None
+
+    # Always display the commit message
+    if not options.get("quiet"):
+        console.print(Panel(message, title="Suggested Commit Message", border_style="bright_blue"))
+
+    # If force mode is not enabled, prompt for confirmation
+    if not options.get("force") and not options.get("quiet"):
+        confirm = input("\nProceed with this commit message? (y/n): ").strip().lower()
+        if confirm == "n":
+            print("Commit cancelled.")
+            return None
+
+    # Execute the commit
+    success = perform_commit(message)
+    if not success:
+        handle_error(GACError("Failed to commit changes"), quiet=options.get("quiet"))
+        return None
+
+    # Push changes if requested
+    if options.get("push") and success:
+        push_success = push_changes()
+        if not push_success:
+            handle_error(
+                GACError("Failed to push changes"), quiet=options.get("quiet"), exit_program=False
+            )
+
+    return message
+
+
+@with_error_handling(GitError, "Failed to check for staged changes", exit_on_error=False)
 def has_staged_changes() -> bool:
     """
     Check if there are any staged changes.
@@ -801,3 +679,375 @@ class RealGitOperations(GitOperations):
 # NOTE: The GitOperationsManager is being deprecated in favor of direct function calls
 # Tests should use the set_git_operations mechanism instead of this class
 # This class will be removed in a future release
+
+
+def create_generate_options(
+    staged_files: Optional[List[str]] = None,
+    formatting: bool = True,
+    model: Optional[str] = None,
+    hint: str = "",
+    one_liner: bool = False,
+    show_prompt: bool = False,
+    show_prompt_full: bool = False,
+    quiet: bool = False,
+    no_spinner: bool = False,
+) -> Dict[str, Any]:
+    """
+    Create a dictionary with commit message generation options.
+
+    Args:
+        staged_files: Optional list of staged files
+        formatting: Whether to format code
+        model: Override model to use
+        hint: Additional context for the prompt
+        one_liner: Generate a single-line commit message
+        show_prompt: Show an abbreviated version of the prompt
+        show_prompt_full: Show the complete prompt
+        quiet: Suppress non-error output
+        no_spinner: Disable progress spinner during API calls
+
+    Returns:
+        Dictionary with generation options
+    """
+    return {
+        "staged_files": staged_files,
+        "formatting": formatting,
+        "model": model,
+        "hint": hint,
+        "one_liner": one_liner,
+        "show_prompt": show_prompt,
+        "show_prompt_full": show_prompt_full,
+        "quiet": quiet,
+        "no_spinner": no_spinner,
+    }
+
+
+@with_error_handling(GitError, "Failed to generate commit message", exit_on_error=False)
+def generate_commit_with_options(options: Dict[str, Any]) -> Optional[str]:
+    """
+    Generate a commit message based on provided options dictionary.
+
+    This is the preferred function for generating commit messages, as it uses a
+    dictionary of options instead of numerous individual parameters.
+
+    Args:
+        options: Dictionary with generation settings
+
+    Returns:
+        Generated commit message or None if failed
+    """
+    # Import dependencies to avoid circular imports
+    from gac.config import get_config
+
+    # Prepare repository for commit (staging and formatting)
+    if options.get("formatting", True):
+        prep_result = prepare_commit(options)
+        if not prep_result.get("success"):
+            logger.error(prep_result.get("error", "Failed to prepare commit"))
+            return None
+
+        diff = prep_result["diff"]
+        status = prep_result["status"]
+    else:
+        # Skip formatting, just get staged files and diff
+        staged_files = options.get("staged_files")
+        if staged_files is None:
+            staged_files = get_staged_files()
+            if not staged_files:
+                logger.error("No staged changes found. Stage your changes with git add first.")
+                return None
+
+        diff = get_staged_diff()
+        if not diff:
+            logger.error("No diff found for staged changes.")
+            return None
+
+        status = get_status()
+
+    # Build prompt for the LLM
+    prompt = build_prompt(
+        status=status,
+        diff=diff,
+        one_liner=options.get("one_liner", False),
+        hint=options.get("hint", ""),
+    )
+
+    # Show prompt if requested
+    if options.get("show_prompt") or options.get("show_prompt_full"):
+        if not options.get("quiet"):
+            # Create abbreviated prompt if not showing full prompt
+            if options.get("show_prompt") and not options.get("show_prompt_full"):
+                display_prompt = create_abbreviated_prompt(prompt)
+            else:
+                display_prompt = prompt
+
+            console.print(
+                Panel(
+                    display_prompt,
+                    title="Prompt for LLM",
+                    border_style="bright_blue",
+                )
+            )
+
+    # Get configuration
+    config = get_config()
+    model_override = options.get("model")
+    if model_override:
+        model_to_use = model_override
+    else:
+        model_to_use = config.get("model", "anthropic:claude-3-5-haiku-latest")
+
+    # Always show a minimal message when generating the commit message
+    if not options.get("quiet"):
+        # Split provider:model if applicable
+        if ":" in model_to_use:
+            provider, model_name = model_to_use.split(":", 1)
+            print(f"Using model: {model_name} with provider: {provider}")
+        else:
+            print(f"Using model: {model_to_use}")
+
+    # Call the AI to generate the commit message
+    temperature = float(config.get("temperature", 0.7))
+    message = generate_commit_message(
+        prompt=prompt,
+        model=model_to_use,
+        temperature=temperature,
+        show_spinner=not options.get("no_spinner", False),
+        test_mode="PYTEST_CURRENT_TEST" in os.environ,
+    )
+
+    if message:
+        return clean_commit_message(message)
+    return None
+
+
+def commit_changes(
+    message: Optional[str] = None,
+    staged_files: Optional[List[str]] = None,
+    force: bool = False,
+    add_all: bool = False,
+    formatting: bool = True,
+    model: Optional[str] = None,
+    hint: str = "",
+    one_liner: bool = False,
+    show_prompt: bool = False,
+    show_prompt_full: bool = False,
+    quiet: bool = False,
+    no_spinner: bool = False,
+    push: bool = False,
+) -> Optional[str]:
+    """
+    Generate commit message and commit staged changes.
+
+    DEPRECATED: This function is deprecated and will be removed in a future version.
+    Use commit_changes_with_options with an options dictionary created by
+    create_commit_options instead.
+
+    Args:
+        message: Optional pre-generated commit message
+        staged_files: Optional list of staged files (if None, all staged files are used)
+        force: Skip all confirmation prompts
+        add_all: Stage all changes before committing
+        formatting: Whether to format code
+        model: Override model to use
+        hint: Additional context for the prompt
+        one_liner: Generate a single-line commit message
+        show_prompt: Show an abbreviated version of the prompt
+        show_prompt_full: Show the complete prompt
+        quiet: Suppress non-error output
+        no_spinner: Disable progress spinner during API calls
+        push: Push changes to remote after committing
+
+    Returns:
+        The generated commit message or None if failed
+    """
+    warnings.warn(
+        "commit_changes with individual parameters is deprecated and will be removed "
+        "in a future version. Use commit_changes_with_options with an options dictionary "
+        "created by create_commit_options instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    # Create options dictionary from the individual parameters
+    options = create_commit_options(
+        message=message,
+        staged_files=staged_files,
+        force=force,
+        add_all=add_all,
+        formatting=formatting,
+        model=model,
+        hint=hint,
+        one_liner=one_liner,
+        show_prompt=show_prompt,
+        show_prompt_full=show_prompt_full,
+        quiet=quiet,
+        no_spinner=no_spinner,
+        push=push,
+    )
+
+    # Delegate to commit_changes_with_options
+    return commit_changes_with_options(options)
+
+
+def get_git_status_summary() -> Dict[str, Any]:
+    """
+    Get a summary of the Git repository status.
+
+    Returns:
+        Dictionary with repository status information
+    """
+    # Ensure we're in a git repository
+    repo_dir = ensure_git_directory()
+    if not repo_dir:
+        return {"valid": False, "repo_dir": None}
+
+    # Get status and additional info
+    return {
+        "valid": True,
+        "repo_dir": repo_dir,
+        "status": get_status(),
+        "has_staged": has_staged_changes(),
+        "staged_files": get_staged_files(),
+        "status_short": run_git_command(["status", "-s"], silent=True),
+        "branch": run_git_command(["rev-parse", "--abbrev-ref", "HEAD"], silent=True),
+    }
+
+
+def apply_formatting_to_files(files: Dict[str, str]) -> List[str]:
+    """
+    Apply formatting to files and restage them.
+
+    Args:
+        files: Dictionary mapping file paths to their status
+
+    Returns:
+        List of formatted and staged files
+    """
+    # Import here to avoid circular imports
+    from gac.format import format_files
+
+    # Format files
+    formatted_files = format_files(files)
+    if not formatted_files:
+        return []
+
+    # Collect all formatted files
+    all_formatted = []
+    for files_list in formatted_files.values():
+        all_formatted.extend(files_list)
+
+    # Restage formatted files
+    if all_formatted:
+        stage_files(all_formatted)
+
+    return all_formatted
+
+
+def prepare_commit(options: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Prepare repository for commit by handling staging and formatting.
+
+    Args:
+        options: Dictionary with commit options
+
+    Returns:
+        Dictionary with prepared commit information
+    """
+    # Stage all files if requested
+    if options.get("add_all"):
+        stage_all_files()
+
+    # Get staged files
+    staged_files = options.get("staged_files") or get_staged_files()
+    if not staged_files:
+        return {"success": False, "error": "No staged changes found"}
+
+    # Format files if requested
+    if options.get("formatting"):
+        files_with_status = get_staged_files_with_status()
+        if files_with_status:
+            formatted_files = apply_formatting_to_files(files_with_status)
+            if formatted_files:
+                # Update staged files list if any files were formatted
+                staged_files = get_staged_files()
+
+    # Get diff for staged files
+    diff = get_staged_diff()
+    if not diff:
+        return {"success": False, "error": "No diff found for staged changes"}
+
+    return {
+        "success": True,
+        "staged_files": staged_files,
+        "diff": diff,
+        "status": get_status(),
+    }
+
+
+def commit_workflow(
+    message: Optional[str] = None,
+    stage_all: bool = False,
+    format_files: bool = True,
+    model: Optional[str] = None,
+    hint: str = "",
+    one_liner: bool = False,
+    show_prompt: bool = False,
+    require_confirmation: bool = True,
+    push: bool = False,
+    quiet: bool = False,
+) -> Dict[str, Any]:
+    """
+    Run the complete commit workflow in a functional way.
+
+    This function composes the entire commit workflow using a pure functional approach,
+    returning a dictionary with the result instead of using side effects.
+
+    Args:
+        message: Optional pre-generated commit message
+        stage_all: Whether to stage all changes before committing
+        format_files: Whether to format code
+        model: Override model to use
+        hint: Additional context for the prompt
+        one_liner: Generate a single-line commit message
+        show_prompt: Show the prompt sent to the LLM
+        require_confirmation: Require user confirmation before committing
+        push: Push changes to remote after committing
+        quiet: Suppress non-error output
+
+    Returns:
+        Dictionary with the commit result
+    """
+    # Get repository status first
+    status = get_git_status_summary()
+    if not status.get("valid"):
+        return {"success": False, "error": "Not in a git repository"}
+
+    # Create options dictionary for the commit operation
+    options = create_commit_options(
+        message=message,
+        add_all=stage_all,
+        formatting=format_files,
+        model=model,
+        hint=hint,
+        one_liner=one_liner,
+        show_prompt=show_prompt,
+        force=not require_confirmation,
+        quiet=quiet,
+        push=push,
+    )
+
+    # Execute the commit operation
+    commit_message = commit_changes_with_options(options)
+
+    # Return the result
+    if commit_message:
+        return {
+            "success": True,
+            "message": commit_message,
+            "repository": status["repo_dir"],
+            "branch": status["branch"],
+            "pushed": push,
+        }
+
+    return {"success": False, "error": "Failed to commit changes"}

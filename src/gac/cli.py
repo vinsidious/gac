@@ -9,7 +9,7 @@ from typing import Optional
 import click
 
 from gac.ai import is_ollama_available
-from gac.git import CommitOptions, commit_changes_with_options, run_git_command
+from gac.git import commit_workflow
 from gac.utils import print_error, print_info, print_success, setup_logging
 
 logger = logging.getLogger(__name__)
@@ -148,54 +148,57 @@ def commit(
     no_spinner: bool = None,
     push: bool = None,
 ) -> None:
-    """Generate a commit message and commit changes."""
-    quiet = ctx.obj["quiet"]
+    """Generate a commit message using an LLM and commit your staged changes."""
+    # Start with parent context values
+    parent_ctx = ctx.parent.params
 
-    # Use values from context if not provided directly to the command
-    force = force if force is not None else ctx.obj.get("force", False)
-    add_all = add_all if add_all is not None else ctx.obj.get("add_all", False)
-    no_format = no_format if no_format is not None else ctx.obj.get("no_format", False)
-    model = model if model is not None else ctx.obj.get("model")
-    one_liner = one_liner if one_liner is not None else ctx.obj.get("one_liner", False)
-    show_prompt = show_prompt if show_prompt is not None else ctx.obj.get("show_prompt", False)
-    show_prompt_full = (
-        show_prompt_full if show_prompt_full is not None else ctx.obj.get("show_prompt_full", False)
+    # Create options dictionary using parent values but override with command-specific values
+    # Use the value from this command if provided, otherwise use the parent value
+    args = {
+        "force": force if force is not None else parent_ctx.get("force", False),
+        "add_all": add_all if add_all is not None else parent_ctx.get("add_all", False),
+        "formatting": (
+            not no_format if no_format is not None else not parent_ctx.get("no_format", False)
+        ),
+        "model": model if model is not None else parent_ctx.get("model"),
+        "hint": hint if hint is not None else parent_ctx.get("hint", ""),
+        "one_liner": one_liner if one_liner is not None else parent_ctx.get("one_liner", False),
+        "show_prompt": (
+            show_prompt if show_prompt is not None else parent_ctx.get("show_prompt", False)
+        ),
+        "show_prompt_full": (
+            show_prompt_full
+            if show_prompt_full is not None
+            else parent_ctx.get("show_prompt_full", False)
+        ),
+        "quiet": parent_ctx.get("quiet", False),
+        "no_spinner": no_spinner if no_spinner is not None else parent_ctx.get("no_spinner", False),
+        "push": push if push is not None else parent_ctx.get("push", False),
+    }
+
+    # Run the commit workflow using the functional API
+    result = commit_workflow(
+        message=None,
+        stage_all=args["add_all"],
+        format_files=args["formatting"],
+        model=args["model"],
+        hint=args["hint"],
+        one_liner=args["one_liner"],
+        show_prompt=args["show_prompt"] or args["show_prompt_full"],
+        require_confirmation=not args["force"],
+        push=args["push"],
+        quiet=args["quiet"],
     )
-    hint = hint if hint is not None else ctx.obj.get("hint", "")
-    no_spinner = no_spinner if no_spinner is not None else ctx.obj.get("no_spinner", False)
-    push = push if push is not None else ctx.obj.get("push", False)
 
-    # Debug logging for flags
-    logger.debug(f"CLI commit function - add_all: {add_all}, force: {force}, push: {push}")
-    logger.debug(f"CLI commit function - ctx.obj: {ctx.obj}")
-
-    # Create CommitOptions from command line arguments
-    options = CommitOptions(
-        force=force,
-        add_all=add_all,
-        formatting=not no_format,
-        model=model,
-        hint=hint,
-        one_liner=one_liner,
-        show_prompt=show_prompt,
-        show_prompt_full=show_prompt_full,
-        quiet=quiet,
-        no_spinner=no_spinner,
-        push=push,
-    )
-
-    try:
-        commit_message = commit_changes_with_options(options)
-
-        if not commit_message and not quiet:
-            if "Commit cancelled" in run_git_command(["log", "-1"], silent=True):
-                sys.exit(0)
-            logger.error("Failed to generate or apply commit")
-            sys.exit(1)
-
-    except Exception as e:
-        logger.error(f"Error: {e}")
+    # Check the result
+    if not result["success"]:
+        print_error(result["error"])
         sys.exit(1)
+
+    print_success(f"Successfully committed changes with message: {result['message']}")
+    if result.get("pushed"):
+        print_success("Changes pushed to remote.")
+    sys.exit(0)
 
 
 @cli.command()

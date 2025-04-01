@@ -23,14 +23,14 @@ coverage:
 
 # Run linting
 lint:
-	black --check .
-	isort --check .
-	flake8 --ignore=E501 .
+	black --check src/ tests/
+	isort --check src/ tests/
+	flake8 --ignore=E501 src/ tests/
 
 # Format code
 format:
-	black .
-	isort .
+	black src/ tests/
+	isort src/ tests/
 
 # Update dependencies
 update:
