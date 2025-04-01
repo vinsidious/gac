@@ -28,8 +28,8 @@ class TestPrompts(unittest.TestCase):
         result = build_prompt(status, diff, one_liner=True)
         self.assertIn("Format it as a single line", result)
 
-        # Test conventional option
-        result = build_prompt(status, diff, conventional=True)
+        # Test conventional format is always included
+        result = build_prompt(status, diff)
         self.assertIn(
             "IMPORTANT: EVERY commit message MUST start with a conventional commit prefix", result
         )
@@ -42,7 +42,7 @@ class TestPrompts(unittest.TestCase):
         self.assertIn(f"Please consider this context from the user: {hint}", result)
 
         # Test combinations
-        result = build_prompt(status, diff, one_liner=True, conventional=True, hint=hint)
+        result = build_prompt(status, diff, one_liner=True, hint=hint)
         self.assertIn("Format it as a single line", result)
         self.assertIn(
             "IMPORTANT: EVERY commit message MUST start with a conventional commit prefix", result

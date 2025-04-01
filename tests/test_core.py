@@ -57,13 +57,13 @@ class TestCore(unittest.TestCase):
         diff = "diff --git a/file.py b/file.py\n+New line"
 
         # Call the function directly
-        result = build_prompt(status, diff, one_liner=True, hint="Test hint", conventional=True)
+        result = build_prompt(status, diff, one_liner=True, hint="Test hint")
 
         # Check expected output contents
         self.assertIn(status, result)
         self.assertIn(diff, result)
         self.assertIn("Test hint", result)
-        self.assertIn("conventional commit", result.lower())
+        self.assertIn("conventional commit prefix", result)
         self.assertIn("single line", result.lower())
 
     def test_create_abbreviated_prompt(self):

@@ -15,11 +15,11 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [x] Remove the edit option for commit messages
    - [x] Remove the test mode flag which caused confusion
    - [x] Extract logging configuration into a dedicated utility function
-   - [ ] Merge git.py and git_operations.py to eliminate duplication
-   - [ ] Eliminate delegation pattern in git.py to reduce unnecessary indirection
+   - [x] Merge git.py and git_operations.py to eliminate duplication
+   - [x] Eliminate delegation pattern in git.py to reduce unnecessary indirection
    - [ ] Break down the large CommitWorkflow class into smaller components
    - [ ] Simplify OOP approach - consider more functional patterns where appropriate
-   - [ ] Simplify formatting architecture using a more direct approach
+   - [x] Simplify formatting architecture using a more direct approach
    - [ ] Centralize error handling and reduce duplication
    - [ ] Reduce the error type hierarchy - streamline to essential types only
 
@@ -29,7 +29,7 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [x] Implement caching for repeated operations
    - [ ] Reduce startup time
    - [ ] Optimize memory usage during diff processing
-   - [ ] Improve efficiency of diff processing logic in `git.py`
+   - [x] Improve efficiency of diff processing logic in `git.py`
 
 3. **Improve Error Handling**
 
@@ -45,11 +45,35 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
 ## Current Sprint Focus
 
 - [x] Add push functionality to enable pushing changes after committing
-- [ ] Merge git.py and git_operations.py into a single, simpler module
-- [ ] Complete the simplification of workflow.py by breaking it into smaller components
+- [x] Merge git.py and git_operations.py into a single, simpler module
+- [x] Improve workflow.py to use simplified git functionality directly
+- [ ] Complete the further simplification of workflow.py by breaking it into smaller components
 - [ ] Reduce abstraction layers throughout the codebase
 - [ ] Consolidate provider handling logic between ai_utils.py and commit_manager.py
 - [ ] Remove redundant compatibility functions once testing is updated
+
+## Recent Improvements
+
+### Git and Workflow Simplification
+
+We've made several significant improvements to simplify the codebase:
+
+1. **Consolidated Git Functionality**
+
+   - Merged git.py and git_operations.py into a single module
+   - Removed duplicate code and unnecessary abstraction layers
+   - Implemented a functional approach with a compatibility wrapper for existing class-based code
+
+2. **Improved Prompt System**
+
+   - Simplified the template generation in prompts.py
+   - Added better error handling for malformed commit messages
+   - Improved clean_commit_message to handle more edge cases
+
+3. **Streamlined Workflow**
+   - Updated workflow.py to use git functions directly instead of through manager classes
+   - Simplified the formatting and re-staging process
+   - Improved error handling and added better user feedback
 
 ## Long-term Vision
 

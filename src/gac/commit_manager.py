@@ -22,7 +22,6 @@ class CommitManager:
         show_prompt: bool = False,
         show_prompt_full: bool = False,
         hint: str = "",
-        conventional: bool = False,
         no_spinner: bool = False,
     ):
         """
@@ -35,7 +34,6 @@ class CommitManager:
             show_prompt: Show an abbreviated version of the prompt
             show_prompt_full: Show the complete prompt including full diff
             hint: Additional context to include in the prompt
-            conventional: Generate a conventional commit format message
             no_spinner: Disable progress spinner during API calls
         """
         self.quiet = quiet
@@ -44,7 +42,6 @@ class CommitManager:
         self.show_prompt = show_prompt
         self.show_prompt_full = show_prompt_full
         self.hint = hint
-        self.conventional = conventional
         self.no_spinner = no_spinner
 
         # Get configuration
@@ -54,7 +51,6 @@ class CommitManager:
 
         # Store parameters in config for use in other methods
         self.config["one_liner"] = self.one_liner
-        self.config["conventional"] = self.conventional
 
     def generate_message(self, status: str, diff: str) -> Optional[str]:
         """
@@ -69,7 +65,7 @@ class CommitManager:
         """
         try:
             # Build the prompt
-            prompt = build_prompt(status, diff, self.one_liner, self.hint, self.conventional)
+            prompt = build_prompt(status, diff, self.one_liner, self.hint)
 
             # Show prompt if requested
             if self.show_prompt:
@@ -92,7 +88,7 @@ class CommitManager:
                 else:
                     print(f"Using model: {model}")
 
-            message = self._send_to_llm(status, diff, self.one_liner, self.hint, self.conventional)
+            message = self._send_to_llm(status, diff, self.one_liner, self.hint)
             if message:
                 return clean_commit_message(message)
             return None
@@ -102,7 +98,7 @@ class CommitManager:
             logger.error(f"Error generating commit message: {error}")
             return None
 
-    def _send_to_llm(self, status, diff, one_liner=False, hint="", conventional=False):
+    def _send_to_llm(self, status, diff, one_liner=False, hint=""):
         """
         Send prompt to LLM.
 
@@ -111,7 +107,6 @@ class CommitManager:
             diff: Git diff output
             one_liner: Whether to request a one-line commit message
             hint: Hint for the commit message
-            conventional: Whether to use conventional commit format
 
         Returns:
             Model response text
@@ -121,7 +116,7 @@ class CommitManager:
             temperature = float(self.config.get("temperature", 0.7))
 
             # Create the prompt
-            prompt = build_prompt(status, diff, one_liner, hint, conventional)
+            prompt = build_prompt(status, diff, one_liner, hint)
 
             # For unit tests, if we have mock client set up, bypass aisuite
             if "PYTEST_CURRENT_TEST" in os.environ:

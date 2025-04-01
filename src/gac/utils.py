@@ -152,43 +152,23 @@ def colorize(text: str, fg_color: Color = None, bg_color: Color = None, bold: bo
 
 
 def print_info(message: str) -> None:
-    """
-    Print an informational message with color.
-
-    Args:
-        message: The message to print
-    """
-    console.print(f"ℹ️ {message}", style="info")
+    """Print an informational message with color."""
+    console.print(message, style="info")
 
 
 def print_success(message: str) -> None:
-    """
-    Print a success message with color.
-
-    Args:
-        message: The message to print
-    """
-    console.print(f"✅ {message}", style="success")
+    """Print a success message with color."""
+    console.print(message, style="success")
 
 
 def print_warning(message: str) -> None:
-    """
-    Print a warning message with color.
-
-    Args:
-        message: The message to print
-    """
-    console.print(f"⚠️ {message}", style="warning")
+    """Print a warning message with color."""
+    console.print(message, style="warning")
 
 
 def print_error(message: str) -> None:
-    """
-    Print an error message with color.
-
-    Args:
-        message: The message to print
-    """
-    console.print(f"❌ {message}", style="error")
+    """Print an error message with color."""
+    console.print(message, style="error")
 
 
 def print_header(message: str) -> None:

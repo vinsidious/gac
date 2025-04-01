@@ -179,14 +179,8 @@ class FormattingController:
             logger.warning("None of the specified Python files exist.")
             return formatted
 
-        if len(existing_files) < len(files) and not quiet:
-            missing = set(files) - set(existing_files)
-            logger.warning(
-                f"Some Python files do not exist and will be skipped: {', '.join(missing)}"
-            )
-
         if not quiet and logging.getLogger().getEffectiveLevel() <= logging.INFO:
-            print_info(f"💅 Formatting {len(existing_files)} Python files...")
+            print_info(f"Formatting {len(existing_files)} Python files...")
 
         try:
             # Format with isort

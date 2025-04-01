@@ -42,12 +42,6 @@ logger = logging.getLogger(__name__)
 )
 @click.option("--hint", "-h", default="", help="Additional context to include in the prompt")
 @click.option(
-    "--conventional",
-    "-c",
-    is_flag=True,
-    help="Generate a conventional commit format message",
-)
-@click.option(
     "--no-spinner",
     is_flag=True,
     help="Disable progress spinner during API calls",
@@ -77,7 +71,6 @@ def cli(
     show_prompt: bool,
     show_prompt_full: bool,
     hint: str,
-    conventional: bool,
     no_spinner: bool,
     local_models: bool,
     config_wizard: bool,
@@ -131,7 +124,6 @@ def cli(
             show_prompt=show_prompt,
             show_prompt_full=show_prompt_full,
             hint=hint,
-            conventional=conventional,
             no_spinner=no_spinner,
             push=push,
         )

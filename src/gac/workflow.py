@@ -6,10 +6,10 @@ from typing import Optional
 
 from rich.panel import Panel
 
+import gac.git as git
 from gac.commit_manager import CommitManager
 from gac.errors import GACError, convert_exception, handle_error
 from gac.formatting_controller import FormattingController
-from gac.git_operations import GitOperationsManager
 from gac.utils import console, print_info, print_success
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ def send_to_llm(prompt, model=None, api_key=None, max_tokens_to_sample=4096):
     )
 
     # Treat prompt as diff for compatibility with updated function
-    return commit_manager._send_to_llm("", prompt, False, "", False)
+    return commit_manager._send_to_llm("", prompt, False, "")
 
 
 class CommitWorkflow:
@@ -54,7 +54,6 @@ class CommitWorkflow:
         show_prompt: bool = False,
         show_prompt_full: bool = False,
         hint: str = "",
-        conventional: bool = False,
         no_spinner: bool = False,
         formatter: str = None,
         formatting: bool = True,
@@ -75,7 +74,6 @@ class CommitWorkflow:
             show_prompt: Show an abbreviated version of the prompt
             show_prompt_full: Show the complete prompt including full diff
             hint: Additional context to include in the prompt
-            conventional: Generate a conventional commit format message
             no_spinner: Disable progress spinner during API calls
             formatter: Specific formatter to use
             formatting: Whether to perform code formatting
@@ -100,7 +98,6 @@ class CommitWorkflow:
             logger.debug("Verbose mode: setting log level to DEBUG")
 
         # Initialize components
-        self.git_manager = GitOperationsManager(quiet=quiet)
         self.formatting_controller = FormattingController()
         self.commit_manager = CommitManager(
             quiet=quiet,
@@ -109,7 +106,6 @@ class CommitWorkflow:
             show_prompt=show_prompt,
             show_prompt_full=show_prompt_full,
             hint=hint,
-            conventional=conventional,
             no_spinner=no_spinner,
         )
 
@@ -117,15 +113,15 @@ class CommitWorkflow:
         """Execute the full commit workflow."""
         try:
             # Ensure we're in a git repository
-            if not self.git_manager.ensure_git_directory():
+            if not git.ensure_git_directory():
                 return None
 
             # Stage all files if requested
             if self.add_all:
-                self.git_manager.stage_all_files()
+                git.stage_all_files()
 
             # Get staged files and diff
-            staged_files = self.git_manager.get_staged_files()
+            staged_files = git.get_staged_files()
             if not staged_files:
                 logger.error("No staged changes found. Stage your changes with git add first.")
                 return None
@@ -135,13 +131,13 @@ class CommitWorkflow:
                 self._format_staged_files(staged_files)
 
             # Get the diff of staged changes
-            diff = self.git_manager.get_staged_diff()
+            diff = git.get_staged_diff()
             if not diff:
                 logger.error("No diff found for staged changes.")
                 return None
 
             # Get git status
-            status = self.git_manager.get_status()
+            status = git.get_status()
 
             # Generate commit message
             commit_message = self.commit_manager.generate_message(status, diff)
@@ -164,14 +160,14 @@ class CommitWorkflow:
                     return None
 
             # Execute the commit
-            success = self.git_manager.commit_changes(commit_message)
+            success = git.commit_changes(commit_message)
             if not success:
                 handle_error(GACError("Failed to commit changes"), quiet=self.quiet)
                 return None
 
             # Push changes if requested
             if self.push and success:
-                push_success = self.git_manager.push_changes()
+                push_success = git.push_changes()
                 if not push_success:
                     handle_error(
                         GACError("Failed to push changes"), quiet=self.quiet, exit_program=False
@@ -201,30 +197,17 @@ class CommitWorkflow:
 
         formatted_files = self.formatting_controller.format_staged_files(staged_files, self.quiet)
 
-        if not self.quiet:
-            print_success("Formatting complete")
-        elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
-            logger.info("Formatting complete")
+        if formatted_files and not self.quiet:
+            formatted_count = sum(len(files) for files in formatted_files.values())
+            print_success(f"Formatted {formatted_count} files")
 
-        # Re-stage formatted files
+        # Re-stage the formatted files
         if formatted_files:
-            # Collect all formatted file paths
-            files_to_stage = []
-            for formatter, files in formatted_files.items():
-                files_to_stage.extend(files)
+            all_formatted = []
+            for files in formatted_files.values():
+                all_formatted.extend(files)
 
-            # Re-stage the formatted files
-            if files_to_stage:
-                if not self.quiet:
-                    print_info("Re-staging formatted files...")
-                elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
-                    logger.info("Re-staging formatted files...")
-
-                self.git_manager.stage_files(files_to_stage)
-
-                if not self.quiet:
-                    print_success("Formatted files re-staged")
-                elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
-                    logger.info("Formatted files re-staged")
+            if all_formatted:
+                git.stage_files(all_formatted)
 
         return formatted_files
