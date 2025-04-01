@@ -349,7 +349,7 @@ class FormattingController:
         # Only show output if log level is INFO or lower
         if logging.getLogger().getEffectiveLevel() > logging.INFO:
             return
-            
+
         if total_files == 0:
             print_warning("No files were formatted")
             return
