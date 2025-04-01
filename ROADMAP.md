@@ -8,7 +8,7 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
 
 ### Short-term Goals
 
-1. **Complete Functional Programming Transition**
+1. **Complete Functional Programming Transition** ✅
 
    - [x] Redesign core modules around pure functions with explicit dependencies
    - [x] Improve data flow with immutability principles
@@ -16,7 +16,7 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [x] Remove all dual implementation patterns
    - [x] Create a consistent error handling approach based on functional patterns
 
-2. **Simplify Core Architecture**
+2. **Simplify Core Architecture** ✅
 
    - [x] Consolidate utility functions into domain-specific modules
    - [x] Remove redundant abstraction layers
@@ -46,10 +46,11 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
 - [x] **Update Tests**: Rewrite tests to focus on behaviors rather than implementation details
 - [x] **Import Optimization**: Fix circular imports and optimize import structure
 - [ ] **Documentation Updates**: Update function docstrings and developer documentation
+- [ ] **Customizable Prompts**: Add support for user-provided prompt templates
 
 ## Functional Programming Improvements
 
-### Core Principles Implemented
+### Core Principles Implemented ✅
 
 1. **Pure Functions**
 
@@ -80,6 +81,7 @@ Our simplified vision is to:
 3. **Developer Experience**: Provide a consistent and intuitive API for developers
 4. **Performance**: Optimize for speed and efficiency in the commit workflow
 5. **Extensibility**: Create a plugin architecture for extending functionality
+6. **Customization**: Add support for user-defined prompt templates and configuration
 
 ## Explicitly Not Planned
 
