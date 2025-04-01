@@ -15,14 +15,43 @@ from gac.utils import print_error, print_info, print_success, setup_logging
 logger = logging.getLogger(__name__)
 
 
-@click.command()
-@click.option("--force", "-f", is_flag=True, help="Skip all confirmation prompts")
-@click.option("--add-all", "-a", is_flag=True, help="Stage all changes before committing")
-@click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
+@click.group()
 @click.option("--DEBUG", "log_level_debug", is_flag=True, help="Set log level to DEBUG")
 @click.option("--INFO", "log_level_info", is_flag=True, help="Set log level to INFO")
 @click.option("--WARNING", "log_level_warning", is_flag=True, help="Set log level to WARNING")
 @click.option("--ERROR", "log_level_error", is_flag=True, help="Set log level to ERROR")
+@click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
+@click.pass_context
+def cli(
+    ctx,
+    log_level_debug: bool,
+    log_level_info: bool,
+    log_level_warning: bool,
+    log_level_error: bool,
+    quiet: bool,
+) -> None:
+    """Git Auto Commit - Generate commit messages with AI."""
+    # Set up context for all commands
+    ctx.ensure_object(dict)
+    ctx.obj["quiet"] = quiet
+
+    # Determine log level from flags
+    log_level = logging.WARNING  # Default - only show warnings and errors
+    if log_level_debug:
+        log_level = logging.DEBUG
+    elif log_level_info:
+        log_level = logging.INFO
+    elif log_level_warning:
+        log_level = logging.WARNING
+    elif log_level_error:
+        log_level = logging.ERROR
+
+    setup_logging(log_level, quiet=quiet, force=True)
+
+
+@cli.command()
+@click.option("--force", "-f", is_flag=True, help="Skip all confirmation prompts")
+@click.option("--add-all", "-a", is_flag=True, help="Stage all changes before committing")
 @click.option("--no-format", is_flag=True, help="Skip formatting of staged files")
 @click.option(
     "--model",
@@ -47,25 +76,12 @@ logger = logging.getLogger(__name__)
     is_flag=True,
     help="Disable progress spinner during API calls",
 )
-@click.option(
-    "--local-models",
-    is_flag=True,
-    help="List available local Ollama models and exit",
-)
-@click.option(
-    "--config-wizard",
-    is_flag=True,
-    help="Run the interactive configuration wizard",
-)
 @click.option("--push", "-p", is_flag=True, help="Push changes to remote after committing")
-def cli(
+@click.pass_context
+def commit(
+    ctx,
     force: bool,
     add_all: bool,
-    quiet: bool,
-    log_level_debug: bool,
-    log_level_info: bool,
-    log_level_warning: bool,
-    log_level_error: bool,
     no_format: bool,
     model: Optional[str],
     one_liner: bool,
@@ -73,43 +89,12 @@ def cli(
     show_prompt_full: bool,
     hint: str,
     no_spinner: bool,
-    local_models: bool,
-    config_wizard: bool,
     push: bool,
 ) -> None:
-    """Git Auto Commit CLI."""
-    # Configuration wizard takes precedence
-    if config_wizard:
-        from gac.config import run_config_wizard
-
-        config = run_config_wizard()
-        if config:
-            # Save configuration to environment variables
-            os.environ["GAC_MODEL"] = config["model"]
-            os.environ["GAC_USE_FORMATTING"] = str(config["use_formatting"]).lower()
-            print_success("Configuration saved successfully!")
-        return
-
-    # List local Ollama models and exit
-    if local_models:
-        list_local_models()
-        return
+    """Generate a commit message and commit changes."""
+    quiet = ctx.obj["quiet"]
 
     try:
-        # Determine log level from flags
-        log_level = logging.WARNING  # Default - only show warnings and errors by default
-
-        if log_level_debug:
-            log_level = logging.DEBUG
-        elif log_level_info:
-            log_level = logging.INFO
-        elif log_level_warning:
-            log_level = logging.WARNING
-        elif log_level_error:
-            log_level = logging.ERROR
-
-        setup_logging(log_level, quiet=quiet, force=True)
-
         commit_message = commit_changes(
             force=force,
             add_all=add_all,
@@ -135,7 +120,9 @@ def cli(
         sys.exit(1)
 
 
-def list_local_models() -> None:
+@cli.command()
+@click.pass_context
+def models(ctx) -> None:
     """List available local Ollama models."""
     print_info("Checking for local Ollama models...")
 
@@ -161,11 +148,31 @@ def list_local_models() -> None:
             size = model.get("size", 0) // (1024 * 1024)  # Convert to MB
             print_info(f"  - {name} ({size} MB)")
 
-        print_info("\nUse with: gac --model ollama:MODEL_NAME")
+        print_info("\nUse with: gac commit --model ollama:MODEL_NAME")
     except Exception as e:
         print_error(f"Error listing Ollama models: {e}")
         print_info("Make sure Ollama is installed and running.")
 
 
+@cli.command()
+@click.pass_context
+def config(ctx) -> None:
+    """Run the interactive configuration wizard."""
+    from gac.config import run_config_wizard
+
+    result = run_config_wizard()
+    if result:
+        # Save configuration to environment variables
+        os.environ["GAC_MODEL"] = result["model"]
+        os.environ["GAC_USE_FORMATTING"] = str(result["use_formatting"]).lower()
+        print_success("Configuration saved successfully!")
+
+
+# For backward compatibility with existing scripts
+def main():
+    """Entry point for setup.py console_scripts."""
+    cli(obj={})
+
+
 if __name__ == "__main__":
-    cli()
+    cli(obj={})

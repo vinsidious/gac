@@ -290,15 +290,6 @@ class Spinner:
                 self.spinner_thread.join()
             self.spinning = False
 
-    def __enter__(self):
-        """Start the spinner when used as a context manager."""
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Stop the spinner when exiting the context manager."""
-        self.stop()
-
 
 def _simulate_git_command(command: List[str]) -> str:
     """

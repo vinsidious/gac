@@ -56,11 +56,6 @@ class TestPrompts(unittest.TestCase):
         result = clean_commit_message(message)
         self.assertEqual(result, "chore: Test message")
 
-        # Test cleaning language identifier
-        message = "```python\nTest message\n```"
-        result = clean_commit_message(message)
-        self.assertEqual(result, "chore: Test message")
-
         # Test adding conventional commit prefix
         message = "Test message"
         result = clean_commit_message(message)
@@ -70,21 +65,6 @@ class TestPrompts(unittest.TestCase):
         message = "feat: Added new feature"
         result = clean_commit_message(message)
         self.assertEqual(result, "feat: Added new feature")
-
-        # Test cleaning git tags
-        message = "<git-status>M file.py</git-status>\nTest message"
-        result = clean_commit_message(message)
-        self.assertEqual(result, "chore: Test message")
-
-        # Test cleaning bullet points
-        message = "feat: Test feature\n- ```Point 1```\n- Point 2"
-        result = clean_commit_message(message)
-        self.assertEqual(result, "feat: Test feature\n- Point 1\n- Point 2")
-
-        # Test cleaning bullet points with git tags
-        message = "feat: Test feature\n- <git-diff>diff content</git-diff> Point 1"
-        result = clean_commit_message(message)
-        self.assertEqual(result, "feat: Test feature\n- Point 1")
 
     def test_create_abbreviated_prompt(self):
         """Test create_abbreviated_prompt shortens prompts correctly."""

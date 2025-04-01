@@ -14,28 +14,12 @@ from typing import Any, Dict, List, Optional, Union
 import tiktoken
 
 try:
-    import anthropic
+    import aisuite
 except ImportError:
-    anthropic = None
+    aisuite = None
 
-try:
-    import openai
-except ImportError:
-    openai = None
-
-try:
-    import ollama
-except ImportError:
-    ollama = None
-
-from gac.errors import (
-    AIAuthenticationError,
-    AIConnectionError,
-    AIError,
-    AIModelError,
-    AIRateLimitError,
-    AITimeoutError,
-)
+from gac.config import API_KEY_ENV_VARS
+from gac.errors import AIError
 from gac.utils import Spinner, print_error, print_success
 
 logger = logging.getLogger(__name__)
@@ -62,6 +46,8 @@ def is_ollama_available() -> bool:
     """
     try:
         # Try to list models to check if Ollama server is running
+        import ollama
+
         ollama.list()
         return True
     except (ImportError, Exception) as e:
@@ -81,6 +67,8 @@ def is_ollama_model_available(model_name: str) -> bool:
     """
     try:
         # Get list of available models
+        import ollama
+
         models_list = ollama.list()
 
         # Check if the requested model is in the list
@@ -152,13 +140,10 @@ def count_tokens(
     Args:
         content: A string, message object, or list of message dictionaries.
         model: The model identifier in the format "provider:model_name".
-        test_mode: If True, returns a fixed value without counting.
 
     Returns:
         The number of tokens in the input.
     """
-    if test_mode:
-        return 10
 
     try:
         # Extract text content from input
@@ -166,8 +151,6 @@ def count_tokens(
         if not text:
             logger.warning("No valid content found to count tokens")
             return 0
-
-        # Get encoding and count tokens
         encoding = get_encoding(model)
         return len(encoding.encode(text))
     except Exception as e:
@@ -525,60 +508,61 @@ def generate_commit_message(
     test_mode: bool = False,
 ) -> str:
     """
-    Generate a commit message using an AI model.
+    Generate a commit message using aisuite.
 
     Args:
-        prompt: The prompt to send to the AI model
+        prompt: The prompt to send to the AI
         model: The model to use (format: provider:model_name)
-        temperature: Controls randomness (0.0-1.0)
-        max_tokens: Maximum tokens in the response
-        show_spinner: Show a spinner during API calls
-        max_retries: Maximum number of retries for transient errors
-        test_mode: If True, returns a test response instead of calling the API
+        temperature: Temperature parameter (0.0 to 1.0) for randomness
+        max_tokens: Maximum tokens in the generated response
+        show_spinner: Whether to show a spinner during API calls
+        max_retries: Maximum number of retries for failed API calls
+        test_mode: If True, returns a fixed message without calling the API
 
     Returns:
-        The generated commit message
+        Generated commit message
 
     Raises:
-        AIError: If there's an error generating the commit message
+        AIError: If there's an issue with the AI provider
     """
     if test_mode or os.environ.get("PYTEST_CURRENT_TEST"):
         return "Generated commit message"
 
-    provider, model_name = extract_provider_and_model(model)
+    if not aisuite:
+        raise AIError("aisuite is not installed. Try: pip install aisuite")
+
+    provider_name, model_name = extract_provider_and_model(model)
     retries = 0
     retry_delay = 1.0
 
-    # Check for API key via environment variable
-    api_key_env_var = f"{provider.upper()}_API_KEY"
-    api_key = os.environ.get(api_key_env_var)
+    # Get API key for the provider (not needed for Ollama)
+    api_key = None
+    if provider_name.lower() != "ollama":
+        api_key_env_var = API_KEY_ENV_VARS.get(provider_name.lower())
+        if not api_key_env_var:
+            logger.error(f"API key environment variable not defined for provider: {provider_name}")
+            raise AIError(f"API key environment variable not defined for provider: {provider_name}")
 
-    if not api_key and provider != "ollama":
-        raise AIAuthenticationError(f"API key not set: {api_key_env_var}")
+        api_key = os.environ.get(api_key_env_var)
+        if not api_key:
+            logger.error(f"API key not set: {api_key_env_var}")
+            raise AIError(f"API key not set: {api_key_env_var}")
 
-    # Check if provider is Ollama and verify it's available
-    if provider == "ollama":
-        if not is_ollama_available():
-            raise AIConnectionError(
-                "Ollama is not available. Make sure Ollama is installed and running locally."
-            )
-        if not is_ollama_model_available(model_name):
-            raise AIModelError(
-                f"Ollama model '{model_name}' is not available locally. "
-                f"Pull it first with 'ollama pull {model_name}'."
-            )
+    # Special handling for Ollama
+    if provider_name.lower() == "ollama" and not is_ollama_available():
+        raise AIError("Ollama is not available. Make sure it's installed and running.")
 
     messages = [{"role": "user", "content": prompt}]
 
     while retries <= max_retries:
         try:
             logger.debug(
-                f"Starting generation with {provider}:{model_name}, temperature {temperature}"
+                f"Starting generation with {provider_name}:{model_name}, temperature {temperature}"
             )
             start_time = time.time()
 
             # Create a spinner for the API call if enabled
-            spinner = Spinner(f"Connecting to {provider} API")
+            spinner = Spinner(f"Connecting to {provider_name} API")
             if show_spinner:
                 spinner.start()
 
@@ -587,53 +571,19 @@ def generate_commit_message(
                 if show_spinner:
                     spinner.update_message(f"Generating with model {model_name}")
 
-                response_text = None
+                # Initialize and call aisuite client
+                client = aisuite.Client(provider=provider_name, api_key=api_key)
+                response = client.chat.completions.create(
+                    model=model_name,
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
 
-                # Handle different providers directly
-                if provider == "ollama":
-                    response = ollama.chat(
-                        model=model_name,
-                        messages=messages,
-                        options={"temperature": temperature},
-                    )
-                    response_text = response["message"]["content"]
-                elif provider == "anthropic":
-                    if not anthropic:
-                        raise ImportError("Anthropic SDK not installed. Try: pip install anthropic")
-
-                    client = anthropic.Anthropic(api_key=api_key)
-                    message = client.messages.create(
-                        model=model_name,
-                        max_tokens=max_tokens,
-                        temperature=temperature,
-                        messages=messages,
-                    )
-                    response_text = message.content[0].text
-                elif provider == "openai":
-                    if not openai:
-                        raise ImportError("OpenAI SDK not installed. Try: pip install openai")
-
-                    client = openai.OpenAI(api_key=api_key)
-                    response = client.chat.completions.create(
-                        model=model_name,
-                        messages=messages,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                    )
-                    response_text = response.choices[0].message.content
-                else:
-                    # For other providers, use a more functional approach instead of exec
-                    response_text = _call_other_provider(
-                        provider=provider,
-                        api_key=api_key,
-                        model_name=model_name,
-                        messages=messages,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                    )
+                response_text = response.choices[0].message.content
 
                 if not response_text:
-                    raise AIError(f"Empty response from {provider}")
+                    raise AIError(f"Empty response from {provider_name}")
 
             finally:
                 # Always stop the spinner, even if there's an error
@@ -652,7 +602,7 @@ def generate_commit_message(
 
         except Exception as e:
             if show_spinner:
-                print_error(f"Error with {provider} API: {type(e).__name__}")
+                print_error(f"Error with {provider_name} API: {type(e).__name__}")
 
             # Handle retry logic for transient errors
             if retries < max_retries:
@@ -661,61 +611,16 @@ def generate_commit_message(
                 time.sleep(wait_time)
                 retries += 1
             else:
-                # Map to specific error types
-                if "rate limit" in str(e).lower():
-                    raise AIRateLimitError(f"Rate limit exceeded for {provider} API: {e}")
-                elif "timeout" in str(e).lower():
-                    raise AITimeoutError(f"Timeout from {provider} API: {e}")
-                elif "authentication" in str(e).lower() or "auth" in str(e).lower():
-                    raise AIAuthenticationError(f"Authentication error with {provider} API: {e}")
-                elif "connect" in str(e).lower():
-                    raise AIConnectionError(f"Connection error with {provider} API: {e}")
+                # Map common errors to AIError with descriptive message
+                err_str = str(e).lower()
+                if "rate limit" in err_str or "too many requests" in err_str:
+                    raise AIError(f"Rate limit exceeded for {provider_name} API: {e}")
+                elif "timeout" in err_str:
+                    raise AIError(f"Timeout from {provider_name} API: {e}")
+                elif "auth" in err_str or "key" in err_str or "credentials" in err_str:
+                    raise AIError(f"Authentication error with {provider_name} API: {e}")
                 else:
-                    raise AIError(f"Error generating with {provider} API: {type(e).__name__}: {e}")
-
-
-def _call_other_provider(
-    provider: str,
-    api_key: str,
-    model_name: str,
-    messages: List[Dict[str, str]],
-    temperature: float,
-    max_tokens: int,
-) -> str:
-    """
-    Call other AI providers not directly supported.
-
-    Args:
-        provider: The provider name
-        api_key: The API key
-        model_name: The model name
-        messages: The messages to send
-        temperature: The temperature parameter
-        max_tokens: The maximum tokens to generate
-
-    Returns:
-        The generated text
-
-    Raises:
-        AIError: If there's an error with the provider
-    """
-    try:
-        # Try to dynamically import the provider
-        provider_module = __import__(provider)
-        client = provider_module.Client(api_key=api_key)
-
-        # Call the provider's API
-        response = client.chat.completions.create(
-            model=model_name,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
-
-        # Extract the response text
-        return response.choices[0].message.content
-    except (ImportError, Exception) as e:
-        raise AIError(f"Provider '{provider}' is not supported: {e}")
+                    raise AIError(f"Error with {provider_name} API: {e}")
 
 
 def chat(

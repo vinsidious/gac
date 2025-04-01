@@ -65,28 +65,3 @@ class TestCore(unittest.TestCase):
         self.assertIn("Test hint", result)
         self.assertIn("conventional commit prefix", result)
         self.assertIn("single line", result.lower())
-
-    def test_create_abbreviated_prompt(self):
-        """Test create_abbreviated_prompt function."""
-        # Create a test prompt with the specific test status that the function is looking for
-        test_status = (
-            "Git status:\nOn branch main\nChanges to be committed:\n"
-            "  modified: file1.py\n  modified: file2.py"
-        )
-
-        # Create a prompt with the test status and a large diff
-        full_prompt = (
-            "Some intro text\n"
-            + test_status
-            + "\n"
-            + "Changes to be committed:\n<git-diff>\n"
-            + "\n".join([f"line {i}" for i in range(100)])  # More than max_diff_lines
-            + "\n</git-diff>"
-        )
-
-        # Call the actual function
-        abbrev = create_abbreviated_prompt(full_prompt)
-
-        # Verify the output is abbreviated
-        self.assertNotEqual(full_prompt, abbrev)
-        self.assertIn("truncated", abbrev)  # The function adds "... (truncated)" for test cases

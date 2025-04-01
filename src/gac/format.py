@@ -1,6 +1,6 @@
-"""Module for code formatting.
+"""Code formatting module for GAC.
 
-This module centralizes all formatting operations into a single, simpler interface.
+This module handles code formatting for different languages.
 """
 
 import logging
@@ -9,17 +9,57 @@ import subprocess
 from typing import Dict, List
 
 from gac.errors import FormattingError, convert_exception, handle_error
-from gac.utils import print_info, print_success
+from gac.utils import print_info
 
 logger = logging.getLogger(__name__)
 
 
+# Registry of formatters with their commands and file extensions
+FORMATTERS = {
+    "python": [
+        {
+            "name": "black",
+            "command": ["black"],
+            "extensions": [".py"],
+        },
+        {
+            "name": "isort",
+            "command": ["isort"],
+            "extensions": [".py"],
+        },
+    ],
+    "javascript": [
+        {
+            "name": "prettier",
+            "command": ["prettier", "--write"],
+            "extensions": [".js", ".jsx", ".ts", ".tsx", ".json", ".md", ".html", ".css"],
+            "check_command": ["prettier", "--version"],
+        },
+    ],
+    "rust": [
+        {
+            "name": "rustfmt",
+            "command": ["rustfmt"],
+            "extensions": [".rs"],
+        },
+    ],
+    "go": [
+        {
+            "name": "gofmt",
+            "command": ["gofmt", "-w"],
+            "extensions": [".go"],
+            "single_file": True,  # gofmt processes one file at a time
+        },
+    ],
+}
+
+
 def run_formatter(command: List[str], files: List[str], formatter_name: str) -> bool:
     """
-    Run a formatter command on the specified files.
+    Run a formatter on the specified files.
 
     Args:
-        command: Base command to run (e.g., ["black"])
+        command: The formatter command to run
         files: List of files to format
         formatter_name: Name of the formatter for logging
 
@@ -30,125 +70,65 @@ def run_formatter(command: List[str], files: List[str], formatter_name: str) -> 
         return False
 
     try:
-        full_command = command + files
-        logger.debug(f"Running {formatter_name}: {' '.join(full_command)}")
+        logger.debug(f"Running {formatter_name} on {len(files)} files")
 
-        result = subprocess.run(
-            full_command,
-            capture_output=True,
-            text=True,
-            check=False,  # Don't raise exception on non-zero exit
+        # Some formatters like gofmt need to process files one at a time
+        formatter_config = next(
+            (f for lang in FORMATTERS.values() for f in lang if f["name"] == formatter_name), None
         )
-
-        if result.returncode == 0:
+        if formatter_config and formatter_config.get("single_file", False):
+            for file in files:
+                result = subprocess.run(
+                    command + [file],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                if result.returncode != 0:
+                    logger.warning(f"{formatter_name} failed on {file}: {result.stderr.strip()}")
+                    return False
             return True
         else:
-            logger.warning(
-                f"{formatter_name} failed with exit code {result.returncode}: "
-                f"{result.stderr.strip()}"
+            # Most formatters can handle multiple files at once
+            result = subprocess.run(
+                command + files,
+                capture_output=True,
+                text=True,
+                check=False,
             )
-            return False
+
+            if result.returncode != 0:
+                logger.warning(f"{formatter_name} failed: {result.stderr.strip()}")
+                return False
+            return True
     except Exception as e:
         logger.error(f"Error running {formatter_name}: {e}")
         return False
 
 
-def run_black(files: List[str]) -> bool:
+def check_formatter_available(formatter_config: Dict) -> bool:
     """
-    Format Python files with black.
+    Check if a formatter is available on the system.
 
     Args:
-        files: List of Python files to format
+        formatter_config: Formatter configuration dictionary
 
     Returns:
-        True if formatting succeeded, False otherwise
+        True if formatter is available, False otherwise
     """
-    return run_formatter(["black"], files, "black")
+    check_command = formatter_config.get(
+        "check_command", formatter_config["command"][:1] + ["--version"]
+    )
 
-
-def run_isort(files: List[str]) -> bool:
-    """
-    Format Python imports with isort.
-
-    Args:
-        files: List of Python files to sort imports for
-
-    Returns:
-        True if formatting succeeded, False otherwise
-    """
-    return run_formatter(["isort"], files, "isort")
-
-
-def run_prettier(files: List[str]) -> bool:
-    """
-    Format files with prettier.
-
-    Args:
-        files: List of files to format with prettier
-
-    Returns:
-        True if formatting succeeded, False otherwise
-    """
-    # Check if prettier is installed
     try:
         result = subprocess.run(
-            ["prettier", "--version"],
+            check_command,
             capture_output=True,
             text=True,
             check=False,
         )
-        if result.returncode != 0:
-            logger.warning("Prettier is not installed or not in PATH")
-            return False
+        return result.returncode == 0
     except Exception:
-        logger.warning("Prettier is not installed or not in PATH")
-        return False
-
-    return run_formatter(["prettier", "--write"], files, "prettier")
-
-
-def run_rustfmt(files: List[str]) -> bool:
-    """
-    Format Rust files with rustfmt.
-
-    Args:
-        files: List of Rust files to format
-
-    Returns:
-        True if formatting succeeded, False otherwise
-    """
-    return run_formatter(["rustfmt"], files, "rustfmt")
-
-
-def run_gofmt(files: List[str]) -> bool:
-    """
-    Format Go files with gofmt.
-
-    Args:
-        files: List of Go files to format
-
-    Returns:
-        True if formatting succeeded, False otherwise
-    """
-    if not files:
-        return False
-
-    try:
-        # gofmt behaves differently from other formatters, handling one file at a time
-        for file in files:
-            logger.debug(f"Running gofmt on {file}")
-            result = subprocess.run(
-                ["gofmt", "-w", file],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            if result.returncode != 0:
-                logger.warning(f"gofmt failed on {file}: {result.stderr.strip()}")
-                return False
-        return True
-    except Exception as e:
-        logger.error(f"Error running gofmt: {e}")
         return False
 
 
@@ -201,9 +181,6 @@ def format_files(files: List[str], quiet: bool = False) -> Dict[str, List[str]]:
                 file_list.append(file_path)
         files = file_list
 
-    # Define file extensions for each formatter
-    js_extensions = {".js", ".jsx", ".ts", ".tsx", ".json", ".md", ".html", ".css"}
-
     # Group files by extension
     files_by_extension = group_files_by_extension(files)
 
@@ -211,87 +188,61 @@ def format_files(files: List[str], quiet: bool = False) -> Dict[str, List[str]]:
     if not any(files_by_extension.values()):
         return {}
 
-    # Format files by type
+    # Track formatted files
     formatted_files = {}
 
-    # Format Python files with black and isort
-    python_files = files_by_extension.get(".py", [])
-    if python_files:
-        if not quiet:
-            print_info(f"Formatting {len(python_files)} Python files...")
+    # Process each extension with its formatters
+    for language, formatter_configs in FORMATTERS.items():
+        for formatter_config in formatter_configs:
+            extensions = formatter_config["extensions"]
+            command = formatter_config["command"]
+            formatter_name = formatter_config["name"]
 
-        try:
-            # Format with isort
-            isort_result = run_isort(python_files)
-            if isort_result:
-                formatted_files["isort"] = python_files
+            # Collect files that match this formatter's extensions
+            files_to_format = []
+            for ext in extensions:
+                if ext in files_by_extension:
+                    files_to_format.extend(files_by_extension[ext])
 
-            # Format with black
-            black_result = run_black(python_files)
-            if black_result:
-                formatted_files["black"] = python_files
-        except Exception as e:
-            error = convert_exception(e, FormattingError, "Failed to format Python files")
-            handle_error(error, quiet=quiet, exit_program=False)
+            if not files_to_format:
+                continue
 
-    # Format JS/TS files with prettier
-    js_files = []
-    for ext in js_extensions:
-        if ext in files_by_extension:
-            js_files.extend(files_by_extension[ext])
+            if not quiet:
+                print_info(f"Formatting {len(files_to_format)} files with {formatter_name}...")
 
-    if js_files:
-        if not quiet:
-            print_info(f"Formatting {len(js_files)} JS/TS/JSON/HTML/CSS files...")
+            # Check if formatter is available
+            if not check_formatter_available(formatter_config):
+                logger.warning(f"{formatter_name} is not installed or not in PATH")
+                continue
 
-        try:
-            prettier_result = run_prettier(js_files)
-            if prettier_result:
-                formatted_files["prettier"] = js_files
-        except Exception as e:
-            error = convert_exception(e, FormattingError, "Failed to format JS/TS files")
-            handle_error(error, quiet=quiet, exit_program=False)
-
-    # Format Rust files with rustfmt
-    rust_files = files_by_extension.get(".rs", [])
-    if rust_files:
-        if not quiet:
-            print_info(f"Formatting {len(rust_files)} Rust files...")
-
-        try:
-            rustfmt_result = run_rustfmt(rust_files)
-            if rustfmt_result:
-                formatted_files["rustfmt"] = rust_files
-        except Exception as e:
-            error = convert_exception(e, FormattingError, "Failed to format Rust files")
-            handle_error(error, quiet=quiet, exit_program=False)
-
-    # Format Go files with gofmt
-    go_files = files_by_extension.get(".go", [])
-    if go_files:
-        if not quiet:
-            print_info(f"Formatting {len(go_files)} Go files...")
-
-        try:
-            gofmt_result = run_gofmt(go_files)
-            if gofmt_result:
-                formatted_files["gofmt"] = go_files
-        except Exception as e:
-            error = convert_exception(e, FormattingError, "Failed to format Go files")
-            handle_error(error, quiet=quiet, exit_program=False)
-
-    # Print summary if not quiet
-    if not quiet and formatted_files:
-        # Count unique files instead of summing up all formatter results
-        unique_files = set()
-        for files in formatted_files.values():
-            unique_files.update(files)
-
-        total_files = len(unique_files)
-        print_success(f"Formatted {total_files} files")
+            # Run the formatter
+            try:
+                formatting_result = run_formatter(command, files_to_format, formatter_name)
+                if formatting_result:
+                    formatted_files[formatter_name] = files_to_format
+            except Exception as e:
+                error = convert_exception(
+                    e, FormattingError, f"Failed to format with {formatter_name}"
+                )
+                handle_error(error, quiet=quiet, exit_program=False)
 
     return formatted_files
 
 
-# Aliases for backward compatibility
-format_staged_files = format_files
+if __name__ == "__main__":
+    # Simple command-line interface for manual testing
+    import sys
+
+    if len(sys.argv) < 2:
+        print("Usage: python -m gac.format file1 file2 ...")
+        sys.exit(1)
+
+    files_to_format = sys.argv[1:]
+    result = format_files(files_to_format)
+
+    if result:
+        print(f"Formatted {sum(len(f) for f in result.values())} files:")
+        for formatter, formatted in result.items():
+            print(f"  - {formatter}: {len(formatted)} files")
+    else:
+        print("No files were formatted.")

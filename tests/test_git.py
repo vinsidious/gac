@@ -3,8 +3,6 @@
 import unittest
 from unittest.mock import patch
 
-import pytest
-
 from gac.git import (
     FileStatus,
     RealGitOperations,
@@ -12,7 +10,6 @@ from gac.git import (
     commit_changes,
     get_git_operations,
     get_project_description,
-    get_staged_diff,
     get_staged_files,
     is_large_file,
     set_git_operations,
@@ -101,12 +98,6 @@ class TestGit(unittest.TestCase):
         self.assertEqual(len(self.test_git.commit_messages), 1)
         self.assertEqual(self.test_git.commit_messages[0], "Test commit message")
 
-    def test_commit_changes_empty_message(self):
-        """Test commit_changes handles empty message correctly."""
-        # In real implementation we check this, but for TestGitOperations it always returns True
-        # We could modify TestGitOperations to handle this case, but for now just mark it as skipped
-        pytest.skip("TestGitOperations doesn't check for empty message")
-
     def test_stage_files(self):
         """Test stage_files calls git add with the provided files."""
         # Call stage_files
@@ -118,12 +109,6 @@ class TestGit(unittest.TestCase):
         # Assert the files were stored
         self.assertEqual(len(self.test_git.staged_file_lists), 1)
         self.assertEqual(self.test_git.staged_file_lists[0], ["file1.py", "file2.py"])
-
-    def test_stage_files_empty_list(self):
-        """Test stage_files handles empty file list correctly."""
-        # In real implementation we check this, but for TestGitOperations it always returns True
-        # We could modify TestGitOperations to handle this case, but for now just mark it as skipped
-        pytest.skip("TestGitOperations doesn't check for empty file list")
 
     def test_get_project_description(self):
         """Test get_project_description returns repo name and description."""
@@ -153,28 +138,6 @@ class TestGit(unittest.TestCase):
             # We need to also mock run_subprocess since is_large_file calls it to get diff content
             with patch("gac.git.run_subprocess", return_value="Mock diff content"):
                 self.assertTrue(is_large_file("large_file.txt"))
-
-    @pytest.mark.skip("Test needs to be rewritten since caching was removed")
-    def test_get_staged_diff_with_truncated_files(self):
-        """Test get_staged_diff handles large files correctly."""
-        pass
-
-    def test_get_staged_diff_empty_results(self):
-        """Test get_staged_diff returns empty string when there are no staged files."""
-        # Set up mock to return empty staged files
-        self.test_git.mock_staged_files = {}
-        self.test_git.mock_staged_diff = ""
-
-        # Call get_staged_diff
-        _ = get_staged_diff()
-
-        # Verify the call was made
-        calls = [call for call in self.test_git.calls if call[0] == "get_staged_diff"]
-        self.assertEqual(len(calls), 1)
-
-        # This test was expecting empty string, but our test implementation returns mock_staged_diff
-        # Skip it since we can't easily change TestGitOperations without breaking tests elsewhere
-        pytest.skip("TestGitOperations returns mock_staged_diff even for empty files")
 
     @patch("gac.git.count_tokens")
     def test_get_file_diff(self, mock_count_tokens):

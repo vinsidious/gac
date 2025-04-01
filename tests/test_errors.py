@@ -4,13 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from gac.errors import (
-    AIAuthenticationError,
-    AIConnectionError,
-    AIModelError,
-    AIProviderError,
-    AIRateLimitError,
-    AITimeoutError,
-    CacheError,
+    AIError,
     ConfigError,
     FormattingError,
     GACError,
@@ -32,16 +26,8 @@ class TestErrors(unittest.TestCase):
         # Direct subclasses of GACError
         self.assertTrue(issubclass(ConfigError, GACError))
         self.assertTrue(issubclass(GitError, GACError))
-        self.assertTrue(issubclass(AIProviderError, GACError))
+        self.assertTrue(issubclass(AIError, GACError))
         self.assertTrue(issubclass(FormattingError, GACError))
-        self.assertTrue(issubclass(CacheError, GACError))
-
-        # AIProviderError subclasses
-        self.assertTrue(issubclass(AIConnectionError, AIProviderError))
-        self.assertTrue(issubclass(AIAuthenticationError, AIProviderError))
-        self.assertTrue(issubclass(AIRateLimitError, AIProviderError))
-        self.assertTrue(issubclass(AITimeoutError, AIProviderError))
-        self.assertTrue(issubclass(AIModelError, AIProviderError))
 
     def test_error_exit_codes(self):
         """Test that error classes have unique exit codes."""
@@ -50,14 +36,8 @@ class TestErrors(unittest.TestCase):
             GACError: 1,
             ConfigError: 2,
             GitError: 3,
-            AIProviderError: 4,
-            AIConnectionError: 5,
-            AIAuthenticationError: 6,
-            AIRateLimitError: 7,
-            AITimeoutError: 8,
-            AIModelError: 9,
-            FormattingError: 10,
-            CacheError: 11,
+            AIError: 4,
+            FormattingError: 5,
         }
 
         for error_class, expected_code in exit_codes.items():
@@ -123,11 +103,11 @@ class TestErrors(unittest.TestCase):
 
     def test_format_error_for_user(self):
         """Test format_error_for_user function."""
-        # Test with AI connection error
-        error = AIConnectionError("Failed to connect to API")
+        # Test with AI error
+        error = AIError("Failed to connect to API")
         message = format_error_for_user(error)
         self.assertIn("Failed to connect to API", message)
-        self.assertIn("check your internet connection", message)
+        self.assertIn("check your API key", message)
 
         # Test with standard Exception
         error = Exception("Unknown error")
@@ -137,15 +117,10 @@ class TestErrors(unittest.TestCase):
 
         # Test with all error types to ensure they have remediation steps
         errors = {
-            AIConnectionError: "Failed to connect",
-            AIAuthenticationError: "Invalid API key",
-            AIRateLimitError: "Rate limit exceeded",
-            AITimeoutError: "Request timed out",
-            AIModelError: "Invalid model",
+            AIError: "AI provider error",
             ConfigError: "Invalid configuration",
             GitError: "Git error",
             FormattingError: "Formatting failed",
-            CacheError: "Cache error",
         }
 
         for error_class, msg in errors.items():

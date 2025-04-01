@@ -487,8 +487,9 @@ def commit_changes(
 
         # Always display the commit message
         if not quiet:
-            console.print("\nGenerated commit message:", style="info")
-            console.print(Panel(message, title="Commit Message", border_style="bright_blue"))
+            console.print(
+                Panel(message, title="Suggested Commit Message", border_style="bright_blue")
+            )
 
         # If force mode is not enabled, prompt for confirmation
         if not force and not quiet:
@@ -599,9 +600,9 @@ def is_large_file(file_path: str) -> bool:
         return False
 
 
-# Abstract class for test implementations
+# Interface for testing with dependency injection
 class GitOperations:
-    """Abstract base class for Git operations."""
+    """Interface for git operations."""
 
     def run_git_command(self, args: List[str], silent: bool = False) -> str:
         """Run a git command and return the output."""
@@ -644,8 +645,9 @@ class GitOperations:
         raise NotImplementedError
 
 
+# Implementation that delegates to the function-based API
 class RealGitOperations(GitOperations):
-    """Real implementation of Git operations."""
+    """Real implementation of Git operations using the function-based API."""
 
     def __init__(self, quiet: bool = False):
         """Initialize with quiet option."""
@@ -669,7 +671,7 @@ class RealGitOperations(GitOperations):
 
     def get_staged_diff(self, file_path: Optional[str] = None) -> str:
         """Get the diff of staged changes."""
-        return get_staged_diff(file_path)
+        return get_staged_diff()
 
     def stage_files(self, files: List[str]) -> bool:
         """Stage files for commit."""
@@ -692,6 +694,7 @@ class RealGitOperations(GitOperations):
         return has_staged_changes()
 
 
+# Test implementation for unit testing
 class TestGitOperations(GitOperations):
     """Test implementation of Git operations."""
 
@@ -838,7 +841,7 @@ class GitOperationsManager:
 
     def get_staged_diff(self, file_path: Optional[str] = None) -> str:
         """Get the diff of staged changes."""
-        return get_staged_diff(file_path)
+        return get_staged_diff()
 
     def stage_files(self, files: List[str]) -> bool:
         """Stage files for commit."""

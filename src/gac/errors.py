@@ -50,57 +50,15 @@ class GitError(GACError):
 
 
 class AIError(GACError):
-    """Base class for AI-related errors."""
+    """Error related to AI provider or models."""
 
     exit_code = 4
-
-
-class AIProviderError(AIError):
-    """Base class for AI provider related errors."""
-
-    exit_code = 4
-
-
-class AIConnectionError(AIProviderError):
-    """Error connecting to the AI provider."""
-
-    exit_code = 5
-
-
-class AIAuthenticationError(AIProviderError):
-    """Authentication error with the AI provider."""
-
-    exit_code = 6
-
-
-class AIRateLimitError(AIProviderError):
-    """Rate limit exceeded for the AI provider."""
-
-    exit_code = 7
-
-
-class AITimeoutError(AIProviderError):
-    """Timeout when calling the AI provider."""
-
-    exit_code = 8
-
-
-class AIModelError(AIProviderError):
-    """Error related to AI model specification."""
-
-    exit_code = 9
 
 
 class FormattingError(GACError):
     """Error related to code formatting."""
 
-    exit_code = 10
-
-
-class CacheError(GACError):
-    """Error related to caching."""
-
-    exit_code = 11
+    exit_code = 5
 
 
 def handle_error(error: Exception, quiet: bool = False, exit_program: bool = True) -> None:
@@ -146,15 +104,10 @@ def format_error_for_user(error: Exception) -> str:
 
     # Mapping of error types to remediation steps
     remediation_steps = {
-        AIConnectionError: "Please check your internet connection and try again.",
-        AIAuthenticationError: "Please check your API key and ensure it's properly set.",
-        AIRateLimitError: "Please wait a few minutes and try again.",
-        AITimeoutError: "The AI service took too long to respond. Please try again later.",
-        AIModelError: "Please check the model name or use a different model.",
+        AIError: "Please check your API key, model name, and internet connection.",
         ConfigError: "Please check your configuration settings.",
         GitError: "Please ensure Git is installed and you're in a valid Git repository.",
         FormattingError: "Please check that required formatters are installed.",
-        CacheError: "Try clearing the cache with --clear-cache and try again.",
     }
 
     # Generic remediation for unexpected errors
