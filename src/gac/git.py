@@ -502,6 +502,11 @@ class TestGitOperations(GitOperations):
 # Global git operations instance
 _git_operations = RealGitOperations()
 
+# Import and create a default instance of the new GitOperationsManager
+from gac.git_operations import GitOperationsManager
+
+_git_manager = GitOperationsManager()
+
 
 def set_git_operations(operations: GitOperations):
     """

@@ -8,13 +8,13 @@ from typing import Optional
 
 import click
 
+from gac.utils import setup_logging
 from gac.workflow import CommitWorkflow
 
 logger = logging.getLogger(__name__)
 
 
 @click.command()
-@click.option("--test", "-t", is_flag=True, help="Run in test mode without making git commits")
 @click.option("--force", "-f", is_flag=True, help="Skip all confirmation prompts")
 @click.option("--add-all", "-a", is_flag=True, help="Stage all changes before committing")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
@@ -40,7 +40,6 @@ logger = logging.getLogger(__name__)
     is_flag=True,
     help="Show the complete prompt sent to the LLM, including full diff",
 )
-@click.option("--test-with-diff", is_flag=True, help="Test with real staged changes (if any)")
 @click.option("--hint", "-h", default="", help="Additional context to include in the prompt")
 @click.option(
     "--conventional",
@@ -64,7 +63,6 @@ logger = logging.getLogger(__name__)
     help="Run the interactive configuration wizard",
 )
 def cli(
-    test: bool,
     force: bool,
     add_all: bool,
     quiet: bool,
@@ -77,7 +75,6 @@ def cli(
     one_liner: bool,
     show_prompt: bool,
     show_prompt_full: bool,
-    test_with_diff: bool,
     hint: str,
     conventional: bool,
     no_spinner: bool,
@@ -117,43 +114,11 @@ def cli(
         elif log_level_error:
             log_level = logging.ERROR
 
-        # Check for environment variable override
-        log_level_env = os.environ.get("GAC_LOG_LEVEL")
-        if log_level_env:
-            log_level_env = log_level_env.upper()
-            if log_level_env == "DEBUG":
-                log_level = logging.DEBUG
-                verbose = True
-            elif log_level_env == "INFO":
-                log_level = logging.INFO
-            elif log_level_env == "WARNING":
-                log_level = logging.WARNING
-            elif log_level_env == "ERROR":
-                log_level = logging.ERROR
-
-        if quiet:
-            # Suppress logging for non-error messages
-            logging.getLogger().setLevel(logging.ERROR)
-        else:
-            # Set the determined log level
-            logging.getLogger().setLevel(log_level)
-
-        # Configure logging format based on level
-        if log_level == logging.DEBUG:
-            logging.basicConfig(
-                format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-                force=True,
-            )
-        else:
-            logging.basicConfig(
-                format="%(levelname)s: %(message)s",
-                force=True,
-            )
+        # Setup logging with our centralized function
+        setup_logging(log_level, quiet=quiet, force=True)
 
         # Create workflow instance and run it
         workflow = CommitWorkflow(
-            test_mode=test,
             force=force,
             add_all=add_all,
             no_format=no_format,
@@ -163,7 +128,6 @@ def cli(
             one_liner=one_liner,
             show_prompt=show_prompt,
             show_prompt_full=show_prompt_full,
-            test_with_real_diff=test_with_diff,
             hint=hint,
             conventional=conventional,
             no_spinner=no_spinner,

@@ -2,20 +2,22 @@
 
 ## Current Status
 
-Git Auto Commit (gac) is a CLI tool that uses large language models to generate meaningful commit messages based on staged changes. The tool currently supports multiple AI providers including Anthropic Claude, OpenAI, Groq, Mistral, and more.
+Git Auto Commit (gac) is a CLI tool that uses large language models to generate meaningful commit messages based on staged changes. We're currently focusing on simplification and streamlining the core functionality.
 
 ## Next Steps
 
 ### Short-term Goals
 
-1. **Architecture and Code Quality Improvements**
+1. **Architecture and Code Simplification**
 
-   - [ ] Refactor `core.py` into smaller, focused modules with clear responsibilities
-   - [ ] Address f-string linter error in `core.py`
-   - [ ] Reduce function complexity, particularly in the `main()` function
-   - [x] Standardize error handling across all modules
-   - [ ] Implement more consistent parameter naming across functions
-   - [ ] Extract duplicated code into reusable helper functions
+   - [x] Remove core.py entirely (it was just a wrapper around cli.py)
+   - [x] Consolidate main.py and cli.py to reduce duplication
+   - [x] Remove the edit option for commit messages
+   - [x] Remove the test mode flag which caused confusion
+   - [ ] Extract logging configuration into a dedicated utility function
+   - [ ] Break down the large CommitWorkflow class into smaller components
+   - [ ] Simplify formatting architecture using a more direct approach
+   - [ ] Centralize error handling and reduce duplication
 
 2. **Performance Optimization**
 
@@ -24,7 +26,6 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [ ] Reduce startup time
    - [ ] Optimize memory usage during diff processing
    - [ ] Improve efficiency of diff processing logic in `git.py`
-   - [ ] Enhance cache implementation with thread safety considerations
 
 3. **Improve Error Handling**
 
@@ -34,98 +35,51 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [x] Improve error handling for git stash operations
    - [ ] Add more granular error recovery mechanisms
    - [x] Replace empty string returns with proper error objects
-   - [x] Improve error message clarity with specific remediation steps
-   - [x] Consolidate exception handling patterns
-
-4. **Enhanced Testing**
-
-   - [x] Increase test coverage (cache module now at 93%)
-   - [x] Fix core testing infrastructure for cache module
-   - [x] Fix test failures in AI utils module
-   - [ ] Add integration tests with actual API calls (using mocks)
-   - [ ] Create more test fixtures for different git scenarios
-   - [ ] Implement property-based testing for commit message generation
-   - [x] Add tests for edge cases and error conditions
-   - [ ] Add end-to-end workflow tests with real git repositories
-   - [ ] Reduce reliance on mocks for more realistic testing
-
-### Medium-term Goals
-
-1. **Feature Enhancements**
-
-   - [x] Add support for conventional commits format
-   - [x] Enhance conventional commit quality to improve structure and detail
-   - [x] Improve one-liner commit consistency with the same style conventions as regular messages
-   - [x] Improve prompt display formatting
-   - [ ] Implement customizable commit templates
-   - [ ] Add support for multilingual commit messages
-   - [ ] Create interactive mode for refining generated messages
-   - [ ] Add semantic versioning support for commit message analysis
-   - [ ] Make hard-coded constants configurable (e.g., `MAX_DIFF_TOKENS`)
-   - [ ] Implement more robust string processing for commit message cleaning
-
-2. **Provider Expansion**
-
-   - [x] Add initial support for Ollama via configuration
-   - [x] Complete Ollama integration with direct API calls
-   - [x] Support for Anthropic's Claude 3 Sonnet and Opus
-   - [ ] Integrate more specialized code-focused models
-   - [ ] Add support for local code analysis models
-   - [ ] Implement model performance benchmarking
-   - [ ] Improve provider abstraction to reduce provider-specific code
-   - [ ] Add automatic fallback to alternative providers on failure
-
-3. **User Experience Improvements**
-   - [x] Implement a configuration wizard
-   - [x] Add colorized output
-   - [x] Create progress indicators for API calls
-   - [ ] Add command completion for shells
-   - [ ] Develop a web-based configuration interface
-   - [ ] Create a VS Code/IDE extension
-   - [ ] Simplify model and provider configuration for users
-   - [ ] Improve handling of large repositories with better progress indicators
-   - [ ] Add detailed debug mode for troubleshooting
+   - [ ] Improve error message clarity with specific remediation steps
+   - [ ] Consolidate exception handling patterns
 
 ## Current Sprint Focus
 
-- Refactor `core.py` into smaller, focused modules
-- ~~Standardize error handling across all modules~~ (Completed)
-- Address f-string linter error in `core.py`
-- Extract duplicated code into reusable helper functions
+- [ ] Complete the simplification of workflow.py by breaking it into smaller components
+- [ ] Integrate the new commit_manager.py and git_operations.py files
+- [ ] Ensure all entry points use the centralized logging configuration
+- [ ] Remove redundant compatibility functions once testing is updated
 
-## Next Sprint Focus
+## Long-term Vision
 
-- Improve testing with focus on edge cases and error conditions
-- Enhance cache implementation with thread safety
-- ~~Replace empty string returns with proper error objects~~ (Completed)
-- ~~Improve error message clarity with specific remediation steps~~ (Completed)
+Our simplified vision is to focus on:
+
+1. **Core Functionality**: Generate excellent commit messages using AI
+2. **Simplicity**: Maintain a clean, easy-to-understand codebase
+3. **Reliability**: Ensure the tool works consistently across environments
+
+## Explicitly Not Planned
+
+We've decided against these items to maintain a focused, streamlined tool:
+
+- ~~Adding new AI providers (will maintain current providers only)~~
+- ~~Command completion for shells~~
+- ~~Web-based configuration interface~~
+- ~~VS Code/IDE extensions~~
+- ~~Interactive mode for refining generated messages~~
+- ~~Semantic versioning support~~
+- ~~Multilingual commit messages~~
 
 ## Completed Items
 
-- Basic implementation with multiple LLM providers
-- Command-line interface with various options
-- Python file formatting with black and isort
-- Interactive prompts for commit and push actions
-- Optimized token usage for large diffs with smart truncation and file prioritization
-- Support for conventional commits format (--conventional flag)
-- Improved error handling with specific error types, better messages, and automatic retries
-- Colorized output for better user experience and readability
-- Fixed test failures and improved test reliability
-- Implemented caching for repeated operations with high test coverage (93%)
-- Increased test coverage for core modules
-- Fixed git module's project description and staged diff functions
-- Improved run_subprocess function to handle errors consistently
-- Added dynamic progress indicators for API calls with real-time status updates
-- Fixed test failures in AI utils module by improving mocking techniques
-- Improved mocking for user input in core module tests with more resilient fixtures
-- Added safety mechanism to prevent real git commands during testing
-- Enhanced conventional commit message quality with detailed multi-bullet point format
-- Added token count display for truncated files to improve diagnostics
-- Improved one-liner commit consistency with the same style conventions as regular messages
-- Improved error handling for git stash operations
-- Added full support for local Ollama models with direct API integration
-- Improved prompt display formatting with dynamic "=" underline
-- Added visual indicator for LLM prompt creation with emoji and blue info message
-- Created standardized error handling module with consistent exit codes and user-friendly messages
-- Added comprehensive error documentation with examples and best practices
-- Implemented test coverage for error handling, including edge cases and error conditions
+- [x] Basic implementation with multiple LLM providers
+- [x] Command-line interface with various options
+- [x] Interactive prompts for commit actions
+- [x] Optimized token usage for large diffs with smart truncation and file prioritization
+- [x] Support for conventional commits format (--conventional flag)
+- [x] Improved error handling with specific error types and better messages
+- [x] Colorized output for better user experience and readability
+- [x] Implemented caching for repeated operations
+- [x] Added dynamic progress indicators for API calls
+- [x] Added full support for local Ollama models with direct API integration
+- [x] Removed core.py entirely as it was just a wrapper
+- [x] Simplified main.py to be a lightweight compatibility wrapper around cli.py
+- [x] Extracted commit message generation into a separate CommitManager class
+- [x] Extracted git operations into a separate GitOperationsManager class
+- [x] Removed the edit option from commit messages to simplify the workflow
+- [x] Removed the confusing test mode flag

@@ -7,7 +7,7 @@ import sys
 import threading
 import time
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import click
 from rich.console import Console
@@ -15,6 +15,56 @@ from rich.panel import Panel
 from rich.theme import Theme
 
 from gac.errors import GACError
+
+
+def setup_logging(
+    log_level: Union[int, str] = logging.WARNING, quiet: bool = False, force: bool = False
+) -> None:
+    """Configure logging for the application.
+
+    Args:
+        log_level: The logging level to use (DEBUG, INFO, WARNING, ERROR)
+        quiet: If True, only show error messages
+        force: If True, use force=True when setting up basicConfig
+    """
+    # Convert string log level to int if needed
+    if isinstance(log_level, str):
+        log_level = getattr(logging, log_level.upper(), logging.WARNING)
+
+    # Check for environment variable override
+    log_level_env = os.environ.get("GAC_LOG_LEVEL")
+    if log_level_env:
+        log_level_env = log_level_env.upper()
+        if log_level_env == "DEBUG":
+            log_level = logging.DEBUG
+        elif log_level_env == "INFO":
+            log_level = logging.INFO
+        elif log_level_env == "WARNING":
+            log_level = logging.WARNING
+        elif log_level_env == "ERROR":
+            log_level = logging.ERROR
+
+    # Use quiet mode if specified (only show errors)
+    if quiet:
+        log_level = logging.ERROR
+
+    # Configure logging format based on level
+    kwargs = {"force": force} if force else {}
+
+    if log_level == logging.DEBUG:
+        logging.basicConfig(
+            level=log_level,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+            **kwargs,
+        )
+    else:
+        logging.basicConfig(level=log_level, format="%(levelname)s: %(message)s", **kwargs)
+
+    # Suppress excessive logs from libraries
+    logging.getLogger("requests").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+
 
 # Define a rich theme for colorful output
 theme = Theme(

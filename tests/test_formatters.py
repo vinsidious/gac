@@ -21,7 +21,8 @@ def mock_get_staged_files():
 
 
 @patch("gac.formatting.formatters.run_subprocess")
-def test_run_black_success(mock_run_subprocess, mock_get_staged_files):
+@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+def test_run_black_success(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.py", "file2.py"]
     mock_run_subprocess.return_value = None
     result = run_black()
@@ -38,7 +39,8 @@ def test_run_black_no_files(mock_run_subprocess, mock_get_staged_files):
 
 
 @patch("gac.formatting.formatters.run_subprocess")
-def test_run_black_error(mock_run_subprocess, mock_get_staged_files):
+@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+def test_run_black_error(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.py", "file2.py"]
     mock_run_subprocess.side_effect = Exception("Command failed")
     result = run_black()
@@ -47,7 +49,8 @@ def test_run_black_error(mock_run_subprocess, mock_get_staged_files):
 
 
 @patch("gac.formatting.formatters.run_subprocess")
-def test_run_isort_success(mock_run_subprocess, mock_get_staged_files):
+@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+def test_run_isort_success(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.py", "file2.py"]
     mock_run_subprocess.return_value = None
     result = run_isort()
@@ -64,7 +67,8 @@ def test_run_isort_no_files(mock_run_subprocess, mock_get_staged_files):
 
 
 @patch("gac.formatting.formatters.run_subprocess")
-def test_run_isort_error(mock_run_subprocess, mock_get_staged_files):
+@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+def test_run_isort_error(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.py", "file2.py"]
     mock_run_subprocess.side_effect = Exception("Command failed")
     result = run_isort()
@@ -73,7 +77,8 @@ def test_run_isort_error(mock_run_subprocess, mock_get_staged_files):
 
 
 @patch("gac.formatting.formatters.run_subprocess")
-def test_run_prettier_success(mock_run_subprocess, mock_get_staged_files):
+@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+def test_run_prettier_success(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.js", "file2.tsx"]
     mock_run_subprocess.return_value = None
     result = run_prettier(files=["file1.js", "file2.tsx"])
@@ -90,7 +95,8 @@ def test_run_prettier_no_files(mock_run_subprocess, mock_get_staged_files):
 
 
 @patch("gac.formatting.formatters.run_subprocess")
-def test_run_prettier_error(mock_run_subprocess, mock_get_staged_files):
+@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+def test_run_prettier_error(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.js", "file2.tsx"]
     mock_run_subprocess.side_effect = Exception("Command failed")
     result = run_prettier(files=["file1.js", "file2.tsx"])
@@ -99,7 +105,8 @@ def test_run_prettier_error(mock_run_subprocess, mock_get_staged_files):
 
 
 @patch("gac.formatting.formatters.run_subprocess")
-def test_run_rustfmt_success(mock_run_subprocess, mock_get_staged_files):
+@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+def test_run_rustfmt_success(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.rs", "file2.rs"]
     mock_run_subprocess.return_value = None
     result = run_rustfmt()
@@ -116,7 +123,8 @@ def test_run_rustfmt_no_files(mock_run_subprocess, mock_get_staged_files):
 
 
 @patch("gac.formatting.formatters.run_subprocess")
-def test_run_rustfmt_error(mock_run_subprocess, mock_get_staged_files):
+@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+def test_run_rustfmt_error(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.rs", "file2.rs"]
     mock_run_subprocess.side_effect = Exception("Command failed")
     result = run_rustfmt()
@@ -125,7 +133,8 @@ def test_run_rustfmt_error(mock_run_subprocess, mock_get_staged_files):
 
 
 @patch("gac.formatting.formatters.run_subprocess")
-def test_run_gofmt_success(mock_run_subprocess, mock_get_staged_files):
+@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+def test_run_gofmt_success(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.go", "file2.go"]
     mock_run_subprocess.return_value = None
     result = run_gofmt()
@@ -142,7 +151,8 @@ def test_run_gofmt_no_files(mock_run_subprocess, mock_get_staged_files):
 
 
 @patch("gac.formatting.formatters.run_subprocess")
-def test_run_gofmt_error(mock_run_subprocess, mock_get_staged_files):
+@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+def test_run_gofmt_error(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.go", "file2.go"]
     mock_run_subprocess.side_effect = Exception("Command failed")
     result = run_gofmt()

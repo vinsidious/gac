@@ -15,7 +15,7 @@ install-dev:
 
 # Run tests
 test:
-	pytest
+	uv run -- pytest
 
 # Run tests with coverage
 coverage:
