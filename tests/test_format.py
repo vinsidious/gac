@@ -25,9 +25,12 @@ def test_format_files_success(mock_exists, mock_check_formatter, mock_run_format
     files = {"file1.py": "M", "file2.py": "M"}
     result = format_files(files)
 
-    # Verify the behavior: function returns a dictionary of formatting results
+    # Verify the behavior: function returns a dictionary of formatter results
     assert isinstance(result, dict)
-    assert all(file in result for file in files)
+    assert "black" in result
+    assert "isort" in result
+    assert all(file in result["black"] for file in files)
+    assert all(file in result["isort"] for file in files)
 
     # Reset mocks for next test
     mock_run_formatter.reset_mock()
@@ -38,7 +41,11 @@ def test_format_files_success(mock_exists, mock_check_formatter, mock_run_format
 
     # Verify the behavior: function returns a dictionary with results for all files
     assert isinstance(result, dict)
-    assert all(file in result for file in files)
+    assert "black" in result
+    assert "isort" in result
+    assert "prettier" in result
+    assert "rustfmt" in result
+    assert "gofmt" in result
 
 
 @patch("gac.format.run_formatter")
@@ -52,10 +59,9 @@ def test_format_files_formatter_not_available(
     files = {"file1.py": "M", "file2.py": "M"}
     result = format_files(files)
 
-    # Verify the behavior: function returns a dictionary without attempting to format
+    # Verify the behavior: function returns an empty dictionary when no formatters are available
     assert isinstance(result, dict)
-    assert all(file in result for file in files)
-    assert all(not status for status in result.values())
+    assert not result
 
     # Verify no formatting was attempted when formatter is unavailable
     mock_run_formatter.assert_not_called()
@@ -133,8 +139,11 @@ def test_format_files_with_dict_input(mock_exists, mock_check_formatter, mock_ru
     assert isinstance(result, dict)
 
     # Verify deleted files are not included in the result
-    assert "deleted.py" not in result
+    assert "deleted.py" not in result["black"]
+    assert "deleted.py" not in result["isort"]
 
     # Verify modified and added files are included in the result
-    assert "file1.py" in result
-    assert "file2.py" in result
+    assert "file1.py" in result["black"]
+    assert "file1.py" in result["isort"]
+    assert "file2.py" in result["black"]
+    assert "file2.py" in result["isort"]
