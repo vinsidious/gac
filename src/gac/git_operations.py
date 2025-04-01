@@ -6,6 +6,7 @@ import subprocess
 from typing import List, Optional
 
 from gac.errors import GACError, convert_exception, handle_error
+from gac.utils import print_error, print_info, print_success
 
 logger = logging.getLogger(__name__)
 
@@ -64,10 +65,10 @@ class GitOperationsManager:
         """
         # Always show basic staging message
         if not self.quiet:
-            print("ℹ️ Staging all changes...")
+            print_info("Staging all changes...")
         else:
             if logging.getLogger().getEffectiveLevel() <= logging.INFO:
-                logger.info("ℹ️ Staging all changes...")
+                logger.info("Staging all changes...")
         try:
             # Check if this is an empty repository
             status = self.get_status()
@@ -127,9 +128,9 @@ class GitOperationsManager:
             success = self.stage_files(["."])
             if success:
                 if not self.quiet:
-                    print("✅ All changes staged")
+                    print_success("All changes staged")
                 elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
-                    logger.info("✅ All changes staged")
+                    logger.info("All changes staged")
                 return True
             else:
                 logger.error("Failed to stage changes")
@@ -238,9 +239,9 @@ class GitOperationsManager:
         """
         try:
             if not self.quiet:
-                print("ℹ️ Pushing changes to remote...")
+                print_info("Pushing changes to remote...")
             elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
-                logger.info("ℹ️ Pushing changes to remote...")
+                logger.info("Pushing changes to remote...")
 
             subprocess.run(
                 ["git", "push"],
@@ -250,14 +251,14 @@ class GitOperationsManager:
             )
 
             if not self.quiet:
-                print("✅ Changes pushed successfully")
+                print_success("Changes pushed successfully")
             elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
-                logger.info("✅ Changes pushed successfully")
+                logger.info("Changes pushed successfully")
 
             return True
         except subprocess.CalledProcessError as e:
             error_msg = f"Failed to push changes: {e.stderr.strip()}"
             logger.error(error_msg)
             if not self.quiet:
-                print(f"❌ {error_msg}")
+                print_error(error_msg)
             return False

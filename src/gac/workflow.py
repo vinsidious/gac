@@ -4,10 +4,13 @@
 import logging
 from typing import Optional
 
+from rich.panel import Panel
+
 from gac.commit_manager import CommitManager
 from gac.errors import GACError, convert_exception, handle_error
 from gac.formatting_controller import FormattingController
 from gac.git_operations import GitOperationsManager
+from gac.utils import console, print_info, print_success
 
 logger = logging.getLogger(__name__)
 
@@ -148,16 +151,16 @@ class CommitWorkflow:
 
             # Always display the commit message
             if not self.quiet:
-                print("\nGenerated commit message:")
-                print("------------------------")
-                print(commit_message)
-                print("------------------------")
+                console.print("\nGenerated commit message:", style="info")
+                console.print(
+                    Panel(commit_message, title="Commit Message", border_style="bright_blue")
+                )
 
             # If force mode is not enabled, prompt for confirmation
             if not self.force and not self.quiet:
                 confirm = input("\nProceed with this commit message? (y/n): ").strip().lower()
                 if confirm == "n":
-                    print("Commit canceled.")
+                    console.print("Commit canceled.", style="warning")
                     return None
 
             # Execute the commit
@@ -192,16 +195,16 @@ class CommitWorkflow:
             A dictionary of formatted files by formatter
         """
         if not self.quiet:
-            print("ℹ️ Formatting staged files...")
+            print_info("Formatting staged files...")
         elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
-            logger.info("ℹ️ Formatting staged files...")
+            logger.info("Formatting staged files...")
 
         formatted_files = self.formatting_controller.format_staged_files(staged_files, self.quiet)
 
         if not self.quiet:
-            print("✅ Formatting complete")
+            print_success("Formatting complete")
         elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
-            logger.info("✅ Formatting complete")
+            logger.info("Formatting complete")
 
         # Re-stage formatted files
         if formatted_files:
@@ -210,14 +213,18 @@ class CommitWorkflow:
             for formatter, files in formatted_files.items():
                 files_to_stage.extend(files)
 
+            # Re-stage the formatted files
             if files_to_stage:
                 if not self.quiet:
-                    print("ℹ️ Re-staging formatted files...")
+                    print_info("Re-staging formatted files...")
+                elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
+                    logger.info("Re-staging formatted files...")
 
-                # Re-stage the formatted files
                 self.git_manager.stage_files(files_to_stage)
 
                 if not self.quiet:
-                    print("✅ Formatted files re-staged")
+                    print_success("Formatted files re-staged")
+                elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
+                    logger.info("Formatted files re-staged")
 
         return formatted_files
