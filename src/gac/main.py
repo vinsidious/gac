@@ -22,7 +22,12 @@ logger = logging.getLogger(__name__)
 @click.option("--INFO", "log_level_info", is_flag=True, help="Set log level to INFO")
 @click.option("--WARNING", "log_level_warning", is_flag=True, help="Set log level to WARNING")
 @click.option("--ERROR", "log_level_error", is_flag=True, help="Set log level to ERROR")
-@click.option("-q", "--quiet", is_flag=True, help="Enable quiet mode (no prompts)")
+@click.option(
+    "-q",
+    "--quiet",
+    is_flag=True,
+    help="Enable quiet mode (no text except for the commit message)",
+)
 @click.option("-t", "--test", is_flag=True, help="Test mode (no commit)")
 def main(
     hint=None,

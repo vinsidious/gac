@@ -201,7 +201,7 @@ class CommitWorkflow:
             if not commit_message:
                 logger.error("Failed to generate commit message.")
                 return None
-                
+
             # Always display the commit message
             if not self.quiet:
                 print("\nGenerated commit message:")
@@ -211,19 +211,23 @@ class CommitWorkflow:
 
             # If force mode is not enabled, prompt for confirmation
             if not self.force and not self.quiet:
-                confirm = input("\nProceed with this commit message? (y/n/e[dit]): ").strip().lower()
-                if confirm == 'n':
+                confirm = (
+                    input("\nProceed with this commit message? (y/n/e[dit]): ").strip().lower()
+                )
+                if confirm == "n":
                     print("Commit canceled.")
                     return None
-                elif confirm == 'e' or confirm == 'edit':
-                    import tempfile
+                elif confirm == "e" or confirm == "edit":
                     import subprocess
-                    
+                    import tempfile
+
                     # Create a temporary file with the commit message for editing
-                    with tempfile.NamedTemporaryFile(suffix=".txt", mode="w+", delete=False) as temp:
+                    with tempfile.NamedTemporaryFile(
+                        suffix=".txt", mode="w+", delete=False
+                    ) as temp:
                         temp.write(commit_message)
                         temp_path = temp.name
-                    
+
                     # Use the user's preferred editor or fall back to nano
                     editor = os.environ.get("EDITOR", "nano")
                     try:
@@ -338,18 +342,42 @@ class CommitWorkflow:
             handle_error(error, quiet=self.quiet, exit_program=False)
 
     def _format_staged_files(self, staged_files):
-        """Format the staged files."""
+        """
+        Format the staged files and re-stage them.
+
+        Returns:
+            A dictionary of formatted files by formatter
+        """
         if not self.quiet:
             print("ℹ️ Formatting staged files...")
         elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
             logger.info("ℹ️ Formatting staged files...")
 
-        self.formatting_controller.format_staged_files(staged_files, self.quiet)
+        formatted_files = self.formatting_controller.format_staged_files(staged_files, self.quiet)
 
         if not self.quiet:
             print("✅ Formatting complete")
         elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
             logger.info("✅ Formatting complete")
+
+        # Re-stage formatted files
+        if formatted_files:
+            # Collect all formatted file paths
+            files_to_stage = []
+            for formatter, files in formatted_files.items():
+                files_to_stage.extend(files)
+
+            if files_to_stage:
+                if not self.quiet:
+                    print("ℹ️ Re-staging formatted files...")
+
+                # Re-stage the formatted files
+                stage_files(files_to_stage)
+
+                if not self.quiet:
+                    print("✅ Formatted files re-staged")
+
+        return formatted_files
 
     def generate_message(self, diff):
         """
