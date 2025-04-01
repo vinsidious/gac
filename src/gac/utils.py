@@ -7,7 +7,7 @@ import sys
 import threading
 import time
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import List, Optional
 
 import click
 from rich.console import Console

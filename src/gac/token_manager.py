@@ -146,7 +146,8 @@ class TokenManager:
 
         # Add indicator that diff was truncated if needed
         if len(result_diff) < len(file_diffs):
-            trunc_msg = f"\n\n[... {len(file_diffs) - len(result_diff)} more files not shown due to token limit ...]"
+            trunc_msg = (f"\n\n[... {len(file_diffs) - len(result_diff)} more files not shown "
+                         "due to token limit ...]")
             result += trunc_msg
 
         return result

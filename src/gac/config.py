@@ -192,12 +192,14 @@ def validate_config(config: Dict[str, Any]) -> bool:
 
     if config["warning_limit_input_tokens"] <= 0:
         raise ConfigError(
-            f"warning_limit_input_tokens must be positive (got {config['warning_limit_input_tokens']})"
+            f"warning_limit_input_tokens must be positive "
+            f"(got {config['warning_limit_input_tokens']})"
         )
 
     if config["warning_limit_input_tokens"] > 32000:
         logger.warning(
-            "warning_limit_input_tokens is set very high (>32000). This might cause issues with some models"
+            "warning_limit_input_tokens is very high (>32000). "
+            "This might cause issues with some models"
         )
 
     # Check formatting option

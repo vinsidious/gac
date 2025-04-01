@@ -200,3 +200,5 @@ temp/
 !.vscode/extensions.json
 .cursorrules
 CLAUDE.md
+
+*.bak

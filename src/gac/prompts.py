@@ -121,13 +121,13 @@ def clean_commit_message(message: str) -> str:
     if message.startswith("<git-status>"):
         end_tag_pos = message.find("</git-status>")
         if end_tag_pos > 0:
-            message = message[end_tag_pos + len("</git-status>") :].lstrip()
+            message = message[end_tag_pos + len("</git-status>"):].lstrip()
 
     # Remove git diff XML tags if present
     if message.startswith("<git-diff>"):
         end_tag_pos = message.find("</git-diff>")
         if end_tag_pos > 0:
-            message = message[end_tag_pos + len("</git-diff>") :].lstrip()
+            message = message[end_tag_pos + len("</git-diff>"):].lstrip()
 
     # Split into lines
     lines = message.split("\n")
@@ -163,7 +163,7 @@ def clean_commit_message(message: str) -> str:
                         end_tag = tag.replace("<", "</")
                         end_pos = content.find(end_tag)
                         if end_pos > 0:
-                            content = content[end_pos + len(end_tag) :].lstrip()
+                            content = content[end_pos + len(end_tag):].lstrip()
 
             # Reconstruct the bullet point
             lines[i] = "- " + content
@@ -213,7 +213,7 @@ def create_abbreviated_prompt(prompt: str, max_diff_lines: int = 50) -> str:
 
     # Extract parts of the prompt
     before_diff = prompt[: code_start_idx + len(code_start_tag)]  # Include the opening tag
-    diff_content = prompt[code_start_idx + len(code_start_tag) : code_end_idx]
+    diff_content = prompt[code_start_idx + len(code_start_tag): code_end_idx]
     after_diff = prompt[code_end_idx:]  # Include the closing tag and anything after
 
     # Split the diff into lines

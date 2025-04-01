@@ -9,7 +9,8 @@
     },
     "markdownlint.config": {
         "default": true,
-        "MD013": false
+        "MD013": false,
+        "MD031": false
     },
 
     // editor-specific settings for python files

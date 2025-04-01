@@ -4,8 +4,6 @@ Utility script to find missing files in black formatting command.
 
 import os
 import subprocess
-import sys
-from pathlib import Path
 
 
 def main():
