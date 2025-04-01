@@ -1,27 +1,20 @@
-"""Tests for gac.formatting.formatters module."""
+"""Tests for gac.format module."""
 
 from unittest.mock import patch
 
 import pytest
 
-from gac.formatting.formatters import (
-    format_staged_files,
-    run_black,
-    run_gofmt,
-    run_isort,
-    run_prettier,
-    run_rustfmt,
-)
+from gac.format import format_files, run_black, run_gofmt, run_isort, run_prettier, run_rustfmt
 
 
 @pytest.fixture
 def mock_get_staged_files():
-    with patch("gac.formatting.formatters.get_staged_files") as mock:
+    with patch("gac.format.get_staged_files") as mock:
         yield mock
 
 
-@patch("gac.formatting.formatters.run_subprocess")
-@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+@patch("gac.format.run_subprocess")
+@patch("gac.format.os.path.exists", return_value=True)
 def test_run_black_success(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.py", "file2.py"]
     mock_run_subprocess.return_value = None
@@ -30,7 +23,7 @@ def test_run_black_success(mock_exists, mock_run_subprocess, mock_get_staged_fil
     mock_run_subprocess.assert_called_once_with(["black", "file1.py", "file2.py"])
 
 
-@patch("gac.formatting.formatters.run_subprocess")
+@patch("gac.format.run_subprocess")
 def test_run_black_no_files(mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = []
     result = run_black()
@@ -38,8 +31,8 @@ def test_run_black_no_files(mock_run_subprocess, mock_get_staged_files):
     mock_run_subprocess.assert_not_called()
 
 
-@patch("gac.formatting.formatters.run_subprocess")
-@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+@patch("gac.format.run_subprocess")
+@patch("gac.format.os.path.exists", return_value=True)
 def test_run_black_error(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.py", "file2.py"]
     mock_run_subprocess.side_effect = Exception("Command failed")
@@ -48,8 +41,8 @@ def test_run_black_error(mock_exists, mock_run_subprocess, mock_get_staged_files
     mock_run_subprocess.assert_called_once_with(["black", "file1.py", "file2.py"])
 
 
-@patch("gac.formatting.formatters.run_subprocess")
-@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+@patch("gac.format.run_subprocess")
+@patch("gac.format.os.path.exists", return_value=True)
 def test_run_isort_success(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.py", "file2.py"]
     mock_run_subprocess.return_value = None
@@ -58,7 +51,7 @@ def test_run_isort_success(mock_exists, mock_run_subprocess, mock_get_staged_fil
     mock_run_subprocess.assert_called_once_with(["isort", "file1.py", "file2.py"])
 
 
-@patch("gac.formatting.formatters.run_subprocess")
+@patch("gac.format.run_subprocess")
 def test_run_isort_no_files(mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = []
     result = run_isort()
@@ -66,8 +59,8 @@ def test_run_isort_no_files(mock_run_subprocess, mock_get_staged_files):
     mock_run_subprocess.assert_not_called()
 
 
-@patch("gac.formatting.formatters.run_subprocess")
-@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+@patch("gac.format.run_subprocess")
+@patch("gac.format.os.path.exists", return_value=True)
 def test_run_isort_error(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.py", "file2.py"]
     mock_run_subprocess.side_effect = Exception("Command failed")
@@ -76,8 +69,8 @@ def test_run_isort_error(mock_exists, mock_run_subprocess, mock_get_staged_files
     mock_run_subprocess.assert_called_once_with(["isort", "file1.py", "file2.py"])
 
 
-@patch("gac.formatting.formatters.run_subprocess")
-@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+@patch("gac.format.run_subprocess")
+@patch("gac.format.os.path.exists", return_value=True)
 def test_run_prettier_success(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.js", "file2.tsx"]
     mock_run_subprocess.return_value = None
@@ -86,7 +79,7 @@ def test_run_prettier_success(mock_exists, mock_run_subprocess, mock_get_staged_
     mock_run_subprocess.assert_called_once_with(["prettier", "--write", "file1.js", "file2.tsx"])
 
 
-@patch("gac.formatting.formatters.run_subprocess")
+@patch("gac.format.run_subprocess")
 def test_run_prettier_no_files(mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = []
     result = run_prettier()
@@ -94,8 +87,8 @@ def test_run_prettier_no_files(mock_run_subprocess, mock_get_staged_files):
     mock_run_subprocess.assert_not_called()
 
 
-@patch("gac.formatting.formatters.run_subprocess")
-@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+@patch("gac.format.run_subprocess")
+@patch("gac.format.os.path.exists", return_value=True)
 def test_run_prettier_error(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.js", "file2.tsx"]
     mock_run_subprocess.side_effect = Exception("Command failed")
@@ -104,8 +97,8 @@ def test_run_prettier_error(mock_exists, mock_run_subprocess, mock_get_staged_fi
     mock_run_subprocess.assert_called_once_with(["prettier", "--write", "file1.js", "file2.tsx"])
 
 
-@patch("gac.formatting.formatters.run_subprocess")
-@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+@patch("gac.format.run_subprocess")
+@patch("gac.format.os.path.exists", return_value=True)
 def test_run_rustfmt_success(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.rs", "file2.rs"]
     mock_run_subprocess.return_value = None
@@ -114,7 +107,7 @@ def test_run_rustfmt_success(mock_exists, mock_run_subprocess, mock_get_staged_f
     mock_run_subprocess.assert_called_once_with(["rustfmt", "file1.rs", "file2.rs"])
 
 
-@patch("gac.formatting.formatters.run_subprocess")
+@patch("gac.format.run_subprocess")
 def test_run_rustfmt_no_files(mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = []
     result = run_rustfmt()
@@ -122,8 +115,8 @@ def test_run_rustfmt_no_files(mock_run_subprocess, mock_get_staged_files):
     mock_run_subprocess.assert_not_called()
 
 
-@patch("gac.formatting.formatters.run_subprocess")
-@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+@patch("gac.format.run_subprocess")
+@patch("gac.format.os.path.exists", return_value=True)
 def test_run_rustfmt_error(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.rs", "file2.rs"]
     mock_run_subprocess.side_effect = Exception("Command failed")
@@ -132,8 +125,8 @@ def test_run_rustfmt_error(mock_exists, mock_run_subprocess, mock_get_staged_fil
     mock_run_subprocess.assert_called_once_with(["rustfmt", "file1.rs", "file2.rs"])
 
 
-@patch("gac.formatting.formatters.run_subprocess")
-@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+@patch("gac.format.run_subprocess")
+@patch("gac.format.os.path.exists", return_value=True)
 def test_run_gofmt_success(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.go", "file2.go"]
     mock_run_subprocess.return_value = None
@@ -142,7 +135,7 @@ def test_run_gofmt_success(mock_exists, mock_run_subprocess, mock_get_staged_fil
     mock_run_subprocess.assert_called_once_with(["gofmt", "-w", "file1.go", "file2.go"])
 
 
-@patch("gac.formatting.formatters.run_subprocess")
+@patch("gac.format.run_subprocess")
 def test_run_gofmt_no_files(mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = []
     result = run_gofmt()
@@ -150,8 +143,8 @@ def test_run_gofmt_no_files(mock_run_subprocess, mock_get_staged_files):
     mock_run_subprocess.assert_not_called()
 
 
-@patch("gac.formatting.formatters.run_subprocess")
-@patch("gac.formatting.formatters.os.path.exists", return_value=True)
+@patch("gac.format.run_subprocess")
+@patch("gac.format.os.path.exists", return_value=True)
 def test_run_gofmt_error(mock_exists, mock_run_subprocess, mock_get_staged_files):
     mock_get_staged_files.return_value = ["file1.go", "file2.go"]
     mock_run_subprocess.side_effect = Exception("Command failed")
@@ -160,11 +153,11 @@ def test_run_gofmt_error(mock_exists, mock_run_subprocess, mock_get_staged_files
     mock_run_subprocess.assert_called_once_with(["gofmt", "-w", "file1.go", "file2.go"])
 
 
-@patch("gac.formatting.formatters.run_black")
-@patch("gac.formatting.formatters.run_isort")
-@patch("gac.formatting.formatters.run_prettier")
-@patch("gac.formatting.formatters.run_rustfmt")
-@patch("gac.formatting.formatters.run_gofmt")
+@patch("gac.format.run_black")
+@patch("gac.format.run_isort")
+@patch("gac.format.run_prettier")
+@patch("gac.format.run_rustfmt")
+@patch("gac.format.run_gofmt")
 def test_format_staged_files_success(
     mock_run_gofmt,
     mock_run_rustfmt,
@@ -188,7 +181,7 @@ def test_format_staged_files_success(
     mock_run_rustfmt.return_value = True
     mock_run_gofmt.return_value = True
 
-    formatted, exts = format_staged_files()
+    formatted, exts = format_files()
 
     assert formatted is True
     assert ".py" in exts
@@ -199,12 +192,12 @@ def test_format_staged_files_success(
     mock_run_gofmt.assert_called_once()
 
 
-@patch("gac.formatting.formatters.run_black")
-@patch("gac.formatting.formatters.run_isort")
-@patch("gac.formatting.formatters.run_prettier")
-@patch("gac.formatting.formatters.run_rustfmt")
-@patch("gac.formatting.formatters.run_gofmt")
-@patch("gac.formatting.formatters.stage_files")
+@patch("gac.format.run_black")
+@patch("gac.format.run_isort")
+@patch("gac.format.run_prettier")
+@patch("gac.format.run_rustfmt")
+@patch("gac.format.run_gofmt")
+@patch("gac.format.stage_files")
 def test_format_staged_files_with_stage(
     mock_stage_files,
     mock_run_gofmt,
@@ -223,7 +216,7 @@ def test_format_staged_files_with_stage(
     mock_run_rustfmt.return_value = False
     mock_run_gofmt.return_value = False
 
-    formatted, exts = format_staged_files(stage_after_format=True)
+    formatted, exts = format_files(stage_after_format=True)
 
     assert formatted is True
     assert ".py" in exts
@@ -231,11 +224,11 @@ def test_format_staged_files_with_stage(
     mock_stage_files.assert_called_once()
 
 
-@patch("gac.formatting.formatters.run_black")
-@patch("gac.formatting.formatters.run_isort")
-@patch("gac.formatting.formatters.run_prettier")
-@patch("gac.formatting.formatters.run_rustfmt")
-@patch("gac.formatting.formatters.run_gofmt")
+@patch("gac.format.run_black")
+@patch("gac.format.run_isort")
+@patch("gac.format.run_prettier")
+@patch("gac.format.run_rustfmt")
+@patch("gac.format.run_gofmt")
 def test_format_staged_files_no_files(
     mock_run_gofmt,
     mock_run_rustfmt,
@@ -245,7 +238,7 @@ def test_format_staged_files_no_files(
     mock_get_staged_files,
 ):
     mock_get_staged_files.return_value = []
-    formatted, exts = format_staged_files()
+    formatted, exts = format_files()
     assert formatted is False
     assert len(exts) == 0
     mock_run_black.assert_not_called()
@@ -255,12 +248,12 @@ def test_format_staged_files_no_files(
     mock_run_gofmt.assert_not_called()
 
 
-@patch("gac.formatting.formatters.run_black")
-@patch("gac.formatting.formatters.run_isort")
-@patch("gac.formatting.formatters.run_prettier")
-@patch("gac.formatting.formatters.run_rustfmt")
-@patch("gac.formatting.formatters.run_gofmt")
-@patch("gac.formatting.formatters.logger")
+@patch("gac.format.run_black")
+@patch("gac.format.run_isort")
+@patch("gac.format.run_prettier")
+@patch("gac.format.run_rustfmt")
+@patch("gac.format.run_gofmt")
+@patch("gac.format.logger")
 def test_format_staged_files_with_failures(
     mock_logger,
     mock_run_gofmt,
@@ -292,7 +285,7 @@ def test_format_staged_files_with_failures(
 
     mock_run_gofmt.side_effect = gofmt_side_effect
 
-    formatted, exts = format_staged_files()
+    formatted, exts = format_files()
 
     # Should still be True as some formatters succeeded
     assert formatted is True

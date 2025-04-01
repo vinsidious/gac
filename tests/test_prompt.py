@@ -2,7 +2,7 @@
 
 import unittest
 
-from gac.prompts import build_prompt, clean_commit_message, create_abbreviated_prompt
+from gac.prompt import build_prompt, clean_commit_message, create_abbreviated_prompt
 
 
 class TestPrompts(unittest.TestCase):

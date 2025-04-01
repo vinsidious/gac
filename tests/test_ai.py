@@ -6,12 +6,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 import tiktoken
 
-from gac.ai_utils import (
-    APIConnectionError,
-    APIUnsupportedModelError,
+from gac.ai import (
+    AIConnectionError,
+    AIModelError,
     chat,
     count_tokens,
-    extract_model_name,
+    extract_provider_and_model,
     is_ollama_available,
     is_ollama_model_available,
 )
@@ -20,12 +20,11 @@ from gac.ai_utils import (
 class TestAiUtils(unittest.TestCase):
     """Tests for AI utility functions."""
 
-    @patch("gac.ai_utils.ai.Client")
-    def test_chat(self, mock_client_class):
+    @patch("gac.ai.Client")
+    def test_chat(self, mock_client):
         """Test chat function calls the AI client correctly."""
         # Create mock client and configure it
         mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
 
         # Create mock completion API
         mock_completions = MagicMock()
@@ -61,12 +60,11 @@ class TestAiUtils(unittest.TestCase):
 
         self.assertEqual(result, "test_response")
 
-    @patch("gac.ai_utils.ai.Client")
-    def test_chat_with_system(self, mock_client_class):
+    @patch("gac.ai.Client")
+    def test_chat_with_system(self, mock_client):
         """Test chat function with system message."""
         # Create mock client and configure it
         mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
 
         # Create mock completion API
         mock_completions = MagicMock()
@@ -95,13 +93,12 @@ class TestAiUtils(unittest.TestCase):
         # Check the result matches expected response
         self.assertEqual(result, "Test response")
 
-    @patch("gac.ai_utils.ai.Client")
+    @patch("gac.ai.Client")
     @patch("builtins.open", new_callable=unittest.mock.mock_open)
     @patch("json.dump")
-    def test_chat_save_conversation(self, mock_json_dump, mock_open, mock_client_class):
+    def test_chat_save_conversation(self, mock_json_dump, mock_open, mock_client):
         """Test chat function saves conversation when path is provided."""
         mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
 
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
@@ -169,14 +166,19 @@ class TestAiUtils(unittest.TestCase):
 
 def test_extract_model_name():
     """Test the extract_model_name function."""
-    assert extract_model_name("anthropic:claude-3") == "claude-3"
-    assert extract_model_name("openai:gpt-4") == "gpt-4"
-    assert extract_model_name("ollama:llama3.2") == "llama3.2"
-    assert extract_model_name("model-without-provider") == "model-without-provider"
-    assert extract_model_name("provider:with:colons") == "with:colons"
+    assert extract_provider_and_model("anthropic:claude-3") == ("anthropic", "claude-3")
+    assert extract_provider_and_model("openai:gpt-4") == ("openai", "gpt-4")
+    assert extract_provider_and_model("ollama:llama3.2") == ("ollama", "llama3.2")
+    # Default provider should be anthropic
+    assert extract_provider_and_model("model-without-provider") == (
+        "anthropic",
+        "model-without-provider",
+    )
+    # Handle multiple colons
+    assert extract_provider_and_model("provider:with:colons") == ("provider", "with:colons")
 
 
-@patch("gac.ai_utils.ollama")
+@patch("gac.ai.ollama")
 def test_is_ollama_available(mock_ollama):
     """Test the is_ollama_available function."""
     # Ensure mock_ollama is not None
@@ -188,7 +190,7 @@ def test_is_ollama_available(mock_ollama):
     assert is_ollama_available() is False
 
 
-@patch("gac.ai_utils.ollama")
+@patch("gac.ai.ollama")
 def test_is_ollama_model_available(mock_ollama):
     """Test the is_ollama_model_available function."""
     # Mock the ollama.list response
@@ -207,14 +209,14 @@ def test_is_ollama_model_available(mock_ollama):
     assert is_ollama_model_available("unavailable-model") is False
 
 
-@patch("gac.ai_utils.is_ollama_available")
-@patch("gac.ai_utils.is_ollama_model_available")
+@patch("gac.ai.is_ollama_available")
+@patch("gac.ai.is_ollama_model_available")
 def test_chat_with_ollama_not_available(mock_is_model_available, mock_is_available):
     """Test chat raises APIConnectionError when Ollama is not available."""
     mock_is_available.return_value = False
     mock_is_model_available.return_value = False
 
-    with pytest.raises(APIConnectionError) as e:
+    with pytest.raises(AIConnectionError) as e:
         chat(
             [{"role": "user", "content": "Hello"}],
             model="ollama:llama3",
@@ -224,14 +226,14 @@ def test_chat_with_ollama_not_available(mock_is_model_available, mock_is_availab
     assert "not available" in str(e.value)
 
 
-@patch("gac.ai_utils.is_ollama_available")
-@patch("gac.ai_utils.is_ollama_model_available")
+@patch("gac.ai.is_ollama_available")
+@patch("gac.ai.is_ollama_model_available")
 def test_chat_with_ollama_model_not_available(mock_is_model_available, mock_is_available):
     """Test chat raises APIUnsupportedModelError when Ollama model is not available."""
     mock_is_available.return_value = True
     mock_is_model_available.return_value = False
 
-    with pytest.raises(APIUnsupportedModelError) as e:
+    with pytest.raises(AIModelError) as e:
         chat(
             [{"role": "user", "content": "Hello"}],
             model="ollama:unavailable-model",
@@ -241,9 +243,9 @@ def test_chat_with_ollama_model_not_available(mock_is_model_available, mock_is_a
     assert "not available locally" in str(e.value)
 
 
-@patch("gac.ai_utils.is_ollama_available")
-@patch("gac.ai_utils.is_ollama_model_available")
-@patch("gac.ai_utils.ollama")
+@patch("gac.ai.is_ollama_available")
+@patch("gac.ai.is_ollama_model_available")
+@patch("gac.ai.ollama")
 def test_chat_with_ollama_direct(mock_ollama, mock_is_model_available, mock_is_available):
     """Test chat uses Ollama directly when provider is ollama."""
     # Setup mocks
@@ -273,12 +275,11 @@ def test_chat_with_ollama_direct(mock_ollama, mock_is_model_available, mock_is_a
     assert result == "Ollama response"
 
 
-@patch("gac.ai_utils.ai.Client")
-def test_chat_with_one_liner(mock_client_class):
+@patch("gac.ai.Client")
+def test_chat_with_one_liner(mock_client):
     """Test chat with one_liner=True converts multiline responses to single line."""
     # Create mock client and response
     mock_client = MagicMock()
-    mock_client_class.return_value = mock_client
 
     mock_response = MagicMock()
     mock_response.choices = [MagicMock()]
@@ -298,9 +299,9 @@ def test_chat_with_one_liner(mock_client_class):
     assert "\n" not in result
 
 
-@patch("gac.ai_utils.is_ollama_available")
-@patch("gac.ai_utils.is_ollama_model_available")
-@patch("gac.ai_utils.ollama")
+@patch("gac.ai.is_ollama_available")
+@patch("gac.ai.is_ollama_model_available")
+@patch("gac.ai.ollama")
 def test_chat_with_ollama_one_liner(mock_ollama, mock_is_model_available, mock_is_available):
     """Test chat with Ollama and one_liner=True."""
     # Setup mocks

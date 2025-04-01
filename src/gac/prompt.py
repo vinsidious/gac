@@ -9,9 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def build_prompt(
-    status: str, diff: str, one_liner: bool = False, hint: str = "", conventional: bool = True
-) -> str:
+def build_prompt(status: str, diff: str, one_liner: bool = False, hint: str = "") -> str:
     """
     Build a prompt for the LLM to generate a commit message.
 
@@ -20,7 +18,6 @@ def build_prompt(
         diff: Output of git diff --staged
         one_liner: If True, request a single-line commit message
         hint: Optional context to include in the prompt (like "JIRA-123")
-        conventional: If True, enforce conventional commit format
 
     Returns:
         The formatted prompt string
@@ -60,25 +57,21 @@ def build_prompt(
         )
 
     conventional_section = (
-        (
-            "IMPORTANT: EVERY commit message MUST start with a conventional commit prefix. "
-            "This is a HARD REQUIREMENT. Choose from:"
-            "\n- feat: A new feature"
-            "\n- fix: A bug fix"
-            "\n- docs: Documentation changes"
-            "\n- style: Changes that don't affect code meaning (formatting, whitespace)"
-            "\n- refactor: Code changes that neither fix a bug nor add a feature"
-            "\n- perf: Performance improvements"
-            "\n- test: Adding or correcting tests"
-            "\n- build: Changes to build system or dependencies"
-            "\n- ci: Changes to CI configuration"
-            "\n- chore: Other changes that don't modify src or test files"
-            "\n\nYOU MUST choose the most appropriate type based on the changes. "
-            "If you CANNOT determine a type, use 'chore'. "
-            "THE PREFIX IS MANDATORY - NO EXCEPTIONS."
-        )
-        if conventional
-        else ""
+        "IMPORTANT: EVERY commit message MUST start with a conventional commit prefix. "
+        "This is a HARD REQUIREMENT. Choose from:"
+        "\n- feat: A new feature"
+        "\n- fix: A bug fix"
+        "\n- docs: Documentation changes"
+        "\n- style: Changes that don't affect code meaning (formatting, whitespace)"
+        "\n- refactor: Code changes that neither fix a bug nor add a feature"
+        "\n- perf: Performance improvements"
+        "\n- test: Adding or correcting tests"
+        "\n- build: Changes to build system or dependencies"
+        "\n- ci: Changes to CI configuration"
+        "\n- chore: Other changes that don't modify src or test files"
+        "\n\nYOU MUST choose the most appropriate type based on the changes. "
+        "If you CANNOT determine a type, use 'chore'. "
+        "THE PREFIX IS MANDATORY - NO EXCEPTIONS."
     )
 
     hint_section = f"Please consider this context from the user: {hint}" if hint else ""
