@@ -1,6 +1,16 @@
 # Development Guide for GAC
 
-This document contains instructions for developers who want to contribute to the GAC (Git Auto Commit) project.
+This document contains instructions for developers who want to contribute to the GAC (Git Auto Commit) project, with a focus on functional programming principles.
+
+## Functional Programming Philosophy
+
+GAC follows these core functional programming principles:
+
+1. **Pure Functions**: Functions should avoid side effects and have predictable outputs based solely on their inputs
+2. **Immutability**: Data should not be modified after creation
+3. **Composability**: Build complex operations from simple, reusable functions
+4. **Explicit Dependencies**: Dependencies should be passed as arguments, not accessed from global state
+5. **Error Handling**: Errors should be returned, not thrown (when possible)
 
 ## Getting Started
 
@@ -28,20 +38,109 @@ This document contains instructions for developers who want to contribute to the
    source .venv/bin/activate
    ```
 
-## Development Workflow
+## Architecture Overview
 
-### VSCode Integration
+GAC uses a modular, function-based architecture:
 
-The repository includes VSCode settings that:
+```text
+src/gac/
+├── __init__.py       # Package exports
+├── __about__.py      # Version info
+├── ai.py             # AI model integration functions
+├── cli.py            # Command-line interface
+├── config.py         # Configuration handling
+├── errors.py         # Error types and handling
+├── format.py         # Code formatting utilities
+├── git.py            # Git operations
+├── prompt.py         # Prompt building and processing
+└── utils.py          # General utilities
+```
 
-- Use the local virtual environment Python interpreter
-- Configure test discovery with pytest
-- Set up code formatting with black
-- Hide common Python cache directories
+### Key Module Responsibilities
 
-If you're using VSCode, these settings will be automatically applied when you open the project.
+- **ai.py**: Handles provider integration, token counting, and prompt optimization
+- **git.py**: Git operations with pure functions for getting diffs, staging, committing
+- **format.py**: Code formatting for Python and other languages
+- **prompt.py**: Building and cleaning prompts for AI models
+- **config.py**: Configuration from environment variables and validation
 
-### Development Tasks with Make
+## Development Best Practices
+
+### Writing Functions
+
+Follow these guidelines when writing or modifying functions:
+
+```python
+# Good: Pure function with explicit dependencies
+def format_file(file_path: str, formatter_command: List[str]) -> bool:
+    """Format a single file with the given formatter.
+
+    Args:
+        file_path: Path to the file to format
+        formatter_command: Command to run the formatter
+
+    Returns:
+        True if formatting succeeded, False otherwise
+    """
+    # Implementation...
+
+# Avoid: Function with implicit dependencies and side effects
+def format_file(file_path: str) -> None:
+    """Format a file with automatically detected formatter.
+
+    Args:
+        file_path: Path to the file to format
+    """
+    # Bad: Accessing global state
+    command = FORMATTERS.get(get_file_type(file_path))
+    # Bad: Side effects without return value
+    subprocess.run(command)
+```
+
+### Testing
+
+GAC uses pytest for testing. Follow these testing principles:
+
+1. **Test Behavior, Not Implementation**: Focus on what functions do, not how
+2. **Use Pure Function Testing**: Tests should be deterministic and isolated
+3. **Minimize Mocking**: Only mock external dependencies when necessary
+4. **Use Fixtures**: Create reusable test fixtures for common setup
+5. **Property-Based Testing**: Consider using hypothesis for property testing
+
+Example:
+
+````python
+# Good test: Tests behavior, not implementation
+def test_clean_commit_message():
+    # Given a message with backticks
+    message = "```\nTest message\n```"
+
+    # When cleaned
+    result = clean_commit_message(message)
+
+    # Then it should have conventional prefix and no backticks
+    assert result == "chore: Test message"
+````
+
+### Testing Commands
+
+When running tests:
+
+```console
+# Run all tests
+make test
+
+# Run tests with coverage
+make coverage
+
+# Run linting
+make lint
+
+# Format code
+make format
+```
+
+## Development Tasks with Make
 
 The project includes a Makefile for common development tasks:
 
@@ -68,53 +167,9 @@ make format
 make clean
 ```
 
-### Alternative: Direct uv commands
-
-```console
-# Create virtual environment
-uv venv
-
-# Install package with dev dependencies
-uv pip install -e ".[dev]"
-
-# Update dependencies
-uv pip install -U -e ".[dev]"
-```
-
-### Testing and Linting
-
-```console
-# Run tests
-pytest
-
-# Run tests with coverage
-pytest --cov
-
-# Format code
-black .
-isort .
-
-# Run linters
-flake8 .
-```
-
-## Building and Publishing
-
-```console
-# Build the package
-python -m build
-
-# Check build
-rm -rf dist/
-python -m build
-
-# Publish to PyPI (maintainers only)
-python -m twine upload dist/*
-```
-
 ## Version Management
 
-The project uses `bump2version` for version management. You can bump the version using the following make commands:
+The project uses `bump-my-version` for version management:
 
 ```console
 # Bump patch version (0.1.0 -> 0.1.1)
@@ -125,124 +180,34 @@ make bump-minor
 
 # Bump major version (0.1.0 -> 1.0.0)
 make bump-major
-
-# Bump to next alpha (0.1.0a1 -> 0.1.0a2)
-make bump-alpha
-
-# Bump to next beta (0.1.0b1 -> 0.1.0b2)
-make bump-beta
-
-# Bump to next release candidate (0.1.0rc1 -> 0.1.0rc2)
-make bump-rc
 ```
 
 After bumping the version, be sure to update the CHANGELOG.md file with your changes.
 
-## Development Installation Options
-
-If you want to make the `gac` command available during development without having to activate the virtual environment each time, you have several options:
-
-### Option 1: Use pipx in development mode
-
-This is a clean approach that keeps your development version isolated:
-
-```bash
-pipx install -e /path/to/your/gac/repo
-```
-
-This will install your package in editable mode using pipx, which creates an isolated environment but makes the command globally available. Any changes you make to your code will be immediately reflected when you run the command.
-
-### Option 2: Create a development alias
-
-You can add an alias to your shell profile (`.zshrc`, `.bashrc`, etc.) that points to your development version:
-
-```bash
-alias dev-gac="python /path/to/your/gac/repo/src/gac/core.py"
-```
-
-This would let you run `dev-gac` from anywhere, and it would use your current code.
-
-### Option 3: Add a symbolic link to your PATH
-
-1. First, make sure your script is executable:
-
-   ```bash
-   chmod +x /path/to/your/gac/repo/src/gac/core.py
-   ```
-
-2. Add a shebang line to the top of your core.py file if it doesn't have one:
-
-   ```python
-   #!/usr/bin/env python
-   ```
-
-3. Create a symbolic link in a directory that's in your PATH:
-
-   ```bash
-   ln -s /path/to/your/gac/repo/src/gac/core.py /usr/local/bin/dev-gac
-   ```
-
-## Project Structure
-
-```plaintext
-gac/
-├── src/
-│   └── gac/
-│       ├── __init__.py
-│       ├── __about__.py
-│       ├── core.py
-│       └── utils.py
-├── tests/
-├── .venv/
-├── .gitignore
-├── LICENSE.txt
-├── README.md
-├── DEVELOPMENT.md
-├── CHANGELOG.md
-└── pyproject.toml
-```
-
 ## Contributing
 
+To contribute to GAC:
+
 1. Fork the repository
-2. Create a new branch for your feature
-3. Make your changes
-4. Run tests and linting: `make test && make lint`
-5. Submit a pull request
+2. Create a new branch for your feature or fix
+3. Follow the functional programming principles
+4. Write tests for your changes
+5. Run the test suite and linters
+6. Submit a pull request
 
-## Configuration Management
+### Pull Request Checklist
 
-### Configuration Wizard
+- [ ] Code follows functional programming principles
+- [ ] Tests cover the new functionality or fix
+- [ ] Documentation is updated
+- [ ] CHANGELOG.md is updated (if applicable)
+- [ ] Code passes linting checks
 
-The configuration wizard is implemented in `src/gac/config.py` with the `run_config_wizard()` function. It uses the `questionary` library to provide an interactive CLI experience.
+## Handling Complexity
 
-#### Key Components
+When faced with complex functionality:
 
-- Provider selection from a predefined list
-- Model selection based on the chosen provider
-- Formatting preference toggle
-- Configuration validation
-
-#### Testing
-
-- Tests are located in `tests/test_config.py`
-- Uses `unittest.mock` to simulate user interactions
-- Covers various scenarios like provider selection, cancellation, and validation
-
-### Environment Variable Configuration
-
-Supports configuration via environment variables:
-
-- `GAC_MODEL`: Full model specification
-- `GAC_PROVIDER`: AI provider
-- `GAC_MODEL_NAME`: Specific model name
-- `GAC_USE_FORMATTING`: Enable/disable code formatting
-
-### Adding New Providers or Models
-
-To add new providers or models:
-
-1. Update `PROVIDER_MODELS` in `config.py`
-2. Add corresponding API key environment variable in `API_KEY_ENV_VARS`
-3. Update tests in `test_config.py`
-4. Update documentation in README.md
+1. **Decompose**: Break complex functions into smaller, focused ones
+2. **Compose**: Use function composition to build up complexity
+3. **Data First**: Design data structures before writing functions
+4. **Pure Core**: Keep core logic pure, push side effects to the edges

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# flake8: noqa: E501
 """
 Script to automate updating the ## [Unreleased] section of CHANGELOG.md based on changes
 since the last version release.
@@ -19,21 +20,17 @@ Features:
 
 import logging
 import os
-import re
-import shutil
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List
 
-import click
 import yaml
 from rich.logging import RichHandler
 
 # Add project root to path for importing gac modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from gac.ai_utils import chat, count_tokens
+from gac.ai import count_tokens
 
 # Setup logging
 logging.basicConfig(

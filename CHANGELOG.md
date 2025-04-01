@@ -1,4 +1,4 @@
-<!-- markdownlint-disable MD024-->
+<!-- markdownlint-disable MD024 -->
 
 # Changelog
 
@@ -11,43 +11,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Support for local LLMs through Ollama integration
-- Support for conventional commits format with `--conventional` flag
-- Implemented caching for repeated operations to improve performance
-- Added functions to detect Ollama availability and check for specific models
-- Increased default token limits: per-file limit to 2500 (from 1000) and overall input limit to 16000 (from 4096)
-- Better error handling with specific error types
-- Automatic retries for transient API errors
-- Added token count display for truncated files to help diagnose and manage large diffs
-- Added `--no-cache` and `--clear-cache` options to CLI
-- Colorized terminal output for better readability and user experience
-- Safety mechanism to prevent real git commands from running during tests
-- Interactive configuration wizard (`gac --config-wizard`) to simplify provider and model selection
-- Support for configuration via environment variables
-- Expanded documentation for configuration options
-- Added `--push` (`-p`) option to push changes to remote after committing
+- **Functional Programming**: Complete architectural redesign around functional programming principles
+- **Pure Functions**: Refactored core modules to use pure functions with explicit dependencies
+- **Function Composition**: New pipeline approach for the commit workflow
+- **Type Hints**: Comprehensive type annotations throughout the codebase
+- **Improved Ollama Integration**: Enhanced support for local models
+- **Token Management System**: Smarter handling of large diffs with priority-based truncation
+- **Progressive Loading**: Show results as they arrive for better UX
+- **User-Configurable Prompt Templates**: Allow custom prompt templates via configuration
+- **Compatibility Layer**: Added backward compatibility for existing scripts and workflows
+- **Advanced Error Recovery**: More robust error handling with fallback strategies
 
 ### Changed
 
-- Improved prompt display with new `--show-prompt` (abbreviated) and `--show-prompt-full` flags
-- Enhanced conventional commit format to include better structure with bullet points for detailed descriptions
-- Strengthened conventional commit prompt to ensure detailed, multi-bullet point commit messages
-- Improved commit messages by ordering bullet points from most important to least important
-- Improved token usage optimization for large diffs
-- Improved truncated file display with specific token counts for each file
-- Refactored git operations to take advantage of caching
-- Enhanced error messages with more descriptive information
-- Updated test suite for better reliability and coverage
-- Improved mocking for user input in core module tests with more resilient fixtures
-- Improved configuration handling with more robust validation
-- Updated README with configuration wizard instructions
+- **Simplified Architecture**: Reduced module count and removed unnecessary abstractions
+- **Function-Based API**: Replaced class-based approach with simpler functional design
+- **Immutable Data Flow**: Changed data handling to prefer immutability
+- **Cleaner Git Integration**: Simplified git command abstraction
+- **Improved Configuration**: More flexible and explicit configuration management
+- **Enhanced Prompt System**: Better prompt generation for model-specific optimization
+- **Documentation**: Updated all docs to reflect functional programming approach
+- **Developer Experience**: Simplified development setup and contribution workflow
+- **Error Messages**: More helpful and actionable error messages
+- **Testing**: Shifted focus to behavior-based testing over implementation-based tests
 
-### Fixed
+### Removed
 
-- Fixed test inconsistencies with run_subprocess functions
-- Corrected prompt generation for hints
-- Fixed git module test issues with cached functions
-- Enhanced backtick cleaning to prevent code block markers in individual bullet points
+- **OOP Abstractions**: Removed unnecessary class hierarchies
+- **Redundant Wrappers**: Eliminated redundant wrapper classes
+- **Global State**: Reduced reliance on global state and environment variables
+- **Dual Interfaces**: Removed dual class/function interfaces for simpler API
+- **Legacy Abstractions**: Removed outdated abstractions from earlier versions
 
 ## [0.4.3] - 2025-03-30
 

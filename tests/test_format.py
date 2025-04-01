@@ -1,6 +1,5 @@
 """Tests for gac.format module."""
 
-import os
 from unittest.mock import patch
 
 import pytest

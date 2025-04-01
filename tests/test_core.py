@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from gac.git import get_git_operations, set_git_operations
-from gac.prompt import build_prompt, create_abbreviated_prompt
+from gac.prompt import build_prompt
 
 
 # Mock for aisuite Client

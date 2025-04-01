@@ -125,11 +125,49 @@ GAC supports multiple AI providers. You need to set up at least one:
    export MISTRAL_API_KEY=your_key_here
    ```
 
+### Local Models with Ollama
+
+For privacy, offline use, or to avoid API costs:
+
+1. Install [Ollama](https://ollama.com/) from their website
+2. Start the Ollama service:
+   ```bash
+   ollama start
+   ```
+3. Pull a model:
+   ```bash
+   ollama pull llama3.2
+   ```
+4. Use with GAC:
+   ```bash
+   gac -m ollama:llama3.2
+   ```
+
+To list available local models:
+
+```bash
+gac models
+```
+
 ### Other Providers
 
 For other providers like AWS Bedrock, Azure, or Google, see the documentation for each provider in the `.env.example` file.
 
 ## Configuration
+
+### Interactive Wizard
+
+The simplest way to configure GAC is with the interactive wizard:
+
+```bash
+gac --config-wizard
+```
+
+This will guide you through:
+
+- Selecting a provider
+- Choosing a model
+- Setting formatting preferences
 
 ### Using Environment Variables
 
@@ -143,23 +181,36 @@ export ANTHROPIC_API_KEY=your_api_key_here
 # export MISTRAL_API_KEY=your_api_key_here
 
 # GAC Configuration
-export GAC_PROVIDER=anthropic  # Choose: anthropic, openai, groq, mistral, aws
-# export GAC_MODEL_NAME=claude-3-haiku  # Model name for the selected provider
-# export GAC_MODEL=openai:gpt-4o  # Or set a fully qualified model (overrides provider and model name)
-# export GAC_USE_FORMATTING=true  # Whether to use black and isort for Python files
-# export GAC_MAX_TOKENS=8192  # Maximum output tokens
+export GAC_MODEL=anthropic:claude-3-5-haiku-latest
+export GAC_USE_FORMATTING=true
+export GAC_MAX_OUTPUT_TOKENS=512
+export GAC_WARNING_LIMIT_INPUT_TOKENS=16000
 ```
 
 ### Using .env Files
 
 Alternatively, create a `.env` file in your project directory with the same variables. This is useful for project-specific configurations.
 
-### Using Command-Line Options
-
-Override the model for a single run:
+Copy the `.env.example` file to get started:
 
 ```bash
+cp .env.example .env
+# Edit .env with your preferred settings
+```
+
+### Using Command-Line Options
+
+Override configuration for a single run:
+
+```bash
+# Use a specific model
 gac -m openai:gpt-4o
+
+# Disable formatting
+gac --no-format
+
+# Generate one-line commit message
+gac -o
 ```
 
 ## Basic Usage
@@ -185,11 +236,14 @@ gac -m openai:gpt-4o
    # Skip user confirmation
    gac -f
 
-   # Skip code formatting
-   gac -nf
-
    # Use a specific model
    gac -m groq:llama3-70b-8192
+
+   # Add context hint for the AI
+   gac -h "JIRA-123 Fix auth bug"
+
+   # Commit and push in one command
+   gac -p
    ```
 
 ## Troubleshooting

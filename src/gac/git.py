@@ -478,7 +478,7 @@ def commit_changes(
 
         # Check if there are any changes to commit
         if not staged_files:
-            # If add_all was requested but no files were staged, check if there are any unstaged changes
+            # If add_all was requested but no files were staged, check if there are any unstaged changes  # noqa: E501
             if add_all:
                 status_output = run_git_command(["status", "-s"], silent=True)
                 if not status_output:

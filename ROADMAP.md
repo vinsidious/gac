@@ -2,127 +2,102 @@
 
 ## Current Status
 
-Git Auto Commit (gac) is a CLI tool that uses large language models to generate meaningful commit messages based on staged changes. We've completed a major refactoring to simplify the codebase and improve maintainability.
+Git Auto Commit (gac) is a CLI tool that uses large language models to generate meaningful commit messages based on staged changes. We're completing a major architectural shift toward functional programming, emphasizing pure functions, immutability, and composability.
 
 ## Next Steps
 
 ### Short-term Goals
 
-1. **Architecture and Code Simplification**
+1. **Complete Functional Programming Transition**
 
-   - [x] Remove core.py entirely (it was just a wrapper around cli.py)
-   - [x] Consolidate main.py and cli.py to reduce duplication
-   - [x] Remove the edit option for commit messages
-   - [x] Remove the test mode flag which caused confusion
-   - [x] Extract logging configuration into a dedicated utility function
-   - [x] Merge git.py and git_operations.py to eliminate duplication
-   - [x] Eliminate delegation pattern in git.py to reduce unnecessary indirection
-   - [x] Break down the large CommitWorkflow class into smaller components
-   - [x] Simplify OOP approach - consider more functional patterns where appropriate
-   - [x] Simplify formatting architecture using a more direct approach
-   - [x] Centralize error handling and reduce duplication
-   - [x] Reduce the error type hierarchy - streamline to essential types only
+   - [x] Redesign core modules around pure functions with explicit dependencies
+   - [x] Improve data flow with immutability principles
+   - [ ] Replace remaining class-based interfaces with function-based alternatives
+   - [ ] Remove all dual implementation patterns
+   - [ ] Create a consistent error handling approach based on functional patterns
+   - [ ] Apply function composition patterns to key workflows
+   - [ ] Add type hints throughout codebase
+   - [ ] Refactor prompting system to be more composable
 
-2. **Performance Optimization**
+2. **Simplify Core Architecture**
+
+   - [x] Consolidate utility functions into domain-specific modules
+   - [x] Remove redundant abstraction layers
+   - [ ] Reduce parameter counts in complex functions
+   - [ ] Create pipeline helpers for common workflows
+   - [ ] Replace environment variable configuration with pure configuration objects
+   - [ ] Develop a unified logging strategy compatible with functional paradigm
+   - [ ] Extract side effects to the edges of the application
+   - [ ] Implement more detailed function documentation
+
+3. **Performance and Reliability Improvements**
 
    - [x] Optimize token usage for large diffs
-   - [x] Implement caching for repeated operations
-   - [ ] Reduce startup time
-   - [ ] Optimize memory usage during diff processing
-   - [x] Improve efficiency of diff processing logic in `git.py`
-
-3. **Improve Error Handling**
-
-   - [x] Add more descriptive error messages
-   - [x] Implement graceful fallbacks when API calls fail
-   - [x] Add error logging capability
-   - [x] Improve error handling for git stash operations
-   - [x] Add more granular error recovery mechanisms
-   - [x] Replace empty string returns with proper error objects
-   - [x] Improve error message clarity with specific remediation steps
-   - [x] Consolidate exception handling patterns
+   - [x] Implement smarter caching system
+   - [ ] Reduce startup time through lazy imports
+   - [ ] Implement asynchronous processing where beneficial
+   - [ ] Add progressive output for long-running operations
+   - [ ] Create more robust connection error handling
+   - [ ] Implement request retry mechanisms with backoff
+   - [ ] Add filesystem-based fallbacks for network failures
 
 ## Current Sprint Focus
 
-- [x] Add push functionality to enable pushing changes after committing
-- [x] Merge git.py and git_operations.py into a single, simpler module
-- [x] Improve workflow.py to use simplified git functionality directly
-- [x] Complete the further simplification of workflow.py by breaking it into smaller components
-- [x] Reduce abstraction layers throughout the codebase
-- [x] Consolidate provider handling logic between ai_utils.py and commit_manager.py
-- [x] Replace class-based architecture with a simpler functional approach
-- [x] Reorganize code into focused modules with clear responsibilities
-- [x] Provide backward compatibility layer for existing code and tests
-- [x] Update tests to work with the new functional API
+- [ ] **Function-Based Git Module**: Replace the GitOperationsManager class with pure functions
+- [ ] **Configuration as Data**: Change configuration handling to use immutable data structures
+- [ ] **Pipeline Factory**: Create a pipeline factory for the commit workflow
+- [ ] **Simpler CLI Interface**: Rework CLI to leverage function-based architecture
+- [ ] **Reduce Function Parameters**: Use parameter objects for complex functions
+- [ ] **Explicit Dependency Injection**: Make dependencies explicit for testing and flexibility
+- [ ] **Pure Core Logic**: Move side effects to adapter functions at the edges
+- [ ] **Update Tests**: Rewrite tests to focus on behaviors rather than implementation details
+- [ ] **Import Optimization**: Fix circular imports and optimize import structure
+- [ ] **Documentation Updates**: Update function docstrings and developer documentation
 
-## Recent Improvements
+## Functional Programming Improvements
 
-### Major Code Reorganization
+### Core Principles to Implement
 
-We've completed a significant reorganization of the codebase to simplify and improve maintainability:
+1. **Pure Functions**
 
-1. **Simplified Module Structure**
+   - [x] Extract pure functions for git operations
+   - [x] Create pure functions for prompt generation
+   - [ ] Refactor AI interaction to be pure
+   - [ ] Make file operations composable
 
-   - [x] Consolidated functionality from multiple files into focused modules:
-     - `ai.py` (merged from `ai_utils.py` and `token_manager.py`)
-     - `prompt.py` (merged from `prompts.py`)
-     - `format.py` (merged from `formatting_controller.py` and `formatting/formatters.py`)
-     - `git.py` (merged from `core.py` and `commit_manager.py`)
-   - [x] Removed unnecessary files and directories:
-     - Removed `workflow.py`
-     - Removed `formatting/` directory
-     - Removed `ai_utils.py`
-     - Removed `prompts.py`
-     - Removed `core.py`
-     - Removed `commit_manager.py`
-     - Removed `formatting_controller.py`
-   - [x] Simplified `main.py` to serve as a clean entry point
+2. **Immutable Data Flow**
 
-2. **Functional Programming Approach**
+   - [x] Use immutable data structures for configuration
+   - [ ] Implement pipeline pattern for data transformation
+   - [ ] Add function composition helpers
+   - [ ] Remove in-place modifications
 
-   - [x] Shifted from Object-Oriented Programming to a more functional approach
-   - [x] Removed unnecessary classes and inheritance hierarchies
-   - [x] Simplified function interfaces with clearer parameter names
-   - [x] Reduced code complexity and improved readability
+3. **Explicit Dependencies**
 
-3. **Improved Error Handling**
-   - [x] Streamlined error hierarchy
-   - [x] Provided better error messages with remediation steps
-   - [x] Improved error handling patterns
+   - [ ] Remove implicit dependencies from all functions
+   - [ ] Add dependency injection patterns
+   - [ ] Create factory functions where appropriate
+   - [ ] Add reader monad pattern for configuration
 
-### Git and Workflow Simplification
-
-We've made several significant improvements to simplify the codebase:
-
-1. **Consolidated Git Functionality**
-
-   - [x] Merged git.py and git_operations.py into a single module
-   - [x] Removed duplicate code and unnecessary abstraction layers
-   - [x] Implemented a functional approach with a compatibility wrapper for existing class-based code
-
-2. **Improved Prompt System**
-
-   - [x] Simplified the template generation in prompt.py
-   - [x] Added better error handling for malformed commit messages
-   - [x] Improved clean_commit_message to handle more edge cases
-
-3. **Streamlined Workflow**
-   - [x] Replaced workflow.py with direct function calls
-   - [x] Simplified the formatting and re-staging process
-   - [x] Improved error handling and added better user feedback
+4. **Simplified Testing**
+   - [ ] Add property-based testing for pure functions
+   - [ ] Reduce test mocking complexity
+   - [ ] Create test fixtures for common scenarios
+   - [ ] Implement functional testing patterns
 
 ## Long-term Vision
 
-Our simplified vision is to focus on:
+Our simplified vision is to:
 
-1. **Core Functionality**: Generate excellent commit messages using AI
-2. **Simplicity**: Maintain a clean, easy-to-understand codebase
-3. **Reliability**: Ensure the tool works consistently across environments
-4. **Maintainability**: Keep the code easy for a single person to maintain and understand
+1. **Core Functionality**: Generate excellent commit messages using AI with minimal complexity
+2. **Functional Purity**: Maintain high functional purity for maintainability and reliability
+3. **Developer Experience**: Provide a consistent and intuitive API for developers
+4. **Performance**: Optimize for speed and efficiency in the commit workflow
+5. **Extensibility**: Create a plugin architecture for extending functionality
 
 ## Explicitly Not Planned
 
-We've decided against these items to maintain a focused, streamlined tool:
+We've decided against these items to maintain focus:
 
 - ~~Adding new AI providers (will maintain current providers only)~~
 - ~~Command completion for shells~~
@@ -148,13 +123,7 @@ We've decided against these items to maintain a focused, streamlined tool:
 - [x] Added full support for local Ollama models with direct API integration
 - [x] Removed core.py entirely as it was just a wrapper
 - [x] Simplified main.py to be a lightweight compatibility wrapper around cli.py
-- [x] Extracted commit message generation into a separate CommitManager class
-- [x] Extracted git operations into a separate GitOperationsManager class
-- [x] Removed the edit option from commit messages to simplify the workflow
-- [x] Removed the confusing test mode flag
 - [x] Added push functionality to push changes to remote after committing
-- [x] Simplified architecture with function-based API instead of class-based approach
+- [x] Shifted from OOP to a more functional programming approach
 - [x] Reorganized code into focused modules with clear responsibilities
 - [x] Added compatibility layer to ensure existing code continues to work
-- [x] Completed major code reorganization to improve maintainability
-- [x] Shifted from OOP to a more functional programming approach
