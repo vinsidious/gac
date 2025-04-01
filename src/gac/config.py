@@ -7,10 +7,10 @@ default values.
 
 import logging
 import os
-from dataclasses import dataclass
 from typing import Any, Optional
 
 import questionary
+from pydantic import BaseModel, model_validator
 
 logger = logging.getLogger(__name__)
 
@@ -64,8 +64,7 @@ class ConfigError(Exception):
     pass
 
 
-@dataclass(frozen=True)
-class Config:
+class Config(BaseModel):
     """Immutable configuration for Git Auto Commit."""
 
     model: str
@@ -74,6 +73,11 @@ class Config:
     warning_limit_input_tokens: int
     api_key: Optional[str] = None
     temperature: float = 0.7
+
+    # Make the model immutable (like dataclass with frozen=True)
+    model_config = {
+        "frozen": True,
+    }
 
     @property
     def provider(self) -> str:
@@ -89,7 +93,8 @@ class Config:
             return self.model  # Full model name
         return self.model.split(":", 1)[1]
 
-    def validate(self) -> None:
+    @model_validator(mode="after")
+    def validate_config(self) -> "Config":
         """Validate the configuration.
 
         Raises:
@@ -135,6 +140,8 @@ class Config:
             if not os.environ.get(api_key_env):
                 raise ConfigError(f"API key not set: {api_key_env}")
 
+        return self
+
     def with_updates(self, **kwargs) -> "Config":
         """Create a new Config instance with updated values.
 
@@ -145,14 +152,7 @@ class Config:
             Config: A new Config instance with updated values
         """
         # Get current values as a dictionary
-        current_values = {
-            "model": self.model,
-            "use_formatting": self.use_formatting,
-            "max_output_tokens": self.max_output_tokens,
-            "warning_limit_input_tokens": self.warning_limit_input_tokens,
-            "api_key": self.api_key,
-            "temperature": self.temperature,
-        }
+        current_values = self.model_dump()
 
         # Update with new values
         current_values.update(kwargs)
@@ -197,14 +197,7 @@ class Config:
         Returns:
             Iterator of (key, value) pairs
         """
-        return {
-            "model": self.model,
-            "use_formatting": self.use_formatting,
-            "max_output_tokens": self.max_output_tokens,
-            "warning_limit_input_tokens": self.warning_limit_input_tokens,
-            "api_key": self.api_key,
-            "temperature": self.temperature,
-        }.items()
+        return self.model_dump().items()
 
 
 def get_config() -> Config:
@@ -302,7 +295,7 @@ def validate_config(config: Config) -> bool:
     Raises:
         ConfigError: If the configuration is invalid
     """
-    config.validate()
+    config.validate_config()
     return True
 
 
@@ -394,7 +387,7 @@ def run_config_wizard() -> Optional[Config]:
     )
 
     try:
-        config.validate()
+        config.validate_config()
         print("\n✅ Configuration validated successfully!")
         return config
     except ConfigError as e:
