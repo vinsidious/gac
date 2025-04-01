@@ -467,15 +467,29 @@ def commit_changes(
             status_output = run_git_command(["status", "-s"], silent=True)
             logger.debug(f"Git status after staging all: {status_output}")
 
+            # Force refresh of staged files after staging all
+            staged_files = None
+
         # Get staged files
         if staged_files is None:
             logger.debug("Getting staged files")
             staged_files = get_staged_files()
             logger.debug(f"Staged files: {staged_files}")
 
+        # Check if there are any changes to commit
         if not staged_files:
-            logger.error("No staged changes found. Stage your changes with git add first.")
-            return None
+            # If add_all was requested but no files were staged, check if there are any unstaged changes
+            if add_all:
+                status_output = run_git_command(["status", "-s"], silent=True)
+                if not status_output:
+                    logger.error("No changes found in the repository.")
+                    return None
+                else:
+                    logger.error("Failed to stage changes. Check your git configuration.")
+                    return None
+            else:
+                logger.error("No staged changes found. Stage your changes with git add first.")
+                return None
 
         # Generate commit message if not provided
         if not message:
