@@ -1,17 +1,20 @@
 """Utility functions for gac."""
 
 import logging
+import os
 import subprocess
 import sys
 import threading
 import time
 from enum import Enum
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 import click
 from rich.console import Console
 from rich.panel import Panel
 from rich.theme import Theme
+
+from gac.errors import GACError
 
 # Define a rich theme for colorful output
 theme = Theme(
@@ -29,6 +32,26 @@ console = Console(theme=theme)
 
 # Set up logger
 logger = logging.getLogger(__name__)
+
+# ANSI color codes for terminal output
+BLACK = 0
+RED = 1
+GREEN = 2
+YELLOW = 3
+BLUE = 4
+MAGENTA = 5
+CYAN = 6
+WHITE = 7
+
+# Bright versions
+BRIGHT_BLACK = 8
+BRIGHT_RED = 9
+BRIGHT_GREEN = 10
+BRIGHT_YELLOW = 11
+BRIGHT_BLUE = 12
+BRIGHT_MAGENTA = 13
+BRIGHT_CYAN = 14
+BRIGHT_WHITE = 15
 
 
 class Color(Enum):
@@ -247,103 +270,95 @@ class Spinner:
         self.stop()
 
 
+def _simulate_git_command(command: List[str]) -> str:
+    """
+    Simulate git command execution for test mode.
+
+    Args:
+        command: Git command to simulate
+
+    Returns:
+        Simulated command output
+    """
+    logger.debug(f"TEST MODE: Simulating git command: {' '.join(command)}")
+
+    # Simulate common git commands to avoid affecting the real repository
+    if not command or command[0] != "git":
+        return f"Simulated command: {' '.join(command)}"
+
+    if command[1:2] == ["status"]:
+        return "M src/gac/utils.py\nM tests/test_core.py\nM ROADMAP.md"
+    elif command[1:2] == ["add"]:
+        return f"Simulated adding files: {' '.join(command[2:])}"
+    elif command[1:2] == ["commit"]:
+        if "--allow-empty" in command:
+            return "Simulated empty commit"
+        return "Simulated commit"
+    elif command[1:2] == ["push"]:
+        return "Simulated push"
+    elif command[1:2] == ["diff"]:
+        return "Simulated diff content"
+    elif command[:3] == ["git", "rev-parse", "--show-toplevel"]:
+        return os.getcwd()  # Simulate project root
+    else:
+        # Generic simulation for other git commands
+        return f"Simulated git command: {' '.join(command[1:])}"
+
+
 def run_subprocess(
-    command: List[str], timeout: int = 60, silent: bool = False, test_mode: bool = False
+    command: List[str], silent: bool = False, timeout: int = 60, test_mode: bool = None
 ) -> str:
     """
-    Run a subprocess command and capture output.
+    Run a subprocess command safely and return the output.
 
     Args:
         command: List of command and arguments
+        silent: If True, suppress debug logging
         timeout: Timeout in seconds
-        silent: If True, suppress error logging
-        test_mode: If True, prevents execution of git commands and returns simulated response
+        test_mode: Override for test mode detection
 
     Returns:
-        Output from the command
-
-    Raises:
-        subprocess.CalledProcessError: If the command fails
+        The command output as a string
     """
-    import os
+    # If GAC_TEST_MODE environment variable is set, use test mode
+    # Can be overridden by explicit test_mode parameter
+    if test_mode is None:
+        test_mode = os.environ.get("GAC_TEST_MODE") == "1"
 
-    # Check if we're in test mode (either explicit parameter or environment variable)
-    # The _TESTING_PRESERVE_MOCK env var is set when tests need to use their own mocks
-    is_test = test_mode or (
-        os.environ.get("GAC_TEST_MODE") == "1" and os.environ.get("_TESTING_PRESERVE_MOCK") != "1"
-    )
+    if test_mode:
+        # Mock responses for git commands in test mode
+        return _simulate_git_command(command)
 
-    # If test_mode is explicitly set to False, honor that over environment variables
-    if test_mode is False:
-        is_test = False
-
-    # If we're in test mode and this is a git command, return simulated response
-    if is_test and command and command[0] == "git":
-        logger.debug(f"TEST MODE: Simulating git command: {' '.join(command)}")
-
-        # Simulate common git commands to avoid affecting the real repository
-        if command[1:2] == ["status"]:
-            return "M src/gac/utils.py\nM tests/test_core.py\nM ROADMAP.md"
-        elif command[1:2] == ["add"]:
-            return f"Simulated adding files: {' '.join(command[2:])}"
-        elif command[1:2] == ["commit"]:
-            return "Simulated commit"
-        elif command[1:2] == ["push"]:
-            return "Simulated push"
-        elif command[1:2] == ["diff"]:
-            return "Simulated diff content"
-        elif command[:3] == ["git", "rev-parse", "--show-toplevel"]:
-            return os.getcwd()  # Simulate project root
-        else:
-            # Generic simulation for other git commands
-            return f"Simulated git command: {' '.join(command[1:])}"
-
-    # Special case for git diff --quiet --cached --exit-code
-    if command == ["git", "diff", "--quiet", "--cached", "--exit-code"]:
-        # This command is expected to fail if there are changes
-        try:
-            subprocess.run(
-                command,
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=timeout,
-                text=True,
-            )
-            # If it succeeds, there are no changes
-            return ""
-        except subprocess.CalledProcessError:
-            # If it fails, there are changes
-            return "Changes detected"
-
-    logger.debug(f"Running command: {' '.join(command)}")
+    if not silent:
+        logger.debug(f"Running command: {' '.join(command)}")
 
     try:
         result = subprocess.run(
             command,
-            check=False,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            timeout=timeout,
             text=True,
+            check=False,  # We'll handle errors manually
+            timeout=timeout,
         )
 
-        # Manually check for errors
         if result.returncode != 0:
-            if not silent:
-                logger.error(f"Error executing '{' '.join(command)}': {result.stderr}")
-            raise subprocess.CalledProcessError(
+            # Add stderr to the exception to help diagnose the issue
+            error = subprocess.CalledProcessError(
                 result.returncode, command, result.stdout, result.stderr
             )
 
-        output = result.stdout
+            # Log the error for debugging
+            if not silent:
+                logger.debug(f"Command stderr: {result.stderr}")
 
-        if result.stderr and not silent:
-            logger.debug(f"Command stderr: {result.stderr}")
+            raise error
 
-        return output.strip()
-
-    except subprocess.TimeoutExpired:
-        error_msg = f"Command timed out after {timeout} seconds: {' '.join(command)}"
-        logger.error(error_msg)
-        raise subprocess.TimeoutExpired(command, timeout, output=error_msg)
+        return result.stdout
+    except subprocess.TimeoutExpired as e:
+        logger.error(f"Command timed out after {timeout} seconds: {' '.join(command)}")
+        raise GACError(f"Command timed out: {' '.join(command)}") from e
+    except Exception as e:
+        if not silent:
+            logger.debug(f"Command error: {e}")
+        raise

@@ -303,8 +303,23 @@ class RealGitOperations(GitOperations):
             logger.info("Files staged.")
             return "fatal" not in result.lower()
         except subprocess.CalledProcessError as e:
-            logger.error(f"Error staging files: {e}")
-            return False
+            # Check for specific error: no commit checked out
+            error_str = str(e.stderr) if hasattr(e, "stderr") else str(e)
+            if "does not have a commit checked out" in error_str:
+                logger.warning("Repository has no initial commit. Creating an initial commit...")
+                try:
+                    # Create an initial empty commit
+                    run_subprocess(["git", "commit", "--allow-empty", "-m", "Initial commit"])
+                    # Now try to stage files again
+                    result = run_subprocess(["git", "add"] + files)
+                    logger.info("Files staged after creating initial commit.")
+                    return True
+                except subprocess.CalledProcessError as inner_e:
+                    logger.error(f"Error creating initial commit: {inner_e}")
+                    return False
+            else:
+                logger.error(f"Error staging files: {e}")
+                return False
 
     def get_project_description(self) -> str:
         """
