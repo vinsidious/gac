@@ -41,7 +41,7 @@ def main(
     """Run the main workflow for git-auto-commit."""
     try:
         # Determine log level from flags
-        log_level = logging.INFO  # Default
+        log_level = logging.WARNING  # Default - only show warnings and errors by default
         if log_level_debug:
             log_level = logging.DEBUG
         elif log_level_info:
@@ -92,7 +92,7 @@ def main(
         sys.exit(1)
 
 
-def setup_logging(log_level=logging.INFO):
+def setup_logging(log_level=logging.WARNING):
     """Configure logging for the application.
 
     Args:

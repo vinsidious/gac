@@ -104,7 +104,7 @@ def cli(
 
     try:
         # Determine log level from flags
-        log_level = logging.INFO  # Default
+        log_level = logging.WARNING  # Default - only show warnings and errors by default
         verbose = False  # For backward compatibility
 
         if log_level_debug:

@@ -185,7 +185,7 @@ class FormattingController:
                 f"Some Python files do not exist and will be skipped: {', '.join(missing)}"
             )
 
-        if not quiet:
+        if not quiet and logging.getLogger().getEffectiveLevel() <= logging.INFO:
             print_info(f"💅 Formatting {len(existing_files)} Python files...")
 
         try:
@@ -234,7 +234,7 @@ class FormattingController:
                 f"Some JS/TS files do not exist and will be skipped: {', '.join(missing)}"
             )
 
-        if not quiet:
+        if not quiet and logging.getLogger().getEffectiveLevel() <= logging.INFO:
             print_info(f"💅 Formatting {len(existing_files)} JavaScript/TypeScript files...")
 
         try:
@@ -280,7 +280,7 @@ class FormattingController:
                 f"Some Rust files do not exist and will be skipped: {', '.join(missing)}"
             )
 
-        if not quiet:
+        if not quiet and logging.getLogger().getEffectiveLevel() <= logging.INFO:
             print_info(f"💅 Formatting {len(existing_files)} Rust files...")
 
         try:
@@ -322,7 +322,7 @@ class FormattingController:
             missing = set(files) - set(existing_files)
             logger.warning(f"Some Go files do not exist and will be skipped: {', '.join(missing)}")
 
-        if not quiet:
+        if not quiet and logging.getLogger().getEffectiveLevel() <= logging.INFO:
             print_info(f"💅 Formatting {len(existing_files)} Go files...")
 
         try:
@@ -346,6 +346,10 @@ class FormattingController:
         """
         total_files = sum(len(files) for files in formatted_files.values())
 
+        # Only show output if log level is INFO or lower
+        if logging.getLogger().getEffectiveLevel() > logging.INFO:
+            return
+            
         if total_files == 0:
             print_warning("No files were formatted")
             return

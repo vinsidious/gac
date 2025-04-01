@@ -219,14 +219,16 @@ class CommitWorkflow:
 
     def _stage_all_files(self):
         """Stage all files in the repository."""
-        logger.info("ℹ️ Staging all changes...")
+        if logging.getLogger().getEffectiveLevel() <= logging.INFO:
+            logger.info("ℹ️ Staging all changes...")
         try:
             # Check if this is an empty repository
             status = get_status()
             is_empty_repo = "No commits yet" in status
 
             if is_empty_repo:
-                logger.info("Repository has no commits yet. Creating initial commit...")
+                if logging.getLogger().getEffectiveLevel() <= logging.INFO:
+                    logger.info("Repository has no commits yet. Creating initial commit...")
 
                 # First try to stage the files in the empty repo
                 try:
@@ -236,7 +238,8 @@ class CommitWorkflow:
                     subprocess.run(
                         ["git", "add", "."], check=True, capture_output=True, cwd=os.getcwd()
                     )
-                    logger.info("Files staged in empty repository")
+                    if logging.getLogger().getEffectiveLevel() <= logging.INFO:
+                        logger.info("Files staged in empty repository")
 
                     # Now create the initial commit with staged files
                     commit_result = subprocess.run(
@@ -245,7 +248,8 @@ class CommitWorkflow:
                         capture_output=True,
                         cwd=os.getcwd(),
                     )
-                    logger.info(f"Created initial commit: {commit_result.stdout}")
+                    if logging.getLogger().getEffectiveLevel() <= logging.INFO:
+                        logger.info(f"Created initial commit: {commit_result.stdout}")
                     return  # We've already staged and committed, no need to continue
 
                 except subprocess.CalledProcessError as e:
@@ -259,13 +263,15 @@ class CommitWorkflow:
                             capture_output=True,
                             cwd=os.getcwd(),
                         )
-                        logger.info("Created empty initial commit")
+                        if logging.getLogger().getEffectiveLevel() <= logging.INFO:
+                            logger.info("Created empty initial commit")
 
                         # Now try to stage files again
                         subprocess.run(
                             ["git", "add", "."], check=True, capture_output=True, cwd=os.getcwd()
                         )
-                        logger.info("Files staged after initial commit")
+                        if logging.getLogger().getEffectiveLevel() <= logging.INFO:
+                            logger.info("Files staged after initial commit")
                         return
 
                     except subprocess.CalledProcessError as inner_e:
@@ -275,7 +281,8 @@ class CommitWorkflow:
             # Normal case - just stage all files
             success = stage_files(["."])
             if success:
-                logger.info("✅ All changes staged")
+                if logging.getLogger().getEffectiveLevel() <= logging.INFO:
+                    logger.info("✅ All changes staged")
             else:
                 logger.error("Failed to stage changes")
 
@@ -285,9 +292,11 @@ class CommitWorkflow:
 
     def _format_staged_files(self, staged_files):
         """Format the staged files."""
-        logger.info("ℹ️ Formatting staged files...")
+        if logging.getLogger().getEffectiveLevel() <= logging.INFO:
+            logger.info("ℹ️ Formatting staged files...")
         self.formatting_controller.format_staged_files(staged_files, self.quiet)
-        logger.info("✅ Formatting complete")
+        if logging.getLogger().getEffectiveLevel() <= logging.INFO:
+            logger.info("✅ Formatting complete")
 
     def generate_message(self, diff):
         """
