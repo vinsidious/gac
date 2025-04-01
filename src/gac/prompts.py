@@ -234,7 +234,7 @@ def create_abbreviated_prompt(prompt: str, max_diff_lines: int = 50) -> str:
 
     # Create the hidden lines message
     hidden_message = (
-        f"\n\n... {hidden_lines} lines hidden ...\n"
+        f"\n\n... {hidden_lines} lines hidden ...\n\n"
         f"Use --show-prompt-full to see the complete diff\n\n"
     )
 
