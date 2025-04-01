@@ -15,9 +15,6 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [ ] Replace remaining class-based interfaces with function-based alternatives
    - [ ] Remove all dual implementation patterns
    - [ ] Create a consistent error handling approach based on functional patterns
-   - [ ] Apply function composition patterns to key workflows
-   - [ ] Add type hints throughout codebase
-   - [ ] Refactor prompting system to be more composable
 
 2. **Simplify Core Architecture**
 
@@ -34,9 +31,6 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
 
    - [x] Optimize token usage for large diffs
    - [x] Implement smarter caching system
-   - [ ] Reduce startup time through lazy imports
-   - [ ] Implement asynchronous processing where beneficial
-   - [ ] Add progressive output for long-running operations
    - [ ] Create more robust connection error handling
    - [ ] Implement request retry mechanisms with backoff
    - [ ] Add filesystem-based fallbacks for network failures
@@ -61,24 +55,13 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
 
    - [x] Extract pure functions for git operations
    - [x] Create pure functions for prompt generation
-   - [ ] Refactor AI interaction to be pure
-   - [ ] Make file operations composable
 
 2. **Immutable Data Flow**
 
    - [x] Use immutable data structures for configuration
-   - [ ] Implement pipeline pattern for data transformation
-   - [ ] Add function composition helpers
    - [ ] Remove in-place modifications
 
-3. **Explicit Dependencies**
-
-   - [ ] Remove implicit dependencies from all functions
-   - [ ] Add dependency injection patterns
-   - [ ] Create factory functions where appropriate
-   - [ ] Add reader monad pattern for configuration
-
-4. **Simplified Testing**
+3. **Simplified Testing**
    - [ ] Add property-based testing for pure functions
    - [ ] Reduce test mocking complexity
    - [ ] Create test fixtures for common scenarios
@@ -108,6 +91,10 @@ We've decided against these items to maintain focus:
 - ~~Complex class hierarchies and abstractions~~
 - ~~Refactoring to more "elegant" but harder-to-maintain patterns~~
 - ~~Create a pipeline factory for the commit workflow~~
+- ~~Implement pipeline pattern for data transformation~~
+- ~~Add function composition helpers~~
+- ~~Reduce startup time through lazy imports~~
+- ~~Implement request retry mechanisms with backoff~~
 
 ## Completed Items
 
