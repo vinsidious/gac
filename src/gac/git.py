@@ -3,6 +3,7 @@
 import logging
 import os
 import subprocess
+import warnings
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional
@@ -69,7 +70,17 @@ _git_operations = None
 
 
 def get_git_operations():
-    """Get the current git operations implementation."""
+    """Get the current git operations implementation.
+
+    DEPRECATED: This function is deprecated and will be removed in a future version.
+    Use the function-based API directly instead.
+    """
+    warnings.warn(
+        "get_git_operations is deprecated and will be removed in a future version. "
+        "Use the function-based API directly instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     global _git_operations
     if _git_operations is None:
         _git_operations = RealGitOperations()
@@ -77,7 +88,17 @@ def get_git_operations():
 
 
 def set_git_operations(operations):
-    """Set the git operations implementation."""
+    """Set the git operations implementation.
+
+    DEPRECATED: This function is deprecated and will be removed in a future version.
+    Use the function-based API directly instead.
+    """
+    warnings.warn(
+        "set_git_operations is deprecated and will be removed in a future version. "
+        "Use the function-based API directly instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     global _git_operations
     _git_operations = operations
 
@@ -667,7 +688,20 @@ def is_large_file(file_path: str) -> bool:
 
 # Interface for testing with dependency injection
 class GitOperations:
-    """Interface for git operations."""
+    """Interface for git operations.
+
+    DEPRECATED: This class is deprecated and will be removed in a future version.
+    Use the function-based API directly instead.
+    """
+
+    def __init__(self):
+        """Initialize with deprecation warning."""
+        warnings.warn(
+            "The GitOperations class is deprecated and will be removed in a future version. "
+            "Use the function-based API directly instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     def run_git_command(self, args: List[str], silent: bool = False) -> str:
         """Run a git command and return the output."""
@@ -712,10 +746,15 @@ class GitOperations:
 
 # Implementation that delegates to the function-based API
 class RealGitOperations(GitOperations):
-    """Real implementation of Git operations using the function-based API."""
+    """Real implementation of Git operations using the function-based API.
+
+    DEPRECATED: This class is deprecated and will be removed in a future version.
+    Use the function-based API directly instead.
+    """
 
     def __init__(self, quiet: bool = False):
         """Initialize with quiet option."""
+        super().__init__()  # Call parent to trigger deprecation warning
         self.quiet = quiet
 
     def run_git_command(self, args: List[str], silent: bool = False) -> str:

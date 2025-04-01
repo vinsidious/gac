@@ -6,7 +6,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from gac.git import get_git_operations, set_git_operations
 from gac.prompt import build_prompt
 
 
@@ -45,11 +44,6 @@ def pytest_environment():
 class TestCore(unittest.TestCase):
     """Tests for core functionality."""
 
-    def tearDown(self):
-        """Reset git operations after each test."""
-        # Reset to real git operations after each test
-        set_git_operations(get_git_operations().__class__())
-
     def test_build_prompt_direct(self):
         """Test build_prompt function produces expected output format."""
         # Set up test inputs
@@ -66,7 +60,6 @@ class TestCore(unittest.TestCase):
         self.assertGreater(len(result), 0)
 
         # Verify the prompt contains the essential components
-        # These are behavioral expectations, not implementation details
         self.assertIn(status, result)
         self.assertIn(diff, result)
         self.assertIn(hint, result)

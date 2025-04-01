@@ -1,4 +1,4 @@
-"""Test module for gac.ai_utils."""
+"""Test module for gac.ai."""
 
 import unittest
 from unittest.mock import patch

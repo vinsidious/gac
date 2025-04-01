@@ -3,11 +3,23 @@ Compatibility module for AI utilities.
 
 This module is maintained for backward compatibility with tests.
 New code should use the ai.py module directly.
+
+DEPRECATION WARNING: This module is deprecated and will be removed in a future version.
+Please import directly from gac.ai instead.
 """
 
 import json
 import logging
+import warnings
 from typing import Any, Dict, List, Optional, Union
+
+# Display deprecation warning
+warnings.warn(
+    "The gac.ai_utils module is deprecated and will be removed in a future version. "
+    "Please import directly from gac.ai instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 # We need ollama for the patch imports to work in tests
 try:
