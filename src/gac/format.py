@@ -8,10 +8,6 @@ import os
 import subprocess
 from typing import Dict, List
 
-from gac.errors import FormattingError, convert_exception, handle_error
-from gac.files import group_files_by_extension
-from gac.utils import print_info
-
 logger = logging.getLogger(__name__)
 
 
@@ -133,77 +129,58 @@ def check_formatter_available(formatter_config: Dict) -> bool:
         return False
 
 
-def format_files(files: List[str], quiet: bool = False) -> Dict[str, List[str]]:
+def format_files(files) -> Dict[str, List[str]]:
     """
-    Format files using appropriate formatters based on file extension.
+    Format the given files.
 
     Args:
-        files: List of files to format
-        quiet: If True, suppress output
+        files: Can be either:
+            - A list of file paths
+            - A dictionary mapping file paths to their status (e.g. from
+              get_staged_files_with_status)
 
     Returns:
-        Dictionary mapping formatter names to lists of formatted files
+        Dictionary mapping formatter names to lists of successfully formatted files
     """
     if not files:
         return {}
 
-    # If files is a dict, extract file paths (for backward compatibility)
-    if isinstance(files, dict):
-        # Process dictionary input (path -> status)
-        file_list = []
-        for file_path, status in files.items():
-            # Skip deleted files
-            if status != "D":
-                file_list.append(file_path)
-        files = file_list
+    # Convert files to dictionary format if it's a list
+    files_dict = {}
+    if isinstance(files, list):
+        for file in files:
+            files_dict[file] = "M"  # Assume modified
+    else:
+        files_dict = files  # Already a dictionary
 
-    # Filter to only include existing files
-    files = [f for f in files if os.path.isfile(f)]
+    # Group files by extension for appropriate formatter selection
+    grouped_by_ext = {}
+    for file_path, status in files_dict.items():
+        if status == "D":  # Skip deleted files
+            continue
 
-    # Group files by extension
-    files_by_extension = group_files_by_extension(files)
+        # Get file extension
+        _, ext = os.path.splitext(file_path)
+        if ext not in grouped_by_ext:
+            grouped_by_ext[ext] = []
+        grouped_by_ext[ext].append(file_path)
 
-    # Skip if no files to format
-    if not any(files_by_extension.values()):
-        return {}
-
-    # Track formatted files
+    # Apply appropriate formatters based on file extensions
     formatted_files = {}
 
-    # Process each extension with its formatters
-    for language, formatter_configs in FORMATTERS.items():
-        for formatter_config in formatter_configs:
-            extensions = formatter_config["extensions"]
-            command = formatter_config["command"]
-            formatter_name = formatter_config["name"]
-
-            # Collect files that match this formatter's extensions
-            files_to_format = []
-            for ext in extensions:
-                if ext in files_by_extension:
-                    files_to_format.extend(files_by_extension[ext])
-
-            if not files_to_format:
-                continue
-
-            if not quiet:
-                print_info(f"Formatting {len(files_to_format)} files with {formatter_name}...")
-
-            # Check if formatter is available
-            if not check_formatter_available(formatter_config):
-                logger.warning(f"{formatter_name} is not installed or not in PATH")
-                continue
-
-            # Run the formatter
-            try:
-                formatting_result = run_formatter(command, files_to_format, formatter_name)
-                if formatting_result:
-                    formatted_files[formatter_name] = files_to_format
-            except Exception as e:
-                error = convert_exception(
-                    e, FormattingError, f"Failed to format with {formatter_name}"
-                )
-                handle_error(error, quiet=quiet, exit_program=False)
+    for ext, ext_files in grouped_by_ext.items():
+        # Find all formatters that handle this extension
+        for lang, formatters in FORMATTERS.items():
+            for formatter in formatters:
+                if ext in formatter["extensions"]:
+                    # Check if formatter is available
+                    if check_formatter_available(formatter):
+                        # Format the files
+                        success = run_formatter(formatter["command"], ext_files, formatter["name"])
+                        if success:
+                            if formatter["name"] not in formatted_files:
+                                formatted_files[formatter["name"]] = []
+                            formatted_files[formatter["name"]].extend(ext_files)
 
     return formatted_files
 
@@ -222,6 +199,6 @@ if __name__ == "__main__":
     if result:
         print(f"Formatted {sum(len(f) for f in result.values())} files:")
         for formatter, formatted in result.items():
-            print(f"  - {formatter}: {len(formatted)} files")
+            print(f"  - {formatter}: {formatted}")
     else:
         print("No files were formatted.")

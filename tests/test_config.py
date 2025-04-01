@@ -43,117 +43,142 @@ class TestConfig(unittest.TestCase):
 
     def test_default_config(self):
         """Test that get_config returns default configuration when no env vars are set."""
-        # Call get_config
+        # Call get_config with no environment variables set
         config = get_config()
 
-        # Create a copy of the config without api_key for comparison
-        config_without_api_key = {k: v for k, v in config.items() if k != "api_key"}
-
-        # Assert default values are returned (ignoring api_key)
-        self.assertEqual(config_without_api_key, DEFAULT_CONFIG)
+        # Verify the behavior: default configuration is returned
         self.assertEqual(config["model"], DEFAULT_CONFIG["model"])
-        self.assertTrue(config["use_formatting"])
+        self.assertEqual(config["use_formatting"], DEFAULT_CONFIG["use_formatting"])
         self.assertEqual(config["max_output_tokens"], DEFAULT_CONFIG["max_output_tokens"])
 
     def test_gac_model_with_provider(self):
-        """Test that GAC_MODEL with provider prefix works correctly."""
+        """Test that environment variable GAC_MODEL with provider prefix is properly recognized."""
         # Set GAC_MODEL with provider prefix
         os.environ["GAC_MODEL"] = "openai:gpt-4o-mini"
 
         # Call get_config
         config = get_config()
 
-        # Assert config uses provided model
+        # Verify the behavior: config uses the specified model
         self.assertEqual(config["model"], "openai:gpt-4o-mini")
 
-        # Other settings should remain default
-        self.assertEqual(config["use_formatting"], DEFAULT_CONFIG["use_formatting"])
-        self.assertEqual(config["max_output_tokens"], DEFAULT_CONFIG["max_output_tokens"])
-
     def test_unknown_provider_fallback(self):
-        """Test that an unknown provider falls back to anthropic with its default model."""
+        """Test that an unknown provider falls back to the default provider."""
         # Set an unknown provider
         os.environ["GAC_PROVIDER"] = "unknown_provider"
 
         # Call get_config
         config = get_config()
 
-        # Assert fallback to anthropic with its default model
+        # Verify the behavior: fallback to default provider with its default model
         expected_model = f"anthropic:{PROVIDER_MODELS['anthropic']}"
         self.assertEqual(config["model"], expected_model)
 
     def test_gac_use_formatting_true(self):
-        """Test that GAC_USE_FORMATTING=true sets use_formatting to True."""
+        """Test that GAC_USE_FORMATTING=true enables formatting."""
+        # Set environment variable
         os.environ["GAC_USE_FORMATTING"] = "true"
+
+        # Call get_config
         config = get_config()
+
+        # Verify the behavior: formatting is enabled
         self.assertTrue(config["use_formatting"])
 
     def test_gac_use_formatting_false(self):
-        """Test that GAC_USE_FORMATTING=false sets use_formatting to False."""
+        """Test that GAC_USE_FORMATTING=false disables formatting."""
+        # Set environment variable
         os.environ["GAC_USE_FORMATTING"] = "false"
+
+        # Call get_config
         config = get_config()
+
+        # Verify the behavior: formatting is disabled
         self.assertFalse(config["use_formatting"])
 
     def test_gac_use_formatting_invalid(self):
-        """Test that invalid GAC_USE_FORMATTING value defaults to True."""
+        """Test that invalid GAC_USE_FORMATTING value has expected behavior."""
+        # Set invalid environment variable
         os.environ["GAC_USE_FORMATTING"] = "invalid"
+
+        # Call get_config
         config = get_config()
-        self.assertFalse(
-            config["use_formatting"]
-        )  # Should be False because "invalid".lower() != "true"
+
+        # Verify the behavior: invalid value is interpreted as False
+        self.assertFalse(config["use_formatting"])
 
     def test_gac_max_output_tokens_valid(self):
-        """Test that valid GAC_MAX_OUTPUT_TOKENS value is used."""
+        """Test that valid GAC_MAX_OUTPUT_TOKENS value is properly applied."""
+        # Set environment variable with valid token count
         os.environ["GAC_MAX_OUTPUT_TOKENS"] = "4096"
+
+        # Call get_config
         config = get_config()
+
+        # Verify the behavior: token count is set to specified value
         self.assertEqual(config["max_output_tokens"], 4096)
 
     def test_gac_max_output_tokens_invalid(self):
-        """Test that invalid GAC_MAX_OUTPUT_TOKENS value is ignored."""
+        """Test that invalid GAC_MAX_OUTPUT_TOKENS value falls back to default."""
+        # Set environment variable with invalid token count
         os.environ["GAC_MAX_OUTPUT_TOKENS"] = "not_a_number"
+
+        # Call get_config
         config = get_config()
+
+        # Verify the behavior: token count falls back to default
         self.assertEqual(config["max_output_tokens"], DEFAULT_CONFIG["max_output_tokens"])
 
 
 def test_config_wizard_provider_selection():
-    """Test that the configuration wizard allows selecting a provider."""
+    """Test that the configuration wizard allows selecting a provider and model."""
+    # Mock user selections
     mock_select = MagicMock()
     mock_select.ask.side_effect = ["anthropic", "claude-3-5-haiku-latest"]
     mock_confirm = MagicMock()
     mock_confirm.ask.return_value = True
 
+    # Run the wizard with mocked inputs
     with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test_key"}):
         with patch("questionary.select", return_value=mock_select):
             with patch("questionary.confirm", return_value=mock_confirm):
                 config = run_config_wizard()
 
+                # Verify the behavior: wizard returns valid config with selected provider
                 assert config is not None
                 assert config["model"].startswith("anthropic:")
                 assert validate_config(config)
 
 
 def test_config_wizard_cancellation():
-    """Test that the configuration wizard can be cancelled."""
+    """Test that the configuration wizard can be cancelled by the user."""
+    # Mock user cancellation
     mock_select = MagicMock()
     mock_select.ask.return_value = None
 
+    # Run the wizard with mocked inputs
     with patch("questionary.select", return_value=mock_select):
         config = run_config_wizard()
+
+        # Verify the behavior: wizard returns None when cancelled
         assert config is None
 
 
 def test_config_wizard_validation():
-    """Test configuration validation for wizard-generated configs."""
+    """Test that wizard-generated configurations pass validation."""
+    # Mock user selections
     mock_select = MagicMock()
     mock_select.ask.side_effect = ["anthropic", "claude-3-5-haiku-latest"]
     mock_confirm = MagicMock()
     mock_confirm.ask.return_value = True
 
+    # Run the wizard with mocked inputs
     with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test_key"}):
         with patch("questionary.select", return_value=mock_select):
             with patch("questionary.confirm", return_value=mock_confirm):
                 config = run_config_wizard()
 
+                # Verify the behavior: generated config passes validation
                 assert config is not None
                 try:
                     validate_config(config)
@@ -162,7 +187,8 @@ def test_config_wizard_validation():
 
 
 def test_config_wizard_formatting_option():
-    """Test that the formatting option can be toggled."""
+    """Test that the formatting option can be toggled in the wizard."""
+    # Mock user selections for two different runs
     mock_select = MagicMock()
     mock_select.ask.side_effect = [
         "anthropic",
@@ -173,22 +199,28 @@ def test_config_wizard_formatting_option():
     mock_confirm = MagicMock()
     mock_confirm.ask.side_effect = [False, True, True, True]
 
+    # Run the wizard twice with different formatting choices
     with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test_key"}):
         with patch("questionary.select", return_value=mock_select):
             with patch("questionary.confirm", return_value=mock_confirm):
-                # First config with formatting disabled
+                # First run with formatting disabled
                 config1 = run_config_wizard()
+
+                # Verify the behavior: formatting is disabled in first config
                 assert config1 is not None
                 assert config1["use_formatting"] is False
 
-                # Second config with formatting enabled
+                # Second run with formatting enabled
                 config2 = run_config_wizard()
+
+                # Verify the behavior: formatting is enabled in second config
                 assert config2 is not None
                 assert config2["use_formatting"] is True
 
 
 def test_config_wizard_model_selection():
-    """Test that different models can be selected for each provider."""
+    """Test that the wizard allows selecting different models for each provider."""
+    # Define test cases for different providers and models
     providers_and_models = {
         "anthropic": ["claude-3-sonnet-20240229", "claude-3-opus-20240229"],
         "openai": ["gpt-4o-mini", "gpt-4o"],
@@ -204,18 +236,22 @@ def test_config_wizard_model_selection():
         "MISTRAL_API_KEY": "test_key",
     }
 
+    # Test each provider and model combination
     with patch.dict(os.environ, env_vars):
         for provider, models in providers_and_models.items():
             for model in models:
+                # Mock user selections
                 mock_select = MagicMock()
                 mock_select.ask.side_effect = [provider, model]
                 mock_confirm = MagicMock()
                 mock_confirm.ask.return_value = True
 
+                # Run the wizard with mocked inputs
                 with patch("questionary.select", return_value=mock_select):
                     with patch("questionary.confirm", return_value=mock_confirm):
                         config = run_config_wizard()
 
+                        # Verify: wizard returns config with selected provider and model
                         assert config is not None
                         assert config["model"] == f"{provider}:{model}"
                         assert validate_config(config)

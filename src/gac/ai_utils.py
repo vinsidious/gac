@@ -7,7 +7,7 @@ New code should use the ai.py module directly.
 
 import json
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 # We need ollama for the patch imports to work in tests
 try:
@@ -26,10 +26,7 @@ except ImportError:
 
     anthropic = DummyModule()
 
-# Re-export from ai.py - these imports are needed for test patching
-from gac.ai import count_tokens  # noqa
-from gac.ai import generate_commit_message as _generate_commit_message
-from gac.ai import get_encoding, is_ollama_available, is_ollama_model_available  # noqa
+# Import error types directly from errors.py to avoid circular imports
 from gac.errors import AIAuthenticationError as APIAuthenticationError  # noqa
 from gac.errors import AIConnectionError as APIConnectionError  # noqa
 from gac.errors import AIError  # noqa
@@ -44,6 +41,55 @@ MAX_OUTPUT_TOKENS = 256
 
 # For backwards compatibility
 ai = None  # This is needed for the test patches to work
+
+
+# Forward declarations for functions imported from ai.py
+# These are defined here to avoid circular imports
+def count_tokens(
+    content: Union[str, List[Dict[str, str]], Dict[str, Any]], model: str, test_mode: bool = False
+) -> int:
+    """Forward to gac.ai.count_tokens - import at runtime to avoid circular imports."""
+    from gac.ai import count_tokens as ai_count_tokens
+
+    return ai_count_tokens(content, model, test_mode)
+
+
+def generate_commit_message(
+    prompt: str,
+    model: str = "anthropic:claude-3-5-haiku-20240307",
+    temperature: float = 0.7,
+    max_tokens: int = 1024,
+    show_spinner: bool = True,
+    max_retries: int = 3,
+    test_mode: bool = False,
+) -> str:
+    """Forward to gac.ai.generate_commit_message - import at runtime to avoid circular imports."""
+    from gac.ai import generate_commit_message as ai_generate_commit_message
+
+    return ai_generate_commit_message(
+        prompt, model, temperature, max_tokens, show_spinner, max_retries, test_mode
+    )
+
+
+def get_encoding(model: str):
+    """Forward to gac.ai.get_encoding - import at runtime to avoid circular imports."""
+    from gac.ai import get_encoding as ai_get_encoding
+
+    return ai_get_encoding(model)
+
+
+def is_ollama_available() -> bool:
+    """Forward to gac.ai.is_ollama_available - import at runtime to avoid circular imports."""
+    from gac.ai import is_ollama_available as ai_is_ollama_available
+
+    return ai_is_ollama_available()
+
+
+def is_ollama_model_available(model_name: str) -> bool:
+    """Forward to gac.ai.is_ollama_model_available - import at runtime to avoid circular imports."""
+    from gac.ai import is_ollama_model_available as ai_is_ollama_model_available
+
+    return ai_is_ollama_model_available(model_name)
 
 
 def chat(
@@ -92,8 +138,8 @@ def chat(
         elif msg.get("role") == "assistant":
             prompt += f"[Assistant] {msg.get('content', '')}\n\n"
 
-    # Call the new function
-    response = _generate_commit_message(
+    # Call the generate_commit_message function
+    response = generate_commit_message(
         prompt=prompt,
         model=model,
         temperature=temperature,

@@ -16,10 +16,12 @@ logger = logging.getLogger(__name__)
 
 
 @click.group(invoke_without_command=True)
-@click.option("--DEBUG", "log_level_debug", is_flag=True, help="Set log level to DEBUG")
-@click.option("--INFO", "log_level_info", is_flag=True, help="Set log level to INFO")
-@click.option("--WARNING", "log_level_warning", is_flag=True, help="Set log level to WARNING")
-@click.option("--ERROR", "log_level_error", is_flag=True, help="Set log level to ERROR")
+@click.option(
+    "--log-level",
+    default="WARNING",
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"], case_sensitive=False),
+    help="Set log level (default: WARNING)",
+)
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
 # Add commit options to main command
 @click.option("--force", "-f", is_flag=True, help="Skip all confirmation prompts")
@@ -47,10 +49,7 @@ logger = logging.getLogger(__name__)
 @click.pass_context
 def cli(
     ctx,
-    log_level_debug: bool,
-    log_level_info: bool,
-    log_level_warning: bool,
-    log_level_error: bool,
+    log_level: str,
     quiet: bool,
     force: bool = False,
     add_all: bool = False,
@@ -81,14 +80,15 @@ def cli(
     ctx.obj["push"] = push
 
     # Determine log level from flags
+    log_level = log_level.upper()
     log_level = logging.WARNING  # Default - only show warnings and errors
-    if log_level_debug:
+    if log_level == "DEBUG":
         log_level = logging.DEBUG
-    elif log_level_info:
+    elif log_level == "INFO":
         log_level = logging.INFO
-    elif log_level_warning:
+    elif log_level == "WARNING":
         log_level = logging.WARNING
-    elif log_level_error:
+    elif log_level == "ERROR":
         log_level = logging.ERROR
 
     setup_logging(log_level, quiet=quiet, force=True)

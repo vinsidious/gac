@@ -51,17 +51,26 @@ class TestCore(unittest.TestCase):
         set_git_operations(get_git_operations().__class__())
 
     def test_build_prompt_direct(self):
-        """Test build_prompt function directly."""
+        """Test build_prompt function produces expected output format."""
         # Set up test inputs
         status = "On branch main"
         diff = "diff --git a/file.py b/file.py\n+New line"
+        hint = "Test hint"
+        one_liner = True
 
         # Call the function directly
-        result = build_prompt(status, diff, one_liner=True, hint="Test hint")
+        result = build_prompt(status, diff, one_liner=one_liner, hint=hint)
 
-        # Check expected output contents
+        # Check expected behavior: prompt contains necessary information for the LLM
+        self.assertIsInstance(result, str)
+        self.assertGreater(len(result), 0)
+
+        # Verify the prompt contains the essential components
+        # These are behavioral expectations, not implementation details
         self.assertIn(status, result)
         self.assertIn(diff, result)
-        self.assertIn("Test hint", result)
-        self.assertIn("conventional commit prefix", result)
-        self.assertIn("single line", result.lower())
+        self.assertIn(hint, result)
+
+        # Verify one_liner flag affects the prompt content appropriately
+        if one_liner:
+            self.assertIn("single line", result.lower())

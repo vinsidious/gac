@@ -346,12 +346,12 @@ def generate_commit(
 
         # Format staged files if requested
         if formatting:
-            formatted = format_files(staged_files, quiet)
+            formatted = format_files(staged_files)
             if formatted:
                 # Re-stage the formatted files
                 all_formatted = []
-                for files in formatted.values():
-                    all_formatted.extend(files)
+                for files_list in formatted.values():
+                    all_formatted.extend(files_list)
 
                 if all_formatted:
                     stage_files(all_formatted)
