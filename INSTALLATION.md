@@ -1,80 +1,40 @@
-# Installation Guide
+# Installation Guide for Git Auto Commit (GAC)
 
-This guide provides instructions for installing and configuring GAC (Git Auto Commit) with support for multiple AI providers.
+## Overview
 
-## Quick Start
+Git Auto Commit (GAC) is a powerful CLI tool that uses AI to generate meaningful commit messages based on your staged changes. This guide will walk you through installation, configuration, and getting started.
 
-1. Install GAC:
+## Prerequisites
 
-   ```bash
-   pipx install gac
-   ```
-
-2. Set up at least one AI provider (Anthropic Claude is the default):
-
-   ```bash
-   export ANTHROPIC_API_KEY=your_api_key_here
-   ```
-
-3. Start using GAC:
-
-   ```bash
-   # Stage your changes
-   git add .
-
-   # Generate and apply a commit message
-   gac
-   ```
+- Python 3.10+
+- pip or pipx
+- Git 2.x
+- An API key from a supported AI provider (optional)
 
 ## Installation Methods
 
-### Recommended: Install with pipx
+### 1. Recommended: Install with pipx
 
-[pipx](https://pypa.github.io/pipx/) installs the package in an isolated environment while making the CLI commands globally available.
+```bash
+# Install pipx if not already installed
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
 
-1. Install pipx if you don't have it:
+# Install GAC
+pipx install gac
+```
 
-   ```bash
-   # On macOS
-   brew install pipx
-   pipx ensurepath
-
-   # On Ubuntu/Debian
-   sudo apt update
-   sudo apt install python3-pip python3-venv
-   python3 -m pip install --user pipx
-   python3 -m pipx ensurepath
-
-   # On Windows
-   pip install pipx
-   pipx ensurepath
-   ```
-
-2. Install GAC:
-
-   ```bash
-   pipx install gac
-   ```
-
-3. Verify installation:
-
-   ```bash
-   gac --help
-   ```
-
-### Alternative: Install with pip
+### 2. Install with pip
 
 ```bash
 # Standard installation
 pip install gac
 
-# Or user installation
+# User installation (recommended if not using virtual environments)
 pip install --user gac
 ```
 
-### Install from Source
-
-For developers or to get the latest changes:
+### 3. Install from Source
 
 ```bash
 # Clone the repository
@@ -85,217 +45,111 @@ cd gac
 pip install -e .
 ```
 
-## AI Provider Setup
-
-GAC supports multiple AI providers. You need to set up at least one:
-
-### Anthropic Claude (Default)
-
-1. Register at [console.anthropic.com](https://console.anthropic.com/)
-2. Create an API key and set it:
-
-   ```bash
-   export ANTHROPIC_API_KEY=your_key_here
-   ```
-
-### OpenAI (GPT-4, GPT-3.5)
-
-1. Register at [platform.openai.com](https://platform.openai.com/)
-2. Create an API key and set it:
-
-   ```bash
-   export OPENAI_API_KEY=your_key_here
-   ```
-
-### Groq
-
-1. Register at [console.groq.com](https://console.groq.com/)
-2. Create an API key and set it:
-
-   ```bash
-   export GROQ_API_KEY=your_key_here
-   ```
-
-### Mistral
-
-1. Register at [console.mistral.ai](https://console.mistral.ai/)
-2. Create an API key and set it:
-
-   ```bash
-   export MISTRAL_API_KEY=your_key_here
-   ```
-
-### Local Models with Ollama
-
-For privacy, offline use, or to avoid API costs:
-
-1. Install [Ollama](https://ollama.com/) from their website
-2. Start the Ollama service:
-   ```bash
-   ollama start
-   ```
-3. Pull a model:
-   ```bash
-   ollama pull llama3.2
-   ```
-4. Use with GAC:
-   ```bash
-   gac -m ollama:llama3.2
-   ```
-
-To list available local models:
-
-```bash
-gac models
-```
-
-### Other Providers
-
-For other providers like AWS Bedrock, Azure, or Google, see the documentation for each provider in the `.env.example` file.
-
-## Configuration
-
-### Interactive Wizard
-
-The simplest way to configure GAC is with the interactive wizard:
-
-```bash
-gac --config-wizard
-```
-
-This will guide you through:
-
-- Selecting a provider
-- Choosing a model
-- Setting formatting preferences
-
-### Using Environment Variables
-
-Add your configuration to your shell profile (e.g., `~/.bashrc` or `~/.zshrc`):
-
-```bash
-# AI Provider Keys
-export ANTHROPIC_API_KEY=your_api_key_here
-# export OPENAI_API_KEY=your_api_key_here
-# export GROQ_API_KEY=your_api_key_here
-# export MISTRAL_API_KEY=your_api_key_here
-
-# GAC Configuration
-export GAC_MODEL=anthropic:claude-3-5-haiku-latest
-export GAC_USE_FORMATTING=true
-export GAC_MAX_OUTPUT_TOKENS=512
-export GAC_WARNING_LIMIT_INPUT_TOKENS=16000
-```
-
-### Using .env Files
-
-Alternatively, create a `.env` file in your project directory with the same variables. This is useful for project-specific configurations.
-
-Copy the `.env.example` file to get started:
-
-```bash
-cp .env.example .env
-# Edit .env with your preferred settings
-```
-
-### Using Command-Line Options
-
-Override configuration for a single run:
-
-```bash
-# Use a specific model
-gac -m openai:gpt-4o
-
-# Disable formatting
-gac --no-format
-
-# Generate one-line commit message
-gac -o
-```
-
-## Basic Usage
+## Quick Start
 
 1. Stage your changes:
 
-   ```bash
-   git add <files>
-   ```
+```bash
+git add .
+```
 
-2. Generate and apply a commit message:
+2. Generate a commit message:
 
-   ```bash
-   gac
-   ```
+```bash
+gac
+```
 
-3. Additional options:
+## Configuration
 
-   ```bash
-   # Stage all changes and commit
-   gac -a
+### AI Provider Setup
 
-   # Skip user confirmation
-   gac -f
+GAC supports multiple AI providers:
 
-   # Use a specific model
-   gac -m groq:llama3-70b-8192
+#### Anthropic Claude (Recommended)
 
-   # Add context hint for the AI
-   gac -h "JIRA-123 Fix auth bug"
+1. Register at [console.anthropic.com](https://console.anthropic.com/)
+2. Create an API key
+3. Set the environment variable:
 
-   # Commit and push in one command
-   gac -p
-   ```
+```bash
+export ANTHROPIC_API_KEY=your_key_here
+```
+
+#### Other Providers
+
+- OpenAI: Set `OPENAI_API_KEY`
+- Groq: Set `GROQ_API_KEY`
+- Mistral: Set `MISTRAL_API_KEY`
+
+### Configuration Options
+
+You can configure GAC using environment variables or the interactive wizard:
+
+```bash
+# Run configuration wizard
+gac --config-wizard
+
+# Or set environment variables
+export GAC_MODEL=anthropic:claude-3-5-haiku-latest
+export GAC_USE_FORMATTING=true
+export GAC_MAX_OUTPUT_TOKENS=512
+```
+
+## Advanced Usage
+
+### Local Model Support (Ollama)
+
+1. Install [Ollama](https://ollama.com/)
+2. Pull a model:
+
+```bash
+ollama pull llama3
+```
+
+3. Use with GAC:
+
+```bash
+gac -m ollama:llama3
+```
+
+### Command-Line Options
+
+```bash
+# Stage all changes and commit
+gac -a
+
+# Use a specific model
+gac -m openai:gpt-4o
+
+# Generate one-line commit message
+gac -o
+
+# Provide context hint
+gac -h "Fix authentication bug"
+```
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **API Key Not Recognized**
+- **API Key Problems**: Verify your API key and provider configuration
+- **Model Unavailability**: Check model support and accessibility
+- **Formatting Errors**: Ensure required formatters are installed
 
-   If you get errors about missing API keys, ensure you've:
+### Debugging
 
-   - Exported the correct environment variable
-   - Restarted your terminal session after adding to your profile
-   - Checked for typos in your API key
+```bash
+# Enable debug logging
+gac --log-level=DEBUG
 
-2. **Command Not Found**
+# Show prompt sent to AI
+gac --show-prompt
+```
 
-   If the `gac` command isn't found:
+## Contributing
 
-   - Ensure the Python bin directory is in your PATH
-   - Try installing with `pipx` instead of `pip`
-   - For pip installations, you might need to add `~/.local/bin` to your PATH:
+See [DEVELOPMENT.md](DEVELOPMENT.md) for information on contributing to GAC.
 
-     ```bash
-     export PATH="$HOME/.local/bin:$PATH"
-     ```
+## License
 
-3. **Dependency Errors**
-
-   If you encounter dependency errors:
-
-   ```bash
-   pip install --upgrade 'gac[all]'
-   ```
-
-4. **Model Not Found**
-
-   If you get errors about models not being found:
-
-   - Check that you've specified the correct model ID
-   - Verify that your API key has access to the requested model
-   - Try using a different model from the same provider
-
-### Getting Help
-
-If you continue to experience issues:
-
-1. Run GAC in debug mode for more information:
-
-   ```bash
-   gac --DEBUG
-   ```
-
-2. Check the [GitHub issues](https://github.com/cellwebb/gac/issues) for similar problems and solutions
-
-3. Open a new issue with the error details and steps to reproduce
+GAC is released under the MIT License. See [LICENSE.txt](LICENSE.txt) for details.
