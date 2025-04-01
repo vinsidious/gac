@@ -35,6 +35,12 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [ ] Implement request retry mechanisms with backoff
    - [ ] Add filesystem-based fallbacks for network failures
 
+4. **Usability and Customization**
+
+   - [ ] Implement template-based prompt system
+   - [ ] Add support for user-configurable prompts
+   - [ ] Create better documentation for template customization
+
 ## Current Sprint Focus
 
 - [x] **Function-Based Git Module**: Replace the GitOperationsManager class with pure functions

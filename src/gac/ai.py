@@ -4,7 +4,6 @@ This module consolidates all AI provider interaction into a single module,
 reducing complexity and making provider integration simpler.
 """
 
-import json
 import logging
 import os
 import re
@@ -620,7 +619,6 @@ def chat(
     system: Optional[str] = None,
     temperature: float = 0.7,
     test_mode: bool = False,
-    save_conversation_path: Optional[str] = None,
     one_liner: bool = False,
     show_spinner: bool = True,
 ) -> str:
@@ -633,7 +631,6 @@ def chat(
         system: Optional system message
         temperature: Temperature parameter
         test_mode: Whether to run in test mode
-        save_conversation_path: Path to save conversation to
         one_liner: Whether to return only the first line of the response
         show_spinner: Whether to show a spinner during API calls
 
@@ -668,12 +665,6 @@ def chat(
         test_mode=test_mode,
         show_spinner=show_spinner,
     )
-
-    # Save conversation if path is provided
-    if save_conversation_path:
-        conversation_data = {"messages": messages, "response": response}
-        with open(save_conversation_path, "w") as f:
-            json.dump(conversation_data, f, indent=2)
 
     # Return only the first line if one_liner is True
     if one_liner and response:

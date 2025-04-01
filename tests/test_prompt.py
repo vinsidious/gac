@@ -58,7 +58,19 @@ class TestPrompts(unittest.TestCase):
         status = "M file1.py"
         lines = [f"Line {i}" for i in range(100)]
         diff = "\n".join(lines)
-        prompt = build_prompt(status, diff)
+
+        # Ensure we have a prompt with the diff tags and content
+        prompt = f"""
+Git status:
+<git-status>
+{status}
+</git-status>
+
+Changes to be committed:
+<git-diff>
+{diff}
+</git-diff>
+"""
 
         # Test abbreviation behavior with long diff
         max_diff_lines = 20

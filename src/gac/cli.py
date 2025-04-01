@@ -46,6 +46,10 @@ logger = logging.getLogger(__name__)
 )
 @click.option("--hint", "-h", default="", help="Additional context to include in the prompt")
 @click.option("--push", "-p", is_flag=True, help="Push changes to remote after committing")
+@click.option(
+    "--template",
+    help="Path to a custom prompt template file",
+)
 @click.pass_context
 def cli(
     ctx,
@@ -61,6 +65,7 @@ def cli(
     hint: str = "",
     no_spinner: bool = False,
     push: bool = False,
+    template: Optional[str] = None,
 ) -> None:
     """Git Auto Commit - Generate commit messages with AI."""
     # Set up context for all commands
@@ -78,6 +83,7 @@ def cli(
     ctx.obj["hint"] = hint
     ctx.obj["no_spinner"] = no_spinner
     ctx.obj["push"] = push
+    ctx.obj["template"] = template
 
     # Determine log level from flags
     log_level = log_level.upper()
@@ -108,6 +114,7 @@ def cli(
             hint=hint,
             no_spinner=no_spinner,
             push=push,
+            template=template,
         )
 
 
@@ -115,17 +122,13 @@ def cli(
 @click.option("--force", "-f", is_flag=True, help="Skip all confirmation prompts")
 @click.option("--add-all", "-a", is_flag=True, help="Stage all changes before committing")
 @click.option("--no-format", is_flag=True, help="Skip formatting of staged files")
-@click.option(
-    "--model",
-    "-m",
-    help="Override the default model (format: 'provider:model_name', e.g. 'ollama:llama3.2')",
-)
+@click.option("--model", "-m", help="Override the default model (e.g. 'ollama:llama3.2')")
 @click.option("--one-liner", "-o", is_flag=True, help="Generate a single-line commit message")
 @click.option(
     "--show-prompt",
     "-s",
     is_flag=True,
-    help="Show an abbreviated version of the prompt sent to the LLM",
+    help="Show a version of the prompt sent to the LLM with long diffs abbreviated",
 )
 @click.option(
     "--show-prompt-full",
@@ -134,6 +137,7 @@ def cli(
 )
 @click.option("--hint", "-h", default="", help="Additional context to include in the prompt")
 @click.option("--push", "-p", is_flag=True, help="Push changes to remote after committing")
+@click.option("--template", help="Path to a custom prompt template file")
 @click.pass_context
 def commit(
     ctx,
@@ -147,13 +151,13 @@ def commit(
     hint: str = None,
     no_spinner: bool = None,
     push: bool = None,
+    template: Optional[str] = None,
 ) -> None:
     """Generate a commit message using an LLM and commit your staged changes."""
     # Start with parent context values
     parent_ctx = ctx.parent.params
 
     # Create options dictionary using parent values but override with command-specific values
-    # Use the value from this command if provided, otherwise use the parent value
     args = {
         "force": force if force is not None else parent_ctx.get("force", False),
         "add_all": add_all if add_all is not None else parent_ctx.get("add_all", False),
@@ -174,6 +178,7 @@ def commit(
         "quiet": parent_ctx.get("quiet", False),
         "no_spinner": no_spinner if no_spinner is not None else parent_ctx.get("no_spinner", False),
         "push": push if push is not None else parent_ctx.get("push", False),
+        "template": template if template is not None else parent_ctx.get("template"),
     }
 
     # Run the commit workflow using the functional API
@@ -188,6 +193,7 @@ def commit(
         require_confirmation=not args["force"],
         push=args["push"],
         quiet=args["quiet"],
+        template=args["template"],
     )
 
     # Check the result

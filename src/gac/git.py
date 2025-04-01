@@ -319,6 +319,7 @@ def generate_commit(
     show_prompt_full: bool = False,
     quiet: bool = False,
     no_spinner: bool = False,
+    template: Optional[str] = None,
 ) -> Optional[str]:
     """
     Generate a commit message based on staged changes.
@@ -337,6 +338,7 @@ def generate_commit(
         show_prompt_full: Show the complete prompt
         quiet: Suppress non-error output
         no_spinner: Disable progress spinner during API calls
+        template: Path to a custom prompt template file
 
     Returns:
         Generated commit message or None if failed
@@ -360,6 +362,7 @@ def generate_commit(
         show_prompt_full=show_prompt_full,
         quiet=quiet,
         no_spinner=no_spinner,
+        template=template,
     )
 
     # Delegate to generate_commit_with_options
@@ -380,6 +383,7 @@ def create_commit_options(
     quiet: bool = False,
     no_spinner: bool = False,
     push: bool = False,
+    template: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Create a dictionary with commit options.
@@ -398,6 +402,7 @@ def create_commit_options(
         quiet: Suppress non-error output
         no_spinner: Disable progress spinner during API calls
         push: Push changes to remote after committing
+        template: Path to a custom prompt template file
 
     Returns:
         Dictionary with commit options
@@ -416,6 +421,7 @@ def create_commit_options(
         "quiet": quiet,
         "no_spinner": no_spinner,
         "push": push,
+        "template": template,
     }
 
 
@@ -691,6 +697,7 @@ def create_generate_options(
     show_prompt_full: bool = False,
     quiet: bool = False,
     no_spinner: bool = False,
+    template: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Create a dictionary with commit message generation options.
@@ -705,6 +712,7 @@ def create_generate_options(
         show_prompt_full: Show the complete prompt
         quiet: Suppress non-error output
         no_spinner: Disable progress spinner during API calls
+        template: Path to a custom prompt template file
 
     Returns:
         Dictionary with generation options
@@ -719,6 +727,7 @@ def create_generate_options(
         "show_prompt_full": show_prompt_full,
         "quiet": quiet,
         "no_spinner": no_spinner,
+        "template": template,
     }
 
 
@@ -770,6 +779,7 @@ def generate_commit_with_options(options: Dict[str, Any]) -> Optional[str]:
         diff=diff,
         one_liner=options.get("one_liner", False),
         hint=options.get("hint", ""),
+        template_path=options.get("template"),
     )
 
     # Show prompt if requested
@@ -835,6 +845,7 @@ def commit_changes(
     quiet: bool = False,
     no_spinner: bool = False,
     push: bool = False,
+    template: Optional[str] = None,
 ) -> Optional[str]:
     """
     Generate commit message and commit staged changes.
@@ -857,6 +868,7 @@ def commit_changes(
         quiet: Suppress non-error output
         no_spinner: Disable progress spinner during API calls
         push: Push changes to remote after committing
+        template: Path to a custom prompt template file
 
     Returns:
         The generated commit message or None if failed
@@ -884,6 +896,7 @@ def commit_changes(
         quiet=quiet,
         no_spinner=no_spinner,
         push=push,
+        template=template,
     )
 
     # Delegate to commit_changes_with_options
@@ -996,6 +1009,7 @@ def commit_workflow(
     require_confirmation: bool = True,
     push: bool = False,
     quiet: bool = False,
+    template: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Run the complete commit workflow in a functional way.
@@ -1014,6 +1028,7 @@ def commit_workflow(
         require_confirmation: Require user confirmation before committing
         push: Push changes to remote after committing
         quiet: Suppress non-error output
+        template: Path to a custom prompt template file
 
     Returns:
         Dictionary with the commit result
@@ -1035,6 +1050,7 @@ def commit_workflow(
         force=not require_confirmation,
         quiet=quiet,
         push=push,
+        template=template,
     )
 
     # Execute the commit operation

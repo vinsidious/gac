@@ -14,7 +14,7 @@ In this refactoring, we've addressed key architectural issues with the GAC codeb
 
 ### New Structure
 
-```
+```text
 gac/
 ├── ai.py               # AI provider integration
 ├── cli.py              # CLI entry point
@@ -25,16 +25,6 @@ gac/
 ├── config.py           # Configuration management
 └── errors.py           # Error types and handling
 ```
-
-### Compatibility Layer
-
-To maintain backward compatibility, we've included these modules:
-
-- `ai_utils.py`: Re-exports from `ai.py`
-- `commit_manager.py`: Bridge to `core.py`
-- `formatting/formatters.py`: Bridge to `format.py`
-- `formatting_controller.py`: Bridge to `format.py`
-- `workflow.py`: Bridge to `core.py`
 
 ## API Improvements
 

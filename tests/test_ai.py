@@ -58,27 +58,6 @@ class TestAiUtils(unittest.TestCase):
         # Verify the function was called (minimal implementation detail)
         mock_generate_commit_message.assert_called_once()
 
-    @patch("gac.ai.generate_commit_message")
-    @patch("builtins.open", new_callable=unittest.mock.mock_open)
-    @patch("json.dump")
-    def test_chat_save_conversation(self, mock_json_dump, mock_open, mock_generate_commit_message):
-        """Test chat function saves conversation when path is provided."""
-        # Configure the mock response
-        mock_generate_commit_message.return_value = "Test response"
-
-        messages = [{"role": "user", "content": "Hello"}]
-        save_path = "test_conversation.json"
-
-        # Call the function under test
-        result = chat(messages, save_conversation_path=save_path, test_mode=False)
-
-        # Verify the behavior: function returns the expected response
-        self.assertEqual(result, "Test response")
-
-        # Verify the behavior: conversation is saved to the specified path
-        mock_open.assert_any_call(save_path, "w")
-        self.assertTrue(mock_json_dump.called)
-
     def test_count_tokens_string(self):
         """Test count_tokens with string input returns expected token count."""
         # Use tiktoken directly to get expected token count
