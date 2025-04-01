@@ -9,7 +9,7 @@ from typing import Optional
 import click
 
 from gac.ai import is_ollama_available
-from gac.git import commit_changes, run_git_command
+from gac.git import CommitOptions, commit_changes_with_options, run_git_command
 from gac.utils import print_error, print_info, print_success, setup_logging
 
 logger = logging.getLogger(__name__)
@@ -169,20 +169,23 @@ def commit(
     logger.debug(f"CLI commit function - add_all: {add_all}, force: {force}, push: {push}")
     logger.debug(f"CLI commit function - ctx.obj: {ctx.obj}")
 
+    # Create CommitOptions from command line arguments
+    options = CommitOptions(
+        force=force,
+        add_all=add_all,
+        formatting=not no_format,
+        model=model,
+        hint=hint,
+        one_liner=one_liner,
+        show_prompt=show_prompt,
+        show_prompt_full=show_prompt_full,
+        quiet=quiet,
+        no_spinner=no_spinner,
+        push=push,
+    )
+
     try:
-        commit_message = commit_changes(
-            force=force,
-            add_all=add_all,
-            formatting=not no_format,
-            model=model,
-            one_liner=one_liner,
-            show_prompt=show_prompt,
-            show_prompt_full=show_prompt_full,
-            hint=hint,
-            quiet=quiet,
-            no_spinner=no_spinner,
-            push=push,
-        )
+        commit_message = commit_changes_with_options(options)
 
         if not commit_message and not quiet:
             if "Commit cancelled" in run_git_command(["log", "-1"], silent=True):

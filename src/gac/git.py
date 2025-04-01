@@ -3,6 +3,7 @@
 import logging
 import os
 import subprocess
+from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional
 
@@ -11,6 +12,7 @@ from rich.panel import Panel
 from gac.ai import count_tokens, generate_commit_message
 from gac.config import get_config
 from gac.errors import GACError, handle_error
+from gac.files import file_matches_pattern
 from gac.format import format_files
 from gac.prompt import build_prompt, clean_commit_message
 from gac.utils import console
@@ -189,7 +191,7 @@ def get_staged_files(file_type: Optional[str] = None, existing_only: bool = Fals
         files = [f for f in files if f.endswith(file_type)]
 
     if existing_only:
-        files = [f for f in files if os.path.exists(f)]
+        files = [f for f in files if os.path.isfile(f)]
 
     return files
 
@@ -414,6 +416,56 @@ def generate_commit(
         return None
 
 
+@dataclass
+class CommitOptions:
+    """Options for commit operations."""
+
+    force: bool = False
+    add_all: bool = False
+    formatting: bool = True
+    model: Optional[str] = None
+    hint: str = ""
+    one_liner: bool = False
+    show_prompt: bool = False
+    show_prompt_full: bool = False
+    quiet: bool = False
+    no_spinner: bool = False
+    push: bool = False
+
+
+def commit_changes_with_options(
+    options: CommitOptions,
+    message: Optional[str] = None,
+    staged_files: Optional[List[str]] = None,
+) -> Optional[str]:
+    """
+    Generate commit message and commit staged changes using a CommitOptions object.
+
+    Args:
+        options: CommitOptions object with commit settings
+        message: Optional pre-generated commit message
+        staged_files: Optional list of staged files (if None, all staged files are used)
+
+    Returns:
+        The generated commit message or None if failed
+    """
+    return commit_changes(
+        message=message,
+        staged_files=staged_files,
+        force=options.force,
+        add_all=options.add_all,
+        formatting=options.formatting,
+        model=options.model,
+        hint=options.hint,
+        one_liner=options.one_liner,
+        show_prompt=options.show_prompt,
+        show_prompt_full=options.show_prompt_full,
+        quiet=options.quiet,
+        no_spinner=options.no_spinner,
+        push=options.push,
+    )
+
+
 def commit_changes(
     message: Optional[str] = None,
     staged_files: Optional[List[str]] = None,
@@ -593,19 +645,8 @@ def is_large_file(file_path: str) -> bool:
         True if the file is large or auto-generated
     """
     # First check if the file matches known large file patterns
-    for pattern in LARGE_FILE_PATTERNS:
-        if pattern.endswith("/*"):
-            # Check directory pattern
-            dir_pattern = pattern[:-2]
-            if file_path.startswith(dir_pattern):
-                return True
-        elif pattern.startswith("*"):
-            # Check extension pattern
-            if file_path.endswith(pattern[1:]):
-                return True
-        elif pattern == file_path:
-            # Exact match
-            return True
+    if any(file_matches_pattern(file_path, pattern) for pattern in LARGE_FILE_PATTERNS):
+        return True
 
     # If not a known pattern, check content size
     try:
@@ -718,55 +759,6 @@ class RealGitOperations(GitOperations):
         return has_staged_changes()
 
 
-# For compatibility with existing code that might use the class-based interface
-class GitOperationsManager:
-    """GitOperationsManager provides Git operations."""
-
-    def __init__(self, quiet: bool = False):
-        """
-        Initialize the GitOperationsManager.
-
-        Args:
-            quiet: Whether to suppress logging
-        """
-        self.quiet = quiet
-
-    def run_git_command(self, args: List[str], silent: bool = False) -> str:
-        """Run a git command and return the output."""
-        return run_git_command(args, silent or self.quiet)
-
-    def ensure_git_directory(self) -> Optional[str]:
-        """Ensure we're in a git repository."""
-        return ensure_git_directory()
-
-    def get_status(self) -> str:
-        """Get git status."""
-        return get_status()
-
-    def get_staged_files(self, file_type: Optional[str] = None) -> List[str]:
-        """Get list of staged files."""
-        return get_staged_files(file_type)
-
-    def get_staged_diff(self, file_path: Optional[str] = None) -> str:
-        """Get the diff of staged changes."""
-        return get_staged_diff()
-
-    def stage_files(self, files: List[str]) -> bool:
-        """Stage files for commit."""
-        return stage_files(files)
-
-    def stage_all_files(self) -> bool:
-        """Stage all files in the repository."""
-        return stage_all_files()
-
-    def commit_changes(self, message: str) -> bool:
-        """Commit staged changes with the given message."""
-        return perform_commit(message)
-
-    def push_changes(self) -> bool:
-        """Push committed changes to the remote repository."""
-        return push_changes()
-
-    def has_staged_changes(self) -> bool:
-        """Check if there are any staged changes."""
-        return has_staged_changes()
+# NOTE: The GitOperationsManager is being deprecated in favor of direct function calls
+# Tests should use the set_git_operations mechanism instead of this class
+# This class will be removed in a future release

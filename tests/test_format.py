@@ -15,7 +15,7 @@ def mock_get_staged_files():
 
 @patch("gac.format.run_formatter")
 @patch("gac.format.check_formatter_available", return_value=True)
-@patch("os.path.exists", return_value=True)  # Mock os.path.exists to return True
+@patch("os.path.isfile", return_value=True)  # Mock os.path.isfile to return True
 def test_format_files_success(mock_exists, mock_check_formatter, mock_run_formatter):
     """Test format_files with successful formatting."""
     # Setup mock
@@ -43,7 +43,7 @@ def test_format_files_success(mock_exists, mock_check_formatter, mock_run_format
 
 @patch("gac.format.run_formatter")
 @patch("gac.format.check_formatter_available", return_value=False)
-@patch("os.path.exists", return_value=True)  # Mock os.path.exists to return True
+@patch("os.path.isfile", return_value=True)  # Mock os.path.isfile to return True
 def test_format_files_formatter_not_available(
     mock_exists, mock_check_formatter, mock_run_formatter
 ):
@@ -112,7 +112,7 @@ def test_run_formatter_exception(mock_subprocess_run):
 
 @patch("gac.format.run_formatter")
 @patch("gac.format.check_formatter_available", return_value=True)
-@patch("os.path.exists", return_value=True)  # Mock os.path.exists to return True
+@patch("os.path.isfile", return_value=True)  # Mock os.path.isfile to return True
 def test_format_files_with_dict_input(mock_exists, mock_check_formatter, mock_run_formatter):
     """Test format_files with dictionary input (backward compatibility)."""
     # Setup mock

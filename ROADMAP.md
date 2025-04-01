@@ -43,11 +43,11 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
 
 ## Current Sprint Focus
 
-- [ ] **Function-Based Git Module**: Replace the GitOperationsManager class with pure functions
-- [ ] **Configuration as Data**: Change configuration handling to use immutable data structures
+- [x] **Function-Based Git Module**: Replace the GitOperationsManager class with pure functions
+- [x] **Configuration as Data**: Change configuration handling to use immutable data structures
 - [ ] **Pipeline Factory**: Create a pipeline factory for the commit workflow
 - [ ] **Simpler CLI Interface**: Rework CLI to leverage function-based architecture
-- [ ] **Reduce Function Parameters**: Use parameter objects for complex functions
+- [x] **Reduce Function Parameters**: Use parameter objects for complex functions
 - [ ] **Explicit Dependency Injection**: Make dependencies explicit for testing and flexibility
 - [ ] **Pure Core Logic**: Move side effects to adapter functions at the edges
 - [ ] **Update Tests**: Rewrite tests to focus on behaviors rather than implementation details

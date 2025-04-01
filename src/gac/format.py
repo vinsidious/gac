@@ -9,6 +9,7 @@ import subprocess
 from typing import Dict, List
 
 from gac.errors import FormattingError, convert_exception, handle_error
+from gac.files import group_files_by_extension
 from gac.utils import print_info
 
 logger = logging.getLogger(__name__)
@@ -132,31 +133,6 @@ def check_formatter_available(formatter_config: Dict) -> bool:
         return False
 
 
-def group_files_by_extension(files: List[str]) -> Dict[str, List[str]]:
-    """
-    Group files by their extension.
-
-    Args:
-        files: List of file paths
-
-    Returns:
-        Dictionary mapping extensions to lists of file paths
-    """
-    files_by_extension = {}
-
-    for file_path in files:
-        if not os.path.exists(file_path):
-            continue
-
-        extension = os.path.splitext(file_path)[1]
-        if extension:
-            if extension not in files_by_extension:
-                files_by_extension[extension] = []
-            files_by_extension[extension].append(file_path)
-
-    return files_by_extension
-
-
 def format_files(files: List[str], quiet: bool = False) -> Dict[str, List[str]]:
     """
     Format files using appropriate formatters based on file extension.
@@ -180,6 +156,9 @@ def format_files(files: List[str], quiet: bool = False) -> Dict[str, List[str]]:
             if status != "D":
                 file_list.append(file_path)
         files = file_list
+
+    # Filter to only include existing files
+    files = [f for f in files if os.path.isfile(f)]
 
     # Group files by extension
     files_by_extension = group_files_by_extension(files)

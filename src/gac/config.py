@@ -7,7 +7,8 @@ default values.
 
 import logging
 import os
-from typing import Any, Dict, Optional
+from dataclasses import dataclass
+from typing import Any, Optional
 
 import questionary
 
@@ -31,6 +32,7 @@ DEFAULT_CONFIG = {
     "use_formatting": True,  # Whether to format code
     "max_output_tokens": 512,  # Maximum tokens in model output
     "warning_limit_input_tokens": 16000,  # Maximum tokens in input prompt
+    "temperature": 0.7,  # Default temperature for AI generation
 }
 
 # Environment variable names
@@ -62,7 +64,150 @@ class ConfigError(Exception):
     pass
 
 
-def get_config() -> Dict[str, Any]:
+@dataclass(frozen=True)
+class Config:
+    """Immutable configuration for Git Auto Commit."""
+
+    model: str
+    use_formatting: bool
+    max_output_tokens: int
+    warning_limit_input_tokens: int
+    api_key: Optional[str] = None
+    temperature: float = 0.7
+
+    @property
+    def provider(self) -> str:
+        """Get the provider part of the model string."""
+        if ":" not in self.model:
+            return "anthropic"  # Default provider
+        return self.model.split(":")[0]
+
+    @property
+    def model_name(self) -> str:
+        """Get the model name part of the model string."""
+        if ":" not in self.model:
+            return self.model  # Full model name
+        return self.model.split(":", 1)[1]
+
+    def validate(self) -> None:
+        """Validate the configuration.
+
+        Raises:
+            ConfigError: If the configuration is invalid
+        """
+        # Check model format
+        if not self.model:
+            raise ConfigError("Model configuration is required")
+
+        if ":" not in self.model:
+            raise ConfigError(
+                f"Invalid model format: '{self.model}'. "
+                f"Model must be in format 'provider:model_name'"
+            )
+
+        # Check provider
+        provider = self.provider
+        if provider not in API_KEY_ENV_VARS:
+            raise ConfigError(
+                f"Invalid provider: '{provider}'. "
+                f"Supported: {', '.join(API_KEY_ENV_VARS.keys())}"
+            )
+
+        # Check token limits
+        if self.max_output_tokens <= 0:
+            raise ConfigError(f"max_output_tokens must be positive (got {self.max_output_tokens})")
+
+        if self.warning_limit_input_tokens <= 0:
+            raise ConfigError(
+                f"warning_limit_input_tokens must be positive "
+                f"(got {self.warning_limit_input_tokens})"
+            )
+
+        if self.warning_limit_input_tokens > 32000:
+            logger.warning(
+                "warning_limit_input_tokens is very high (>32000). "
+                "This might cause issues with some models"
+            )
+
+        # Check if API key is required and available
+        if provider != "ollama" and not self.api_key:
+            api_key_env = API_KEY_ENV_VARS[provider]
+            if not os.environ.get(api_key_env):
+                raise ConfigError(f"API key not set: {api_key_env}")
+
+    def with_updates(self, **kwargs) -> "Config":
+        """Create a new Config instance with updated values.
+
+        Args:
+            **kwargs: Key-value pairs to update
+
+        Returns:
+            Config: A new Config instance with updated values
+        """
+        # Get current values as a dictionary
+        current_values = {
+            "model": self.model,
+            "use_formatting": self.use_formatting,
+            "max_output_tokens": self.max_output_tokens,
+            "warning_limit_input_tokens": self.warning_limit_input_tokens,
+            "api_key": self.api_key,
+            "temperature": self.temperature,
+        }
+
+        # Update with new values
+        current_values.update(kwargs)
+
+        # Create and return a new instance
+        return Config(**current_values)
+
+    # Dictionary-compatible access methods for testing compatibility
+    def __getitem__(self, key: str) -> Any:
+        """Dictionary-style access to config attributes.
+
+        Args:
+            key: Attribute name
+
+        Returns:
+            Value of the attribute
+
+        Raises:
+            KeyError: If key is not a valid attribute
+        """
+        if not hasattr(self, key):
+            raise KeyError(f"Config has no attribute '{key}'")
+        return getattr(self, key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Dictionary-style get method with default value.
+
+        Args:
+            key: Attribute name
+            default: Default value to return if key doesn't exist
+
+        Returns:
+            Value of the attribute or default if not found
+        """
+        if hasattr(self, key):
+            return getattr(self, key)
+        return default
+
+    def items(self):
+        """Dictionary-style items() method.
+
+        Returns:
+            Iterator of (key, value) pairs
+        """
+        return {
+            "model": self.model,
+            "use_formatting": self.use_formatting,
+            "max_output_tokens": self.max_output_tokens,
+            "warning_limit_input_tokens": self.warning_limit_input_tokens,
+            "api_key": self.api_key,
+            "temperature": self.temperature,
+        }.items()
+
+
+def get_config() -> Config:
     """Load configuration from environment variables or use defaults.
 
     The function checks for several environment variables and applies them
@@ -72,27 +217,17 @@ def get_config() -> Dict[str, Any]:
     3. Default values from DEFAULT_CONFIG
 
     Returns:
-        Dict[str, Any]: The configuration dictionary with all settings
+        Config: The immutable configuration object with all settings
     """
-    config = DEFAULT_CONFIG.copy()
+    # Start with default values
+    model = DEFAULT_CONFIG["model"]
+    use_formatting = DEFAULT_CONFIG["use_formatting"]
+    max_output_tokens = DEFAULT_CONFIG["max_output_tokens"]
+    warning_limit_input_tokens = DEFAULT_CONFIG["warning_limit_input_tokens"]
+    api_key = None
+    temperature = 0.7  # Default temperature
 
-    # Debug logging of environment variables
     logger.debug("Loading configuration...")
-
-    # Extract provider from current model setting
-    current_model = config.get("model", "")
-    if ":" in current_model:
-        provider = current_model.split(":")[0]
-        api_key_env = API_KEY_ENV_VARS.get(provider)
-        if api_key_env:
-            api_key = os.environ.get(api_key_env)
-            if api_key:
-                masked_key = api_key[:4] + "..." + api_key[-4:] if len(api_key) > 8 else "****"
-                logger.debug(f"Found API key for {provider}: {masked_key}")
-                # Store the API key in the config
-                config["api_key"] = api_key
-            else:
-                logger.debug(f"No API key found for {provider} in {api_key_env}")
 
     # Handle model selection with precedence
     if os.environ.get(ENV_VARS["model"]):
@@ -104,57 +239,62 @@ def get_config() -> Dict[str, Any]:
                 f"assuming 'anthropic:'"
             )
             model = f"anthropic:{model}"
-        config["model"] = model
         logger.debug(f"Using model from {ENV_VARS['model']}: {model}")
 
-        # Update API key based on the new model
-        if ":" in model:
-            provider = model.split(":")[0]
-            api_key_env = API_KEY_ENV_VARS.get(provider)
-            if api_key_env:
-                api_key = os.environ.get(api_key_env)
-                if api_key:
-                    masked_key = api_key[:4] + "..." + api_key[-4:] if len(api_key) > 8 else "****"
-                    logger.debug(f"Found API key for {provider}: {masked_key}")
-                    # Store the API key in the config
-                    config["api_key"] = api_key
-                else:
-                    logger.debug(f"No API key found for {provider} in {api_key_env}")
+    # Extract provider from model setting
+    provider = model.split(":")[0] if ":" in model else "anthropic"
+    api_key_env = API_KEY_ENV_VARS.get(provider)
+
+    # Get API key if needed
+    if api_key_env:
+        api_key = os.environ.get(api_key_env)
+        if api_key:
+            masked_key = api_key[:4] + "..." + api_key[-4:] if len(api_key) > 8 else "****"
+            logger.debug(f"Found API key for {provider}: {masked_key}")
 
     # Handle formatting preference
     if os.environ.get(ENV_VARS["use_formatting"]) is not None:
         use_formatting = os.environ[ENV_VARS["use_formatting"]].lower() == "true"
-        config["use_formatting"] = use_formatting
         logger.debug(f"Code formatting {'enabled' if use_formatting else 'disabled'}")
 
     # Handle token limits
     if os.environ.get(ENV_VARS["max_output_tokens"]):
         try:
-            config["max_output_tokens"] = int(os.environ[ENV_VARS["max_output_tokens"]])
+            max_output_tokens = int(os.environ[ENV_VARS["max_output_tokens"]])
         except ValueError:
             logger.warning(f"Invalid {ENV_VARS['max_output_tokens']} value, using default")
 
     if os.environ.get(ENV_VARS["warning_limit_input_tokens"]):
         try:
-            config["warning_limit_input_tokens"] = int(
-                os.environ[ENV_VARS["warning_limit_input_tokens"]]
-            )
+            warning_limit_input_tokens = int(os.environ[ENV_VARS["warning_limit_input_tokens"]])
         except ValueError:
             logger.warning(f"Invalid {ENV_VARS['warning_limit_input_tokens']} value, using default")
+
+    # Handle temperature from environment variable
+    if os.environ.get("GAC_TEMPERATURE"):
+        try:
+            temperature = float(os.environ["GAC_TEMPERATURE"])
+        except ValueError:
+            logger.warning("Invalid GAC_TEMPERATURE value, using default")
+
+    # Create the config object
+    config = Config(
+        model=model,
+        use_formatting=use_formatting,
+        max_output_tokens=max_output_tokens,
+        warning_limit_input_tokens=warning_limit_input_tokens,
+        api_key=api_key,
+        temperature=temperature,
+    )
 
     return config
 
 
-def validate_config(config: Dict[str, Any]) -> bool:
+def validate_config(config: Config) -> bool:
     """Validate the current configuration.
 
-    Checks for:
-    - Required API keys based on provider
-    - Valid model format
-    - Token limit ranges
-
     Args:
-        config (Dict[str, Any]): The configuration dictionary to validate
+        config (Config): The configuration object to validate
 
     Returns:
         bool: True if configuration is valid
@@ -162,51 +302,7 @@ def validate_config(config: Dict[str, Any]) -> bool:
     Raises:
         ConfigError: If the configuration is invalid
     """
-    # Extract provider from model
-    model = config.get("model", "")
-    if not model:
-        raise ConfigError("Model configuration is required")
-
-    if ":" not in model:
-        raise ConfigError(
-            f"Invalid model format: '{model}'. Model must be in format 'provider:model_name'"
-        )
-
-    provider = model.split(":")[0]
-
-    # Check for required API keys
-    if provider not in API_KEY_ENV_VARS:
-        raise ConfigError(
-            f"Invalid provider: '{provider}'. Supported: {', '.join(API_KEY_ENV_VARS.keys())}"
-        )
-
-    # Skip API key check for Ollama since it doesn't require one
-    if provider != "ollama":
-        api_key_env = API_KEY_ENV_VARS[provider]
-        if not os.environ.get(api_key_env):
-            raise ConfigError(f"API key not set: {api_key_env}")
-
-    # Check token limits
-    if config["max_output_tokens"] <= 0:
-        raise ConfigError(f"max_output_tokens must be positive (got {config['max_output_tokens']})")
-
-    if config["warning_limit_input_tokens"] <= 0:
-        raise ConfigError(
-            f"warning_limit_input_tokens must be positive "
-            f"(got {config['warning_limit_input_tokens']})"
-        )
-
-    if config["warning_limit_input_tokens"] > 32000:
-        logger.warning(
-            "warning_limit_input_tokens is very high (>32000). "
-            "This might cause issues with some models"
-        )
-
-    # Check formatting option
-    use_formatting = config.get("use_formatting")
-    if use_formatting not in [True, False]:
-        raise ConfigError(f"use_formatting must be a boolean value (got {use_formatting})")
-
+    config.validate()
     return True
 
 
@@ -227,13 +323,13 @@ def get_provider_from_model(model: str) -> str:
     return model.split(":")[0]
 
 
-def run_config_wizard() -> Optional[Dict[str, Any]]:
+def run_config_wizard() -> Optional[Config]:
     """Interactive configuration wizard for GAC.
 
     Guides the user through setting up their preferred AI provider and model.
 
     Returns:
-        Optional[Dict[str, Any]]: Configured settings or None if wizard is cancelled
+        Optional[Config]: Configured settings or None if wizard is cancelled
     """
     # Supported providers for this wizard
     supported_providers = ["anthropic", "openai", "groq", "mistral"]
@@ -289,16 +385,16 @@ def run_config_wizard() -> Optional[Dict[str, Any]]:
         print("Configuration wizard cancelled.")
         return None
 
-    # Create configuration dictionary
-    config = {
-        "model": full_model,
-        "use_formatting": use_formatting,
-        "max_output_tokens": DEFAULT_CONFIG["max_output_tokens"],
-        "warning_limit_input_tokens": DEFAULT_CONFIG["warning_limit_input_tokens"],
-    }
+    # Create configuration object
+    config = Config(
+        model=full_model,
+        use_formatting=use_formatting,
+        max_output_tokens=DEFAULT_CONFIG["max_output_tokens"],
+        warning_limit_input_tokens=DEFAULT_CONFIG["warning_limit_input_tokens"],
+    )
 
     try:
-        validate_config(config)
+        config.validate()
         print("\n✅ Configuration validated successfully!")
         return config
     except ConfigError as e:
