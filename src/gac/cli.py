@@ -8,9 +8,8 @@ from typing import Optional
 
 import click
 
-from gac.ai import is_ollama_available
 from gac.git import commit_workflow
-from gac.utils import print_error, print_info, print_success, setup_logging
+from gac.utils import print_error, print_success, setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +29,7 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--model",
     "-m",
-    help="Override the default model (format: 'provider:model_name', e.g. 'ollama:llama3.2')",
+    help="Override the default model (format: 'provider:model_name', e.g. 'anthropic:claude-3-5-haiku')",
 )
 @click.option("--one-liner", "-o", is_flag=True, help="Generate a single-line commit message")
 @click.option(
@@ -50,6 +49,11 @@ logger = logging.getLogger(__name__)
     "--template",
     help="Path to a custom prompt template file",
 )
+@click.option(
+    "--config",
+    is_flag=True,
+    help="Run the interactive configuration wizard",
+)
 @click.pass_context
 def cli(
     ctx,
@@ -66,6 +70,7 @@ def cli(
     no_spinner: bool = False,
     push: bool = False,
     template: Optional[str] = None,
+    config: bool = False,
 ) -> None:
     """Git Auto Commit - Generate commit messages with AI."""
     # Set up context for all commands
@@ -99,6 +104,18 @@ def cli(
 
     setup_logging(log_level, quiet=quiet, force=True)
 
+    # Handle --config flag
+    if config:
+        from gac.config import run_config_wizard
+
+        result = run_config_wizard()
+        if result:
+            # Save configuration to environment variables
+            os.environ["GAC_MODEL"] = result["model"]
+            os.environ["GAC_USE_FORMATTING"] = str(result["use_formatting"]).lower()
+            print_success("Configuration saved successfully!")
+        return
+
     # If no subcommand is specified, invoke commit by default
     if ctx.invoked_subcommand is None:
         # Pass the flags explicitly to the commit function
@@ -122,7 +139,9 @@ def cli(
 @click.option("--force", "-f", is_flag=True, help="Skip all confirmation prompts")
 @click.option("--add-all", "-a", is_flag=True, help="Stage all changes before committing")
 @click.option("--no-format", is_flag=True, help="Skip formatting of staged files")
-@click.option("--model", "-m", help="Override the default model (e.g. 'ollama:llama3.2')")
+@click.option(
+    "--model", "-m", help="Override the default model (e.g. 'anthropic:claude-3-5-haiku-latest')"
+)
 @click.option("--one-liner", "-o", is_flag=True, help="Generate a single-line commit message")
 @click.option(
     "--show-prompt",
@@ -205,54 +224,6 @@ def commit(
     if result.get("pushed"):
         print_success("Changes pushed to remote.")
     sys.exit(0)
-
-
-@cli.command()
-@click.pass_context
-def models(ctx) -> None:
-    """List available local Ollama models."""
-    print_info("Checking for local Ollama models...")
-
-    if not is_ollama_available():
-        print_error(
-            "Ollama is not available. Install from https://ollama.com and make sure it's running."
-        )
-        print_info("After installing, run 'ollama pull llama3.2' to download a model.")
-        return
-
-    try:
-        import ollama
-
-        models = ollama.list().get("models", [])
-
-        if not models:
-            print_info("No Ollama models found. Run 'ollama pull llama3.2' to download a model.")
-            return
-
-        print_success(f"Found {len(models)} Ollama models:")
-        for model in models:
-            name = model.get("name", "unknown")
-            size = model.get("size", 0) // (1024 * 1024)  # Convert to MB
-            print_info(f"  - {name} ({size} MB)")
-
-        print_info("\nUse with: gac commit --model ollama:MODEL_NAME")
-    except Exception as e:
-        print_error(f"Error listing Ollama models: {e}")
-        print_info("Make sure Ollama is installed and running.")
-
-
-@cli.command()
-@click.pass_context
-def config(ctx) -> None:
-    """Run the interactive configuration wizard."""
-    from gac.config import run_config_wizard
-
-    result = run_config_wizard()
-    if result:
-        # Save configuration to environment variables
-        os.environ["GAC_MODEL"] = result["model"]
-        os.environ["GAC_USE_FORMATTING"] = str(result["use_formatting"]).lower()
-        print_success("Configuration saved successfully!")
 
 
 # For backward compatibility with existing scripts
