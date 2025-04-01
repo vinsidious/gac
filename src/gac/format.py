@@ -6,7 +6,7 @@ This module centralizes all formatting operations into a single, simpler interfa
 import logging
 import os
 import subprocess
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from gac.errors import FormattingError, convert_exception, handle_error
 from gac.utils import print_info, print_success
@@ -44,7 +44,8 @@ def run_formatter(command: List[str], files: List[str], formatter_name: str) -> 
             return True
         else:
             logger.warning(
-                f"{formatter_name} failed with exit code {result.returncode}: {result.stderr.strip()}"
+                f"{formatter_name} failed with exit code {result.returncode}: "
+                f"{result.stderr.strip()}"
             )
             return False
     except Exception as e:
@@ -151,23 +152,7 @@ def run_gofmt(files: List[str]) -> bool:
         return False
 
 
-def _get_file_extension(file_path: str) -> Optional[str]:
-    """
-    Get the file extension from a file path.
-
-    Args:
-        file_path: Path to the file
-
-    Returns:
-        File extension with dot (e.g., '.py') or None if no extension
-    """
-    parts = file_path.split(".")
-    if len(parts) > 1:
-        return f".{parts[-1]}"
-    return None
-
-
-def _group_files_by_extension(files: List[str]) -> Dict[str, List[str]]:
+def group_files_by_extension(files: List[str]) -> Dict[str, List[str]]:
     """
     Group files by their extension.
 
@@ -180,12 +165,10 @@ def _group_files_by_extension(files: List[str]) -> Dict[str, List[str]]:
     files_by_extension = {}
 
     for file_path in files:
-        # Skip files that don't exist
         if not os.path.exists(file_path):
             continue
 
-        # Get file extension
-        extension = _get_file_extension(file_path)
+        extension = os.path.splitext(file_path)[1]
         if extension:
             if extension not in files_by_extension:
                 files_by_extension[extension] = []
@@ -208,11 +191,21 @@ def format_files(files: List[str], quiet: bool = False) -> Dict[str, List[str]]:
     if not files:
         return {}
 
+    # If files is a dict, extract file paths (for backward compatibility)
+    if isinstance(files, dict):
+        # Process dictionary input (path -> status)
+        file_list = []
+        for file_path, status in files.items():
+            # Skip deleted files
+            if status != "D":
+                file_list.append(file_path)
+        files = file_list
+
     # Define file extensions for each formatter
     js_extensions = {".js", ".jsx", ".ts", ".tsx", ".json", ".md", ".html", ".css"}
 
     # Group files by extension
-    files_by_extension = _group_files_by_extension(files)
+    files_by_extension = group_files_by_extension(files)
 
     # Skip if no files to format
     if not any(files_by_extension.values()):
@@ -249,16 +242,14 @@ def format_files(files: List[str], quiet: bool = False) -> Dict[str, List[str]]:
 
     if js_files:
         if not quiet:
-            print_info(f"Formatting {len(js_files)} JavaScript/TypeScript files...")
+            print_info(f"Formatting {len(js_files)} JS/TS/JSON/HTML/CSS files...")
 
         try:
             prettier_result = run_prettier(js_files)
             if prettier_result:
                 formatted_files["prettier"] = js_files
         except Exception as e:
-            error = convert_exception(
-                e, FormattingError, "Failed to format JavaScript/TypeScript files"
-            )
+            error = convert_exception(e, FormattingError, "Failed to format JS/TS files")
             handle_error(error, quiet=quiet, exit_program=False)
 
     # Format Rust files with rustfmt
@@ -289,13 +280,18 @@ def format_files(files: List[str], quiet: bool = False) -> Dict[str, List[str]]:
             error = convert_exception(e, FormattingError, "Failed to format Go files")
             handle_error(error, quiet=quiet, exit_program=False)
 
-    # Display formatted file count
-    if formatted_files and not quiet:
-        # Use a set to count unique files (avoiding double-counting Python files formatted by both black and isort)
+    # Print summary if not quiet
+    if not quiet and formatted_files:
+        # Count unique files instead of summing up all formatter results
         unique_files = set()
         for files in formatted_files.values():
             unique_files.update(files)
-        formatted_count = len(unique_files)
-        print_success(f"Formatted {formatted_count} files")
+
+        total_files = len(unique_files)
+        print_success(f"Formatted {total_files} files")
 
     return formatted_files
+
+
+# Aliases for backward compatibility
+format_staged_files = format_files

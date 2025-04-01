@@ -10,13 +10,14 @@ A tool to generate commit messages using AI.
 
 from gac.__about__ import __version__
 from gac.ai import generate_commit_message
-from gac.core import commit_changes, generate_commit
 from gac.format import format_files
-from gac.git import commit_changes as git_commit
 from gac.git import (
+    commit_changes,
+    generate_commit,
     get_staged_diff,
     get_staged_files,
     get_status,
+    perform_commit,
     push_changes,
     stage_all_files,
     stage_files,
@@ -36,6 +37,6 @@ __all__ = [
     "get_status",
     "stage_all_files",
     "stage_files",
-    "git_commit",
+    "perform_commit",
     "push_changes",
 ]

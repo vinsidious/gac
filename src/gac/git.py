@@ -2,29 +2,64 @@
 
 import logging
 import os
-import re
 import subprocess
-from enum import Enum, auto
+from enum import Enum
 from typing import Dict, List, Optional
 
-from gac.ai import count_tokens
+from rich.panel import Panel
+
+from gac.ai import count_tokens, generate_commit_message
+from gac.config import get_config
+from gac.errors import GACError, handle_error
+from gac.format import format_files
+from gac.prompt import build_prompt, clean_commit_message
+from gac.utils import console
 
 # Set up logger
 logger = logging.getLogger(__name__)
-
-# For backwards compatibility with tests
-from enum import Enum, auto
 
 
 class FileStatus(Enum):
     """File status for Git operations."""
 
-    MODIFIED = auto()
-    ADDED = auto()
-    DELETED = auto()
-    RENAMED = auto()
-    COPIED = auto()
-    UNTRACKED = auto()
+    MODIFIED = "M"
+    ADDED = "A"
+    DELETED = "D"
+    RENAMED = "R"
+    COPIED = "C"
+    UNTRACKED = "?"
+
+
+# For backward compatibility with tests
+def run_subprocess(command: List[str], check: bool = True) -> str:
+    """
+    Run a subprocess command and return the output.
+
+    Args:
+        command: Command to run as a list of strings
+        check: Whether to check the return code
+
+    Returns:
+        Command output as string
+    """
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            check=check,
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Command failed: {e.stderr.strip()}")
+        if check:
+            raise
+        return ""
+    except Exception as e:
+        logger.error(f"Error running command: {e}")
+        if check:
+            raise
+        return ""
 
 
 # Global for test mock injection
@@ -170,61 +205,48 @@ def get_staged_files_with_status() -> Dict[str, str]:
     if not result:
         return {}
 
-    # Parse the output to get files and their statuses
-    file_statuses = {}
+    staged_files = {}
     for line in result.splitlines():
-        if not line or len(line) < 2:
+        if not line or len(line) < 3:
             continue
 
-        status = line[0]
-        if status.strip() and line[1] == " ":  # Staged changes
-            file_path = line[3:].strip()
-            file_statuses[file_path] = status
+        # Parse the status line
+        # Format is XY PATH where X is staged status, Y is unstaged status
+        staged_status = line[0]
+        path = line[3:].strip()
 
-    return file_statuses
+        # Only include files that are staged (status is not space)
+        if staged_status != " " and staged_status != "?":
+            staged_files[path] = staged_status
+
+    return staged_files
 
 
-def get_staged_diff(file_path: Optional[str] = None) -> str:
+def get_staged_diff() -> str:
     """
-    Get the diff of staged changes, optionally for a specific file.
-
-    Args:
-        file_path: Optional specific file to get diff for
+    Get the diff of staged changes.
 
     Returns:
-        The diff as a string
+        Git diff output as string
     """
-    args = ["diff", "--cached"]
-    if file_path:
-        args.extend(["--", file_path])
-
-    return run_git_command(args)
+    return run_git_command(["diff", "--staged"])
 
 
 def stage_files(files: List[str]) -> bool:
     """
-    Stage files for commit.
+    Stage the specified files.
 
     Args:
-        files: List of files to stage (e.g., ["file1.py", "file2.py"])
-               To stage all files, use ["."]
+        files: List of files to stage
 
     Returns:
         True if successful, False otherwise
     """
     if not files:
-        logger.error("No files provided to stage")
         return False
 
     try:
-        # Stage each file individually to get better error handling
-        for file in files:
-            result = run_git_command(["add", file], silent=True)
-            if result and "fatal:" in result.lower():
-                logger.error(f"Failed to stage {file}")
-                return False
-
-        logger.info(f"Staged {len(files)} files")
+        run_git_command(["add"] + files)
         return True
     except Exception as e:
         logger.error(f"Error staging files: {e}")
@@ -233,57 +255,265 @@ def stage_files(files: List[str]) -> bool:
 
 def stage_all_files() -> bool:
     """
-    Stage all files in the repository.
+    Stage all changes.
 
     Returns:
         True if successful, False otherwise
     """
-    # Check if this is an empty repository
-    status = get_status()
-    is_empty_repo = "No commits yet" in status
-
-    if is_empty_repo:
-        logger.info("Repository has no commits yet. Creating initial commit...")
-
-        # Try to stage files in the empty repo
-        if not stage_files(["."]):
-            # Try with an empty commit as fallback
-            run_git_command(["commit", "--allow-empty", "-m", "Initial commit"])
-            # Now try to stage files again
-            return stage_files(["."])
-
-    # Normal case - just stage all files
-    return stage_files(["."])
-
-
-def commit_changes(message: str) -> bool:
-    """
-    Commit staged changes with the given message.
-
-    Args:
-        message: The commit message to use
-
-    Returns:
-        True if commit successful, False otherwise
-    """
-    if not message:
-        logger.error("Commit message cannot be empty")
+    try:
+        run_git_command(["add", "--all"])
+        return True
+    except Exception as e:
+        logger.error(f"Error staging all files: {e}")
         return False
 
-    result = run_git_command(["commit", "-m", message])
-    return bool(result)
+
+def perform_commit(message: str) -> bool:
+    """
+    Commit changes with the specified message.
+
+    Args:
+        message: Commit message
+
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        run_git_command(["commit", "-m", message])
+        return True
+    except Exception as e:
+        logger.error(f"Error committing changes: {e}")
+        return False
 
 
 def push_changes() -> bool:
     """
-    Push committed changes to the remote repository.
+    Push changes to the remote repository.
 
     Returns:
         True if successful, False otherwise
     """
-    logger.info("Pushing changes to remote...")
-    result = run_git_command(["push"])
-    return bool(result)
+    try:
+        run_git_command(["push"])
+        return True
+    except Exception as e:
+        logger.error(f"Error pushing changes: {e}")
+        return False
+
+
+def generate_commit(
+    staged_files: Optional[List[str]] = None,
+    formatting: bool = True,
+    model: Optional[str] = None,
+    hint: str = "",
+    one_liner: bool = False,
+    show_prompt: bool = False,
+    show_prompt_full: bool = False,
+    quiet: bool = False,
+    no_spinner: bool = False,
+) -> Optional[str]:
+    """
+    Generate a commit message for staged changes.
+
+    Args:
+        staged_files: Optional list of staged files (if None, all staged files are used)
+        formatting: Whether to format code
+        model: Override model to use
+        hint: Additional context for the prompt
+        one_liner: Generate a single-line commit message
+        show_prompt: Show an abbreviated version of the prompt
+        show_prompt_full: Show the complete prompt
+        quiet: Suppress non-error output
+        no_spinner: Disable progress spinner during API calls
+
+    Returns:
+        The generated commit message or None if failed
+    """
+    try:
+        # Ensure we're in a git repository
+        if not ensure_git_directory():
+            return None
+
+        # Get staged files if not provided
+        if staged_files is None:
+            staged_files = get_staged_files()
+
+        if not staged_files:
+            logger.error("No staged changes found. Stage your changes with git add first.")
+            return None
+
+        # Format staged files if requested
+        if formatting:
+            formatted = format_files(staged_files, quiet)
+            if formatted:
+                # Re-stage the formatted files
+                all_formatted = []
+                for files in formatted.values():
+                    all_formatted.extend(files)
+
+                if all_formatted:
+                    stage_files(all_formatted)
+
+        # Get the diff of staged changes
+        diff = get_staged_diff()
+        if not diff:
+            logger.error("No diff found for staged changes.")
+            return None
+
+        # Get git status
+        status = get_status()
+
+        # Build the prompt
+        prompt = build_prompt(status, diff, one_liner, hint)
+
+        # Show prompt if requested
+        if show_prompt:
+            # Create an abbreviated version
+            abbrev_prompt = (
+                prompt.split("DIFF:")[0] + "DIFF: [truncated - diff content omitted for brevity]"
+            )
+            logger.info("Prompt sent to LLM:\n%s", abbrev_prompt)
+
+        if show_prompt_full:
+            logger.info("Full prompt sent to LLM:\n%s", prompt)
+
+        # Get configuration
+        config = get_config()
+        if model:
+            config["model"] = model
+
+        # Use the model from config
+        model_to_use = config.get("model", "anthropic:claude-3-5-haiku-latest")
+
+        # Always show a minimal message when generating the commit message
+        if not quiet:
+            # Split provider:model if applicable
+            if ":" in model_to_use:
+                provider, model_name = model_to_use.split(":", 1)
+                print(f"Using model: {model_name} with provider: {provider}")
+            else:
+                print(f"Using model: {model_to_use}")
+
+        # Generate the commit message
+        temperature = float(config.get("temperature", 0.7))
+        message = generate_commit_message(
+            prompt,
+            model=model_to_use,
+            temperature=temperature,
+            show_spinner=not no_spinner,
+            test_mode="PYTEST_CURRENT_TEST" in os.environ,
+        )
+
+        # Clean and return the message
+        if message:
+            return clean_commit_message(message)
+        return None
+
+    except Exception as e:
+        logger.error(f"Error generating commit message: {e}")
+        return None
+
+
+def commit_changes(
+    message: Optional[str] = None,
+    staged_files: Optional[List[str]] = None,
+    force: bool = False,
+    add_all: bool = False,
+    formatting: bool = True,
+    model: Optional[str] = None,
+    hint: str = "",
+    one_liner: bool = False,
+    show_prompt: bool = False,
+    show_prompt_full: bool = False,
+    quiet: bool = False,
+    no_spinner: bool = False,
+    push: bool = False,
+) -> Optional[str]:
+    """
+    Generate commit message and commit staged changes.
+
+    Args:
+        message: Optional pre-generated commit message
+        staged_files: Optional list of staged files (if None, all staged files are used)
+        force: Skip all confirmation prompts
+        add_all: Stage all changes before committing
+        formatting: Whether to format code
+        model: Override model to use
+        hint: Additional context for the prompt
+        one_liner: Generate a single-line commit message
+        show_prompt: Show an abbreviated version of the prompt
+        show_prompt_full: Show the complete prompt
+        quiet: Suppress non-error output
+        no_spinner: Disable progress spinner during API calls
+        push: Push changes to remote after committing
+
+    Returns:
+        The generated commit message or None if failed
+    """
+    try:
+        # Ensure we're in a git repository
+        if not ensure_git_directory():
+            return None
+
+        # Stage all files if requested
+        if add_all:
+            stage_all_files()
+
+        # Get staged files
+        if staged_files is None:
+            staged_files = get_staged_files()
+
+        if not staged_files:
+            logger.error("No staged changes found. Stage your changes with git add first.")
+            return None
+
+        # Generate commit message if not provided
+        if not message:
+            message = generate_commit(
+                staged_files=staged_files,
+                formatting=formatting,
+                model=model,
+                hint=hint,
+                one_liner=one_liner,
+                show_prompt=show_prompt,
+                show_prompt_full=show_prompt_full,
+                quiet=quiet,
+                no_spinner=no_spinner,
+            )
+
+        if not message:
+            logger.error("Failed to generate commit message.")
+            return None
+
+        # Always display the commit message
+        if not quiet:
+            console.print("\nGenerated commit message:", style="info")
+            console.print(Panel(message, title="Commit Message", border_style="bright_blue"))
+
+        # If force mode is not enabled, prompt for confirmation
+        if not force and not quiet:
+            confirm = input("\nProceed with this commit message? (y/n): ").strip().lower()
+            if confirm == "n":
+                print("Commit cancelled.")
+                return None
+
+        # Execute the commit
+        success = perform_commit(message)
+        if not success:
+            handle_error(GACError("Failed to commit changes"), quiet=quiet)
+            return None
+
+        # Push changes if requested
+        if push and success:
+            push_success = push_changes()
+            if not push_success:
+                handle_error(GACError("Failed to push changes"), quiet=quiet, exit_program=False)
+
+        return message
+
+    except Exception as e:
+        logger.error(f"Error during commit workflow: {e}")
+        return None
 
 
 def has_staged_changes() -> bool:
@@ -451,7 +681,7 @@ class RealGitOperations(GitOperations):
 
     def commit_changes(self, message: str) -> bool:
         """Commit staged changes with the given message."""
-        return commit_changes(message)
+        return perform_commit(message)
 
     def push_changes(self) -> bool:
         """Push committed changes to the remote repository."""
@@ -620,7 +850,7 @@ class GitOperationsManager:
 
     def commit_changes(self, message: str) -> bool:
         """Commit staged changes with the given message."""
-        return commit_changes(message)
+        return perform_commit(message)
 
     def push_changes(self) -> bool:
         """Push committed changes to the remote repository."""

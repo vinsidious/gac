@@ -9,7 +9,7 @@ from typing import Optional
 import click
 
 from gac.ai import is_ollama_available
-from gac.core import commit_changes
+from gac.git import commit_changes, run_git_command
 from gac.utils import print_error, print_info, print_success, setup_logging
 
 logger = logging.getLogger(__name__)
@@ -87,7 +87,7 @@ def cli(
             # Save configuration to environment variables
             os.environ["GAC_MODEL"] = config["model"]
             os.environ["GAC_USE_FORMATTING"] = str(config["use_formatting"]).lower()
-            print("Configuration saved successfully!")
+            print_success("Configuration saved successfully!")
         return
 
     # List local Ollama models and exit
@@ -108,14 +108,12 @@ def cli(
         elif log_level_error:
             log_level = logging.ERROR
 
-        # Setup logging with our centralized function
         setup_logging(log_level, quiet=quiet, force=True)
 
-        # Run the commit workflow using our simplified core function
         commit_message = commit_changes(
             force=force,
             add_all=add_all,
-            formatting=not no_format,  # Invert no_format for clarity
+            formatting=not no_format,
             model=model,
             one_liner=one_liner,
             show_prompt=show_prompt,
@@ -126,8 +124,9 @@ def cli(
             push=push,
         )
 
-        # If we don't have a commit message, the operation failed
         if not commit_message and not quiet:
+            if "Commit cancelled" in run_git_command(["log", "-1"], silent=True):
+                sys.exit(0)
             logger.error("Failed to generate or apply commit")
             sys.exit(1)
 
