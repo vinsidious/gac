@@ -62,6 +62,7 @@ logger = logging.getLogger(__name__)
     is_flag=True,
     help="Run the interactive configuration wizard",
 )
+@click.option("--push", "-p", is_flag=True, help="Push changes to remote after committing")
 def cli(
     force: bool,
     add_all: bool,
@@ -80,6 +81,7 @@ def cli(
     no_spinner: bool,
     local_models: bool,
     config_wizard: bool,
+    push: bool,
 ) -> None:
     """Git Auto Commit CLI."""
     # Configuration wizard takes precedence
@@ -131,6 +133,7 @@ def cli(
             hint=hint,
             conventional=conventional,
             no_spinner=no_spinner,
+            push=push,
         )
         workflow.run()
     except Exception as e:

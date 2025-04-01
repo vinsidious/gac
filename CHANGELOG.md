@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interactive configuration wizard (`gac --config-wizard`) to simplify provider and model selection
 - Support for configuration via environment variables
 - Expanded documentation for configuration options
+- Added `--push` (`-p`) option to push changes to remote after committing
 
 ### Changed
 

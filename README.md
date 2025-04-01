@@ -257,6 +257,7 @@ Available options:
 | `--INFO`             | Set logging level to INFO (default)                | `gac --INFO`                             |
 | `--WARNING`          | Set logging level to WARNING                       | `gac --WARNING`                          |
 | `--ERROR`            | Set logging level to ERROR                         | `gac --ERROR`                            |
+| `--push, -p`         | Push changes to remote after committing            | `gac --push`                             |
 
 ### Common Workflows
 
@@ -306,6 +307,18 @@ gac --conventional
 
 ```bash
 gac --no-cache
+```
+
+9. Commit and push in one step:
+
+```bash
+gac --push
+```
+
+10. Quick workflow for adding, committing, and pushing all changes:
+
+```bash
+gac -a -f -p
 ```
 
 ### Best Practices

@@ -228,3 +228,36 @@ class GitOperationsManager:
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to commit changes: {e}")
             return False
+
+    def push_changes(self) -> bool:
+        """
+        Push committed changes to the remote repository.
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            if not self.quiet:
+                print("ℹ️ Pushing changes to remote...")
+            elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
+                logger.info("ℹ️ Pushing changes to remote...")
+
+            subprocess.run(
+                ["git", "push"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            if not self.quiet:
+                print("✅ Changes pushed successfully")
+            elif logging.getLogger().getEffectiveLevel() <= logging.INFO:
+                logger.info("✅ Changes pushed successfully")
+
+            return True
+        except subprocess.CalledProcessError as e:
+            error_msg = f"Failed to push changes: {e.stderr.strip()}"
+            logger.error(error_msg)
+            if not self.quiet:
+                print(f"❌ {error_msg}")
+            return False

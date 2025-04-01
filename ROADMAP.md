@@ -14,10 +14,14 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [x] Consolidate main.py and cli.py to reduce duplication
    - [x] Remove the edit option for commit messages
    - [x] Remove the test mode flag which caused confusion
-   - [ ] Extract logging configuration into a dedicated utility function
+   - [x] Extract logging configuration into a dedicated utility function
+   - [ ] Merge git.py and git_operations.py to eliminate duplication
+   - [ ] Eliminate delegation pattern in git.py to reduce unnecessary indirection
    - [ ] Break down the large CommitWorkflow class into smaller components
+   - [ ] Simplify OOP approach - consider more functional patterns where appropriate
    - [ ] Simplify formatting architecture using a more direct approach
    - [ ] Centralize error handling and reduce duplication
+   - [ ] Reduce the error type hierarchy - streamline to essential types only
 
 2. **Performance Optimization**
 
@@ -40,9 +44,11 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
 
 ## Current Sprint Focus
 
+- [x] Add push functionality to enable pushing changes after committing
+- [ ] Merge git.py and git_operations.py into a single, simpler module
 - [ ] Complete the simplification of workflow.py by breaking it into smaller components
-- [ ] Integrate the new commit_manager.py and git_operations.py files
-- [ ] Ensure all entry points use the centralized logging configuration
+- [ ] Reduce abstraction layers throughout the codebase
+- [ ] Consolidate provider handling logic between ai_utils.py and commit_manager.py
 - [ ] Remove redundant compatibility functions once testing is updated
 
 ## Long-term Vision
@@ -52,6 +58,7 @@ Our simplified vision is to focus on:
 1. **Core Functionality**: Generate excellent commit messages using AI
 2. **Simplicity**: Maintain a clean, easy-to-understand codebase
 3. **Reliability**: Ensure the tool works consistently across environments
+4. **Maintainability**: Keep the code easy for a single person to maintain and understand
 
 ## Explicitly Not Planned
 
@@ -64,6 +71,8 @@ We've decided against these items to maintain a focused, streamlined tool:
 - ~~Interactive mode for refining generated messages~~
 - ~~Semantic versioning support~~
 - ~~Multilingual commit messages~~
+- ~~Complex class hierarchies and abstractions~~
+- ~~Refactoring to more "elegant" but harder-to-maintain patterns~~
 
 ## Completed Items
 
@@ -83,3 +92,4 @@ We've decided against these items to maintain a focused, streamlined tool:
 - [x] Extracted git operations into a separate GitOperationsManager class
 - [x] Removed the edit option from commit messages to simplify the workflow
 - [x] Removed the confusing test mode flag
+- [x] Added push functionality to push changes to remote after committing

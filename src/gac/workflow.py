@@ -2,7 +2,6 @@
 """Workflow module for GAC."""
 
 import logging
-import sys
 from typing import Optional
 
 from gac.commit_manager import CommitManager
@@ -57,6 +56,7 @@ class CommitWorkflow:
         formatter: str = None,
         formatting: bool = True,
         model_override: str = None,
+        push: bool = False,
     ):
         """
         Initialize the CommitWorkflow.
@@ -77,6 +77,7 @@ class CommitWorkflow:
             formatter: Specific formatter to use
             formatting: Whether to perform code formatting
             model_override: Override the model to use
+            push: Push changes to remote after committing
         """
         self.force = force
         self.add_all = add_all
@@ -87,6 +88,7 @@ class CommitWorkflow:
         # Prefer no_format for backwards compatibility
         self.formatting = formatting and not no_format
         self.model_override = model_override or model
+        self.push = push
 
         # If verbose is set, ensure logging level is DEBUG
         if self.verbose:
@@ -162,6 +164,16 @@ class CommitWorkflow:
             success = self.git_manager.commit_changes(commit_message)
             if not success:
                 handle_error(GACError("Failed to commit changes"), quiet=self.quiet)
+                return None
+
+            # Push changes if requested
+            if self.push and success:
+                push_success = self.git_manager.push_changes()
+                if not push_success:
+                    handle_error(
+                        GACError("Failed to push changes"), quiet=self.quiet, exit_program=False
+                    )
+
             return commit_message
 
         except Exception as e:
