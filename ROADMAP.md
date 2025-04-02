@@ -55,6 +55,7 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
 - [x] **Function-Based Git Module**: Replace the GitOperationsManager class with pure functions
 - [x] **Configuration as Data**: Change configuration handling to use immutable data structures
 - [x] **Simpler CLI Interface**: Rework CLI to leverage function-based architecture
+- [x] **Streamlined Command Interface**: Replace subcommand structure with a single main function
 - [x] **Reduce Function Parameters**: Use parameter objects for complex functions
 - [x] **Explicit Dependency Injection**: Make dependencies explicit for testing and flexibility
 - [x] **Pure Core Logic**: Move side effects to adapter functions at the edges
@@ -112,6 +113,7 @@ Our simplified vision is to:
 
 We've decided against these items to maintain focus:
 
+- ~~CLI subcommand structure (gac commit, gac config, etc.)~~
 - ~~Command completion for shells~~
 - ~~Web-based configuration interface~~
 - ~~VS Code/IDE extensions~~
@@ -144,7 +146,7 @@ Items we originally ruled out but have reconsidered:
 - [x] Added dynamic progress indicators for API calls
 - [x] Added full support for local Ollama models with direct API integration
 - [x] Removed core.py entirely as it was just a wrapper
-- [x] Simplified main.py to be a lightweight compatibility wrapper around cli.py
+- [x] Simplified main.py to be a direct command implementation with no subcommands
 - [x] Added push functionality to push changes to remote after committing
 - [x] Shifted from OOP to a more functional programming approach
 - [x] Reorganized code into focused modules with clear responsibilities

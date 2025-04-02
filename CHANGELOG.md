@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Simplified project architecture with function-based design
+- Simplified CLI with a single main function and no subcommands
 - Replaced custom spinner with Halo for progress indication
 - Updated dependency management to use uv
 - Shifted to more behavior-driven testing approach
@@ -41,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- CLI subcommand structure (now using a single direct command)
+- cli.py module (merged functionality into main.py)
 - Redundant wrapper classes
 - Deprecated modules and outdated scripts
 - Circular dependencies between modules
