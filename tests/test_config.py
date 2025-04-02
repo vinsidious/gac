@@ -24,6 +24,12 @@ class TestConfig(unittest.TestCase):
             if var in os.environ:
                 del os.environ[var]
 
+        # Add mock API keys for testing
+        os.environ["ANTHROPIC_API_KEY"] = "test_key"
+        os.environ["OPENAI_API_KEY"] = "test_key"
+        os.environ["GROQ_API_KEY"] = "test_key"
+        os.environ["MISTRAL_API_KEY"] = "test_key"
+
     def tearDown(self):
         """Tear down test fixtures after each test."""
         # Restore original environment variables
