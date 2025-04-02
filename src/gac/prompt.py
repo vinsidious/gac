@@ -13,20 +13,20 @@ DEFAULT_TEMPLATE = """Write a concise and meaningful git commit message based on
 
 <format_section>
   <one_liner>
-  Format it as a single line (50-72 characters if possible). 
-  If applicable, still use conventional commit prefixes like feat/fix/docs/etc., 
+  Format it as a single line (50-72 characters if possible).
+  If applicable, still use conventional commit prefixes like feat/fix/docs/etc.,
   but keep everything to a single line with no bullet points.
   </one_liner>
 
   <multi_line>
-  Format it with a concise summary line (50-72 characters) followed by a 
-  more detailed explanation with multiple bullet points highlighting the 
+  Format it with a concise summary line (50-72 characters) followed by a
+  more detailed explanation with multiple bullet points highlighting the
   specific changes made. Order the bullet points from most important to least important.
   </multi_line>
 </format_section>
 
 <conventional_section>
-IMPORTANT: EVERY commit message MUST start with a conventional commit prefix. 
+IMPORTANT: EVERY commit message MUST start with a conventional commit prefix.
 This is a HARD REQUIREMENT. Choose from:
 - feat: A new feature
 - fix: A bug fix
@@ -39,8 +39,8 @@ This is a HARD REQUIREMENT. Choose from:
 - ci: Changes to CI configuration
 - chore: Other changes that don't modify src or test files
 
-YOU MUST choose the most appropriate type based on the changes. 
-If you CANNOT determine a type, use 'chore'. 
+YOU MUST choose the most appropriate type based on the changes.
+If you CANNOT determine a type, use 'chore'.
 THE PREFIX IS MANDATORY - NO EXCEPTIONS.
 </conventional_section>
 

@@ -48,7 +48,7 @@ def test_spinner_context_manager():
 def test_spinner_initialization():
     """Test that the Spinner initializes with correct parameters."""
     with patch("gac.utils.Halo") as mock_halo_class:
-        spinner = Spinner("Test message")
+        _ = Spinner("Test message")
 
         # Verify Halo was initialized with correct parameters
         mock_halo_class.assert_called_once()

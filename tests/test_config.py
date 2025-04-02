@@ -4,12 +4,9 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from gac.config import (
     DEFAULT_CONFIG,
     PROVIDER_MODELS,
-    ConfigError,
     get_config,
     run_config_wizard,
 )

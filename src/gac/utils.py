@@ -3,11 +3,8 @@
 import logging
 import os
 import subprocess
-import sys
-from enum import Enum
 from typing import List, Optional, Union
 
-import click
 from halo import Halo
 from rich.console import Console
 from rich.panel import Panel
