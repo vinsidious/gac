@@ -67,6 +67,7 @@ dev = [
     
     # Linting
     "flake8>=7.2.0",
+    "flake8-pyproject>=1.2.3",
 ]
 all = [
     # Complete provider support
