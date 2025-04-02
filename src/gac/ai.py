@@ -11,12 +11,8 @@ import re
 import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import aisuite
 import tiktoken
-
-try:
-    import aisuite
-except ImportError:
-    aisuite = None
 
 from gac.config import API_KEY_ENV_VARS
 from gac.errors import AIError
