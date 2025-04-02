@@ -34,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Developer Experience**: Simplified development setup and contribution workflow
 - **Error Messages**: More helpful and actionable error messages
 - **Testing**: Shifted focus to behavior-based testing over implementation-based tests
+- **Consolidated Functions**: Unified print utilities with a parameterized function
+- **Streamlined Git Status**: Updated Git status checking to reduce duplicate calls
 
 ### Removed
 
@@ -42,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Global State**: Reduced reliance on global state and environment variables
 - **Dual Interfaces**: Removed dual class/function interfaces for simpler API
 - **Legacy Abstractions**: Removed outdated abstractions from earlier versions
+- **Deprecated Git Classes**: Removed deprecated GitOperations and RealGitOperations classes
 
 ## [0.4.4] - 2025-04-01
 

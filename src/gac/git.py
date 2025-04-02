@@ -48,44 +48,6 @@ def run_subprocess(command: List[str], check: bool = True) -> str:
     return utils_run_subprocess(command, check=check, raise_on_error=check)
 
 
-# Global for test mock injection
-_git_operations = None
-
-
-def get_git_operations():
-    """Get the current git operations implementation.
-
-    DEPRECATED: This function is deprecated and will be removed in a future version.
-    Use the function-based API directly instead.
-    """
-    warnings.warn(
-        "get_git_operations is deprecated and will be removed in a future version. "
-        "Use the function-based API directly instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    global _git_operations
-    if _git_operations is None:
-        _git_operations = RealGitOperations()
-    return _git_operations
-
-
-def set_git_operations(operations):
-    """Set the git operations implementation.
-
-    DEPRECATED: This function is deprecated and will be removed in a future version.
-    Use the function-based API directly instead.
-    """
-    warnings.warn(
-        "set_git_operations is deprecated and will be removed in a future version. "
-        "Use the function-based API directly instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    global _git_operations
-    _git_operations = operations
-
-
 # Constants for file handling
 MAX_DIFF_TOKENS = 2500  # Maximum number of tokens to include for large files
 # Files that are usually auto-generated or less important for commit context
@@ -478,7 +440,8 @@ def has_staged_changes() -> bool:
     Returns:
         True if there are staged changes, False otherwise
     """
-    return bool(get_staged_files())
+    status = get_git_status_summary()
+    return status.get("has_staged", False)
 
 
 def get_project_description() -> str:
@@ -541,123 +504,6 @@ def is_large_file(file_path: str) -> bool:
     except Exception as e:
         logger.debug(f"Error checking file size: {e}")
         return False
-
-
-# Interface for testing with dependency injection
-class GitOperations:
-    """Interface for git operations.
-
-    DEPRECATED: This class is deprecated and will be removed in a future version.
-    Use the function-based API directly instead.
-    """
-
-    def __init__(self):
-        """Initialize with deprecation warning."""
-        warnings.warn(
-            "The GitOperations class is deprecated and will be removed in a future version. "
-            "Use the function-based API directly instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-    def run_git_command(self, args: List[str], silent: bool = False) -> str:
-        """Run a git command and return the output."""
-        raise NotImplementedError
-
-    def ensure_git_directory(self) -> Optional[str]:
-        """Ensure we're in a git repository."""
-        raise NotImplementedError
-
-    def get_status(self) -> str:
-        """Get git status."""
-        raise NotImplementedError
-
-    def get_staged_files(self, file_type: Optional[str] = None) -> List[str]:
-        """Get list of staged files."""
-        raise NotImplementedError
-
-    def get_staged_diff(self, file_path: Optional[str] = None) -> str:
-        """Get the diff of staged changes."""
-        raise NotImplementedError
-
-    def stage_files(self, files: List[str]) -> bool:
-        """Stage files for commit."""
-        raise NotImplementedError
-
-    def stage_all_files(self) -> bool:
-        """Stage all files in the repository."""
-        raise NotImplementedError
-
-    def commit_changes(self, message: str) -> bool:
-        """Commit staged changes with the given message."""
-        raise NotImplementedError
-
-    def push_changes(self) -> bool:
-        """Push committed changes to the remote repository."""
-        raise NotImplementedError
-
-    def has_staged_changes(self) -> bool:
-        """Check if there are any staged changes."""
-        raise NotImplementedError
-
-
-# Implementation that delegates to the function-based API
-class RealGitOperations(GitOperations):
-    """Real implementation of Git operations using the function-based API.
-
-    DEPRECATED: This class is deprecated and will be removed in a future version.
-    Use the function-based API directly instead.
-    """
-
-    def __init__(self, quiet: bool = False):
-        """Initialize with quiet option."""
-        super().__init__()  # Call parent to trigger deprecation warning
-        self.quiet = quiet
-
-    def run_git_command(self, args: List[str], silent: bool = False) -> str:
-        """Run a git command and return the output."""
-        return run_git_command(args, silent or self.quiet)
-
-    def ensure_git_directory(self) -> Optional[str]:
-        """Ensure we're in a git repository."""
-        return ensure_git_directory()
-
-    def get_status(self) -> str:
-        """Get git status."""
-        return get_status()
-
-    def get_staged_files(self, file_type: Optional[str] = None) -> List[str]:
-        """Get list of staged files."""
-        return get_staged_files(file_type)
-
-    def get_staged_diff(self, file_path: Optional[str] = None) -> str:
-        """Get the diff of staged changes."""
-        return get_staged_diff()
-
-    def stage_files(self, files: List[str]) -> bool:
-        """Stage files for commit."""
-        return stage_files(files)
-
-    def stage_all_files(self) -> bool:
-        """Stage all files in the repository."""
-        return stage_all_files()
-
-    def commit_changes(self, message: str) -> bool:
-        """Commit staged changes with the given message."""
-        return perform_commit(message)
-
-    def push_changes(self) -> bool:
-        """Push committed changes to the remote repository."""
-        return push_changes()
-
-    def has_staged_changes(self) -> bool:
-        """Check if there are any staged changes."""
-        return has_staged_changes()
-
-
-# NOTE: The GitOperationsManager is being deprecated in favor of direct function calls
-# Tests should use the set_git_operations mechanism instead of this class
-# This class will be removed in a future release
 
 
 def create_generate_options(
@@ -888,13 +734,16 @@ def get_git_status_summary() -> Dict[str, Any]:
     if not repo_dir:
         return {"valid": False, "repo_dir": None}
 
+    # Get staged files first to determine if there are staged changes
+    staged_files = get_staged_files()
+
     # Get status and additional info
     return {
         "valid": True,
         "repo_dir": repo_dir,
         "status": get_status(),
-        "has_staged": has_staged_changes(),
-        "staged_files": get_staged_files(),
+        "has_staged": bool(staged_files),
+        "staged_files": staged_files,
         "status_short": run_git_command(["status", "-s"], silent=True),
         "branch": run_git_command(["rev-parse", "--abbrev-ref", "HEAD"], silent=True),
     }

@@ -55,6 +55,7 @@ def setup_logging(
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
+# Define Rich theme for consistent styling
 theme = Theme(
     {
         "success": "green bold",
@@ -65,6 +66,9 @@ theme = Theme(
     }
 )
 
+# Create a console instance for this module
+# Note: We keep this separate from errors.py console to avoid circular imports
+# Other modules should import this console instead of creating their own
 console = Console(theme=theme)
 logger = logging.getLogger(__name__)
 
@@ -103,29 +107,43 @@ def colorize(text: str, fg_color: Color = None, bg_color: Color = None, bold: bo
     )
 
 
+def print_message(message: str, level: str = "info") -> None:
+    """Print a styled message with the specified level.
+
+    Args:
+        message: The message to print
+        level: The message level/style (info, success, warning, error, header)
+    """
+    if level == "header":
+        console.print(Panel(message, style=level))
+    else:
+        console.print(message, style=level)
+
+
+# Convenience functions for backward compatibility
 def print_info(message: str) -> None:
     """Print an informational message with color."""
-    console.print(message, style="info")
+    print_message(message, "info")
 
 
 def print_success(message: str) -> None:
     """Print a success message with color."""
-    console.print(message, style="success")
+    print_message(message, "success")
 
 
 def print_warning(message: str) -> None:
     """Print a warning message with color."""
-    console.print(message, style="warning")
+    print_message(message, "warning")
 
 
 def print_error(message: str) -> None:
     """Print an error message with color."""
-    console.print(message, style="error")
+    print_message(message, "error")
 
 
 def print_header(message: str) -> None:
     """Print a header message with color."""
-    console.print(Panel(message, style="header"))
+    print_message(message, "header")
 
 
 def format_bordered_text(text: str, header: Optional[str] = None, add_border: bool = True) -> str:

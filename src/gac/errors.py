@@ -10,6 +10,8 @@ from rich.console import Console
 logger = logging.getLogger(__name__)
 
 # Set up console for rich output
+# Note: We need a separate console instance here to avoid circular imports with utils.py
+# Ideally, this would use the themed console from utils.py
 console = Console()
 
 # Type variable for generic error handler
