@@ -1,26 +1,27 @@
 {
   "editor.wordWrap": "on",
+  "editor.formatOnSave": true,
   "git.openDiffOnClick": false,
 
   // markdown-specific settings
   "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.wordWrap": "bounded",
     "editor.wordWrapColumn": 100
   },
   "markdownlint.config": {
-    "default": true,
     "MD013": false,
-    "MD031": false
+    "MD031": false,
+    "default": true
   },
 
   // editor-specific settings for python files
   "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter",
-    "editor.formatOnSave": true,
-    "editor.wordWrap": "off",
     "editor.codeActionsOnSave": {
       "source.organizeImports": "always"
-    }
+    },
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.wordWrap": "off"
   },
 
   // global python extension settings
@@ -37,9 +38,9 @@
 
   // flake8 settings
   "flake8.args": [
-    "--max-line-length=100",
+    "--exclude=.git,__pycache__,.venv,venv,build,dist",
     "--ignore=E501,W503,E203",
-    "--exclude=.git,__pycache__,.venv,venv,build,dist"
+    "--max-line-length=100"
   ],
 
   "eslint.options": {
@@ -51,8 +52,8 @@
     ".ruff_cache": true,
     ".pytest_cache": true,
     "dist/": true,
-    "src/gac/__pycache__": true,
-    "LICENSE.txt": true
+    "LICENSE.txt": true,
+    "src/gac/__pycache__": true
   },
   "search.exclude": {
     "**/node_modules": true,
@@ -60,5 +61,12 @@
     "**/.pytest_cache": true,
     "**/__pycache__": true,
     "**/*.pyc": true
+  },
+
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   }
 }
