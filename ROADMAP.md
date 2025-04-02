@@ -2,7 +2,11 @@
 
 ## Current Status
 
-Git Auto Commit (gac) is a CLI tool that uses large language models to generate meaningful commit messages based on staged changes. We have completed a major architectural shift toward functional programming, emphasizing pure functions, immutability, and composability. The codebase now follows a functional paradigm with improved type hints, better error handling, and a more streamlined architecture.
+Git Auto Commit (gac) is a CLI tool that uses large language models to generate meaningful commit
+messages based on staged changes. We have completed a major architectural shift toward functional
+programming, emphasizing pure functions, immutability, and composability. The codebase now follows a
+functional paradigm with improved type hints, better error handling, and a more streamlined
+architecture.
 
 ## Next Steps
 

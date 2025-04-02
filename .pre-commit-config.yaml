@@ -1,34 +1,34 @@
 repos:
--   repo: https://github.com/psf/black
+  - repo: https://github.com/psf/black
     rev: 24.10.0
     hooks:
-    -   id: black
+      - id: black
         language_version: python3
         exclude: ^(\.venv/|_deprecated/)
 
--   repo: https://github.com/pycqa/isort
+  - repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
-    -   id: isort
+      - id: isort
         args: ["--profile", "black"]
         exclude: ^(\.venv/|_deprecated/)
 
--   repo: https://github.com/DavidAnson/markdownlint-cli2
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.11.0
     hooks:
-    -   id: markdownlint-cli2
+      - id: markdownlint-cli2
         args: ["--config", ".markdownlint.yaml"]
 
--   repo: https://github.com/pre-commit/mirrors-prettier
+  - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0
     hooks:
-    -   id: prettier
+      - id: prettier
         types_or: [markdown, yaml, json]
         args: ["--write"]
 
--   repo: local
+  - repo: local
     hooks:
-    -   id: check-upstream
+      - id: check-upstream
         name: check for upstream changes
         entry: .githooks/check-upstream
         language: system

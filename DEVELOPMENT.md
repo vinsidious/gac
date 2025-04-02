@@ -2,7 +2,8 @@
 
 ## Project Overview
 
-Git Auto Commit (GAC) is a CLI tool designed with functional programming principles to generate intelligent commit messages using AI.
+Git Auto Commit (GAC) is a CLI tool designed with functional programming principles to generate
+intelligent commit messages using AI.
 
 ## Development Philosophy
 

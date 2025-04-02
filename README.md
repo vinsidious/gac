@@ -9,7 +9,9 @@
 
 ## 🌟 What is GAC?
 
-Git Auto Commit (GAC) is an intelligent CLI tool that leverages AI to generate meaningful, context-aware commit messages based on your staged changes. Built with functional programming principles, GAC simplifies your Git workflow by automatically crafting descriptive commit messages.
+Git Auto Commit (GAC) is an intelligent CLI tool that leverages AI to generate meaningful,
+context-aware commit messages based on your staged changes. Built with functional programming
+principles, GAC simplifies your Git workflow by automatically crafting descriptive commit messages.
 
 ## ✨ Key Features
 

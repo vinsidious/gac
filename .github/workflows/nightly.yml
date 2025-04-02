@@ -4,12 +4,12 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch: # Allow manual triggering
 
 # Add permissions at workflow level
 permissions:
-  contents: write  # Required for creating GitHub releases
-  packages: write  # Required for publishing packages
+  contents: write # Required for creating GitHub releases
+  packages: write # Required for publishing packages
 
 jobs:
   check-for-changes:
@@ -33,7 +33,9 @@ jobs:
 
   nightly-release:
     needs: check-for-changes
-    if: ${{ needs.check-for-changes.outputs.should_release == 'true' || github.event_name == 'workflow_dispatch' }}
+    if:
+      ${{ needs.check-for-changes.outputs.should_release == 'true' || github.event_name ==
+      'workflow_dispatch' }}
     runs-on: ubuntu-latest
     # Add permissions for this job too for clarity
     permissions:
@@ -43,7 +45,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Need full history for versioning
+          fetch-depth: 0 # Need full history for versioning
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -93,9 +95,9 @@ jobs:
           name: Nightly Release ${{ steps.nightly_version.outputs.version }}
           body: |
             Nightly build created from the latest changes on the main branch.
-            
+
             This is an automated nightly release and may contain unstable features.
-            
+
             Version: ${{ steps.nightly_version.outputs.version }}
           prerelease: true
           files: |
