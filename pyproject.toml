@@ -49,7 +49,7 @@ dependencies = [
 ]
 
 [project.scripts]
-gac = "gac.cli:cli"
+gac = "gac.main:main"
 
 [project.optional-dependencies]
 providers = [

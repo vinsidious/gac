@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Git Auto Commit (gac) is a CLI tool that uses large language models to generate meaningful commit messages based on staged changes. We have completed a major architectural shift toward functional programming, emphasizing pure functions, immutability, and composability.
+Git Auto Commit (gac) is a CLI tool that uses large language models to generate meaningful commit messages based on staged changes. We have completed a major architectural shift toward functional programming, emphasizing pure functions, immutability, and composability. The codebase now follows a functional paradigm with improved type hints, better error handling, and a more streamlined architecture.
 
 ## Next Steps
 
@@ -27,19 +27,28 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
    - [x] Extract side effects to the edges of the application
    - [x] Implement more detailed function documentation
 
-3. **Performance and Reliability Improvements**
+3. **Performance and Reliability Improvements** 🔄
 
    - [x] Optimize token usage for large diffs
    - [x] Implement smarter caching system
    - [ ] Create more robust connection error handling
    - [ ] Implement request retry mechanisms with backoff
    - [ ] Add filesystem-based fallbacks for network failures
+   - [ ] Improve performance for large repositories
 
-4. **Usability and Customization**
+4. **Usability and Customization** ✅
 
-   - [ ] Implement template-based prompt system
-   - [ ] Add support for user-configurable prompts
-   - [ ] Create better documentation for template customization
+   - [x] Implement template-based prompt system
+   - [x] Add support for user-configurable prompts
+   - [x] Create better documentation for template customization
+
+5. **User Experience Improvements** 🆕
+
+   - [x] Replace custom spinner with Halo for better progress indication
+   - [x] Progressive loading of AI responses
+   - [ ] Add interactive mode for refining generated messages
+   - [ ] Implement better error recovery for failed API calls
+   - [ ] Create better visualization of diff context
 
 ## Current Sprint Focus
 
@@ -51,8 +60,18 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
 - [x] **Pure Core Logic**: Move side effects to adapter functions at the edges
 - [x] **Update Tests**: Rewrite tests to focus on behaviors rather than implementation details
 - [x] **Import Optimization**: Fix circular imports and optimize import structure
-- [ ] **Documentation Updates**: Update function docstrings and developer documentation
-- [ ] **Customizable Prompts**: Add support for user-provided prompt templates
+- [x] **Documentation Updates**: Update function docstrings and developer documentation
+- [x] **Customizable Prompts**: Add support for user-provided prompt templates
+
+## Next Sprint (Q2 2025)
+
+- [ ] **Enhanced Error Recovery**: Implement robust error handling for network failures
+- [ ] **Request Retry System**: Add automatic retries with backoff for API calls
+- [ ] **Interactive Mode**: Create an interactive mode to review and refine generated messages
+- [ ] **Performance Optimization**: Improve token usage and processing for large repositories
+- [ ] **CLI UX Improvements**: Better formatting of diffs and visualization of changes
+- [ ] **Plugin Architecture**: Design an extensible plugin system for custom integrations
+- [ ] **Local Model Support**: Enhanced support for running with local LLMs
 
 ## Functional Programming Improvements
 
@@ -93,11 +112,9 @@ Our simplified vision is to:
 
 We've decided against these items to maintain focus:
 
-- ~~Adding new AI providers (will maintain current providers only)~~
 - ~~Command completion for shells~~
 - ~~Web-based configuration interface~~
 - ~~VS Code/IDE extensions~~
-- ~~Interactive mode for refining generated messages~~
 - ~~Semantic versioning support~~
 - ~~Multilingual commit messages~~
 - ~~Complex class hierarchies and abstractions~~
@@ -105,7 +122,14 @@ We've decided against these items to maintain focus:
 - ~~Create a pipeline factory for the commit workflow~~
 - ~~Implement pipeline pattern for data transformation~~
 - ~~Reduce startup time through lazy imports~~
-- ~~Implement request retry mechanisms with backoff~~
+
+## Reconsidered Items
+
+Items we originally ruled out but have reconsidered:
+
+- **Adding new AI providers**: Will selectively add support for promising new models
+- **Interactive mode**: Planning to add limited interactive refinement capability
+- **Request retry mechanisms**: Will implement to improve reliability
 
 ## Completed Items
 
