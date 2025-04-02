@@ -29,7 +29,10 @@ jobs:
       - name: Install dependencies
         run: |
           uv venv
+          # Install both main and dev dependencies
           uv pip install -e ".[dev]"
+          # Verify black installation
+          python -c "import sys; print(f'Path: {sys.path}'); import black; print(f'Black version: {black.__version__}')"
 
       - name: Run tests with coverage
         run: |
@@ -66,20 +69,23 @@ jobs:
       - name: Install dependencies
         run: |
           uv venv
+          # Install both main and dev dependencies
           uv pip install -e ".[dev]"
+          # Verify black installation
+          python -c "import sys; print(f'Path: {sys.path}'); import black; print(f'Black version: {black.__version__}')"
           npm install -g markdownlint-cli2 prettier
 
       - name: Run black
         run: |
-          black --check .
+          uv run black --check .
 
       - name: Run isort
         run: |
-          isort --check .
+          uv run isort --check .
 
       - name: Run flake8
         run: |
-          flake8 src
+          uv run flake8 src
 
       - name: Run prettier
         run: |

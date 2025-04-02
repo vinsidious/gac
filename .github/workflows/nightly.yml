@@ -61,6 +61,8 @@ jobs:
           source .venv/bin/activate
           uv pip install -e ".[dev]"
           uv pip install build twine tomlkit
+          # Verify key package installations
+          python -c "import tomlkit; print(f'Using tomlkit version: {tomlkit.__version__}')"
 
       - name: Get date for nightly version
         id: date
