@@ -63,6 +63,7 @@ theme = Theme(
         "warning": "yellow",
         "error": "red bold",
         "header": "magenta",
+        "notification": "bright_cyan bold",
     }
 )
 
@@ -112,7 +113,7 @@ def print_message(message: str, level: str = "info") -> None:
 
     Args:
         message: The message to print
-        level: The message level/style (info, success, warning, error, header)
+        level: The message level/style (info, success, warning, error, header, notification)
     """
     if level == "header":
         console.print(Panel(message, style=level))

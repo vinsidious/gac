@@ -9,7 +9,7 @@ from typing import Optional
 import click
 
 from gac.git import commit_workflow
-from gac.utils import print_error, print_success, setup_logging
+from gac.utils import print_error, print_message, setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,7 @@ def cli(
         if result:
             os.environ["GAC_MODEL"] = result["model"]
             os.environ["GAC_USE_FORMATTING"] = str(result["use_formatting"]).lower()
-            print_success("Configuration saved successfully!")
+            print_message("Configuration saved successfully!", "notification")
         return
 
     if ctx.invoked_subcommand is None:
@@ -208,9 +208,11 @@ def commit(
         print_error(result["error"])
         sys.exit(1)
 
-    print_success(f"Successfully committed changes with message: {result['message']}")
+    print_message(
+        f"Successfully committed changes with message: {result['message']}", "notification"
+    )
     if result.get("pushed"):
-        print_success("Changes pushed to remote.")
+        print_message("Changes pushed to remote.", "notification")
     sys.exit(0)
 
 

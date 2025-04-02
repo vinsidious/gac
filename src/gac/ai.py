@@ -19,7 +19,7 @@ except ImportError:
 
 from gac.config import API_KEY_ENV_VARS
 from gac.errors import AIError
-from gac.utils import Spinner, print_error, print_success
+from gac.utils import Spinner, print_error, print_message
 
 logger = logging.getLogger(__name__)
 
@@ -584,9 +584,9 @@ def generate_commit_message(
             elapsed_time = end_time - start_time
             logger.debug(f"Received response in {elapsed_time:.2f} seconds")
 
-            # Show success message with response time
+            # Show notification message with response time
             if show_spinner:
-                print_success(f"Response generated in {elapsed_time:.2f} seconds")
+                print_message(f"Response generated in {elapsed_time:.2f} seconds", "notification")
 
             return response_text
 
