@@ -13,38 +13,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Functional Programming**: Complete architectural redesign around functional programming principles
 - **Pure Functions**: Refactored core modules to use pure functions with explicit dependencies
-- **Function Composition**: New pipeline approach for the commit workflow
+- **Function Composition**: New pipeline approach for commit workflow
 - **Type Hints**: Comprehensive type annotations throughout the codebase
-- **Improved Ollama Integration**: Enhanced support for local models
-- **Token Management System**: Smarter handling of large diffs with priority-based truncation
-- **Progressive Loading**: Show results as they arrive for better UX
-- **User-Configurable Prompt Templates**: Allow custom prompt templates via configuration
-- **Compatibility Layer**: Added backward compatibility for existing scripts and workflows
-- **Advanced Error Recovery**: More robust error handling with fallback strategies
+- Push functionality to commit workflow
+- Support for more flexible logging levels
+- Pydantic-based configuration management
+- Enhanced error handling with improved logging
+- Progressive loading of AI responses
+- User-configurable prompt templates
+- Compatibility layer for existing scripts and workflows
 
 ### Changed
 
-- **Simplified Architecture**: Reduced module count and removed unnecessary abstractions
-- **Function-Based API**: Replaced class-based approach with simpler functional design
-- **Immutable Data Flow**: Changed data handling to prefer immutability
-- **Cleaner Git Integration**: Simplified git command abstraction
-- **Improved Configuration**: More flexible and explicit configuration management
-- **Enhanced Prompt System**: Better prompt generation for model-specific optimization
-- **Documentation**: Updated all docs to reflect functional programming approach
-- **Developer Experience**: Simplified development setup and contribution workflow
-- **Error Messages**: More helpful and actionable error messages
-- **Testing**: Shifted focus to behavior-based testing over implementation-based tests
-- **Consolidated Functions**: Unified print utilities with a parameterized function
-- **Streamlined Git Status**: Updated Git status checking to reduce duplicate calls
+- Simplified project architecture with function-based design
+- Replaced custom spinner with Halo for progress indication
+- Updated dependency management to use uv
+- Shifted to more behavior-driven testing approach
+- Improved developer experience and contribution workflow
+- Enhanced prompt template system with more flexible configuration
+- Improved error messages with more actionable guidance
+- Consolidated and optimized code structure across modules
+
+### Deprecated
+
+- Legacy OOP abstractions and wrapper classes
+- Custom caching implementation
 
 ### Removed
 
-- **OOP Abstractions**: Removed unnecessary class hierarchies
-- **Redundant Wrappers**: Eliminated redundant wrapper classes
-- **Global State**: Reduced reliance on global state and environment variables
-- **Dual Interfaces**: Removed dual class/function interfaces for simpler API
-- **Legacy Abstractions**: Removed outdated abstractions from earlier versions
-- **Deprecated Git Classes**: Removed deprecated GitOperations and RealGitOperations classes
+- Redundant wrapper classes
+- Deprecated modules and outdated scripts
+- Circular dependencies between modules
+- Custom spinner implementation
+
+### Fixed
+
+- Improved git staging and repository initialization handling
+- Enhanced error logging and user interaction
+- Resolved issues with prompt template configuration
+- Streamlined error recovery mechanisms
 
 ## [0.4.4] - 2025-04-01
 
