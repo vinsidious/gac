@@ -59,7 +59,7 @@ Git status:
 Changes to be committed:
 <git-diff>
 <diff></diff>
-</git-diff>"""
+</git-diff>"""  # noqa: E501
 
 
 def find_template_file():

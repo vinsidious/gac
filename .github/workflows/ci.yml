@@ -59,6 +59,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[formatting]
           pip install black isort flake8
+          npm install -g markdownlint-cli2 prettier
 
       - name: Run black
         run: |
@@ -71,3 +72,11 @@ jobs:
       - name: Run flake8
         run: |
           flake8 --max-line-length=100 --exclude=tests/ src
+          
+      - name: Run markdownlint
+        run: |
+          markdownlint-cli2 --config .markdownlint.yaml "**/*.md"
+          
+      - name: Run prettier
+        run: |
+          prettier --check "**/*.{md,yaml,yml,json}"

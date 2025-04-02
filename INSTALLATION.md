@@ -2,7 +2,9 @@
 
 ## Overview
 
-Git Auto Commit (GAC) is a powerful CLI tool that uses AI to generate meaningful commit messages based on your staged changes. This guide will walk you through installation, configuration, and getting started.
+Git Auto Commit (GAC) is a powerful CLI tool that uses AI to generate meaningful commit messages
+based on your staged changes. This guide will walk you through installation, configuration, and
+getting started.
 
 ## Prerequisites
 
@@ -106,7 +108,7 @@ export GAC_MAX_OUTPUT_TOKENS=512
 ollama pull llama3
 ```
 
-3. Use with GAC:
+1. Use with GAC:
 
 ```bash
 gac -m ollama:llama3

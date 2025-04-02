@@ -1,0 +1,7 @@
+---
+# Default state for all rules
+default: true
+
+# MD029: Ordered list item prefix
+# Allow any style of ordered list markers (1. 2. 3. or 1. 1. 1.)
+MD029: false
