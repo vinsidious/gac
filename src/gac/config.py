@@ -9,16 +9,6 @@ from pydantic import BaseModel, model_validator
 
 logger = logging.getLogger(__name__)
 
-PROVIDER_MODELS = {
-    "anthropic": "claude-3-5-haiku-latest",
-    "openai": "gpt-4o-mini",
-    "groq": "llama3-70b-8192",
-    "mistral": "mistral-large-latest",
-    "aws": "meta.llama3-1-70b-instruct-v1:0",
-    "azure": "gpt-4o-mini",
-    "google": "gemini-2.0-flash",
-    "ollama": "llama3.2",
-}
 
 DEFAULT_CONFIG = {
     "model": "anthropic:claude-3-5-haiku-latest",
@@ -30,8 +20,6 @@ DEFAULT_CONFIG = {
 
 ENV_VARS = {
     "model": "GAC_MODEL",
-    "provider": "GAC_PROVIDER",
-    "model_name": "GAC_MODEL_NAME",
     "use_formatting": "GAC_USE_FORMATTING",
     "max_output_tokens": "GAC_MAX_OUTPUT_TOKENS",
     "warning_limit_input_tokens": "GAC_WARNING_LIMIT_INPUT_TOKENS",
@@ -42,16 +30,11 @@ API_KEY_ENV_VARS = {
     "openai": "OPENAI_API_KEY",
     "groq": "GROQ_API_KEY",
     "mistral": "MISTRAL_API_KEY",
-    "aws": "AWS_ACCESS_KEY_ID",
-    "azure": "AZURE_OPENAI_API_KEY",
-    "google": "GOOGLE_API_KEY",
     "ollama": None,
 }
 
 
 class ConfigError(Exception):
-    """Raised when there's an error with the configuration."""
-
     pass
 
 
@@ -197,8 +180,7 @@ def get_config() -> Config:
     The function checks for several environment variables and applies them
     to the configuration in the following order of precedence:
     1. GAC_MODEL (full provider:model)
-    2. GAC_PROVIDER and GAC_MODEL_NAME (separate provider and model name)
-    3. Default values from DEFAULT_CONFIG
+    2. Default values from DEFAULT_CONFIG
 
     Returns:
         Config: The immutable configuration object with all settings
@@ -282,7 +264,8 @@ def run_config_wizard() -> Optional[Config]:
     Returns:
         Optional[Config]: Configured settings or None if wizard is cancelled
     """
-    # Supported providers for this wizard
+    # These are the only cloud AI providers we support - no plans to add more
+    # Ollama is handled separately as it's for local models only
     supported_providers = ["anthropic", "openai", "groq", "mistral"]
 
     # Welcome message

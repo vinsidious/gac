@@ -4,12 +4,7 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-from gac.config import (
-    DEFAULT_CONFIG,
-    PROVIDER_MODELS,
-    get_config,
-    run_config_wizard,
-)
+from gac.config import DEFAULT_CONFIG, get_config, run_config_wizard
 
 
 class TestConfig(unittest.TestCase):
@@ -23,8 +18,6 @@ class TestConfig(unittest.TestCase):
         # Clear environment variables that might affect tests
         for var in [
             "GAC_MODEL",
-            "GAC_PROVIDER",
-            "GAC_MODEL_NAME",
             "GAC_USE_FORMATTING",
             "GAC_MAX_OUTPUT_TOKENS",
         ]:
@@ -57,18 +50,6 @@ class TestConfig(unittest.TestCase):
 
         # Verify the behavior: config uses the specified model
         self.assertEqual(config["model"], "openai:gpt-4o-mini")
-
-    def test_unknown_provider_fallback(self):
-        """Test that an unknown provider falls back to the default provider."""
-        # Set an unknown provider
-        os.environ["GAC_PROVIDER"] = "unknown_provider"
-
-        # Call get_config
-        config = get_config()
-
-        # Verify the behavior: fallback to default provider with its default model
-        expected_model = f"anthropic:{PROVIDER_MODELS['anthropic']}"
-        self.assertEqual(config["model"], expected_model)
 
     def test_gac_use_formatting_true(self):
         """Test that GAC_USE_FORMATTING=true enables formatting."""
