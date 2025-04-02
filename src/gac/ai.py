@@ -544,17 +544,35 @@ def generate_commit_message(
             )
             start_time = time.time()
 
-            # Create a spinner for the API call if enabled
-            spinner = Spinner(f"Connecting to {provider_name} API")
+            # Use spinner as a context manager for the API call if enabled
             if show_spinner:
-                spinner.start()
-
-            try:
-                # Update spinner message to show we're generating
-                if show_spinner:
+                spinner_message = f"Connecting to {provider_name} API"
+                with Spinner(spinner_message) as spinner:
+                    # Update spinner message to show we're generating
                     spinner.update_message(f"Generating with model {model_name}")
 
-                # Initialize and call aisuite client
+                    # Initialize and call aisuite client
+                    if provider_name.lower() == "ollama":
+                        client = aisuite.Client(provider_configs={"ollama": {}})
+                    else:
+                        client = aisuite.Client(
+                            provider_configs={provider_name.lower(): {"api_key": api_key}}
+                        )
+
+                    # The provider is specified in the model parameter as "provider:model_name"
+                    response = client.chat.completions.create(
+                        model=model,  # Use the full model string with provider prefix
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                    )
+
+                    response_text = response.choices[0].message.content
+
+                    if not response_text:
+                        raise AIError(f"Empty response from {provider_name}")
+            else:
+                # Initialize and call aisuite client without spinner
                 if provider_name.lower() == "ollama":
                     client = aisuite.Client(provider_configs={"ollama": {}})
                 else:
@@ -574,11 +592,6 @@ def generate_commit_message(
 
                 if not response_text:
                     raise AIError(f"Empty response from {provider_name}")
-
-            finally:
-                # Always stop the spinner, even if there's an error
-                if show_spinner:
-                    spinner.stop()
 
             end_time = time.time()
             elapsed_time = end_time - start_time

@@ -29,6 +29,7 @@ dependencies = [
     "black>=25.1.0",
     "click>=8.1.8",
     "docstring_parser>=0.16",
+    "halo>=0.0.31",
     "isort>=6.0.1",
     "python-dotenv>=1.1.0",
     "questionary>=2.0.1",

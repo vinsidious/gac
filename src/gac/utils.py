@@ -4,12 +4,11 @@ import logging
 import os
 import subprocess
 import sys
-import threading
-import time
 from enum import Enum
 from typing import List, Optional, Union
 
 import click
+from halo import Halo
 from rich.console import Console
 from rich.panel import Panel
 from rich.theme import Theme
@@ -74,40 +73,6 @@ console = Console(theme=theme)
 logger = logging.getLogger(__name__)
 
 
-class Color(Enum):
-    """Color codes for terminal output."""
-
-    BLACK = 0
-    RED = 1
-    GREEN = 2
-    YELLOW = 3
-    BLUE = 4
-    MAGENTA = 5
-    CYAN = 6
-    WHITE = 7
-    BRIGHT_BLACK = 8
-    BRIGHT_RED = 9
-    BRIGHT_GREEN = 10
-    BRIGHT_YELLOW = 11
-    BRIGHT_BLUE = 12
-    BRIGHT_MAGENTA = 13
-    BRIGHT_CYAN = 14
-    BRIGHT_WHITE = 15
-
-
-def colorize(text: str, fg_color: Color = None, bg_color: Color = None, bold: bool = False) -> str:
-    """Apply colors to text for terminal output."""
-    if fg_color is None and bg_color is None and not bold:
-        return text
-
-    return click.style(
-        text,
-        fg=fg_color.name.lower() if fg_color else None,
-        bg=bg_color.name.lower() if bg_color else None,
-        bold=bold,
-    )
-
-
 def print_message(message: str, level: str = "info") -> None:
     """Print a styled message with the specified level.
 
@@ -164,63 +129,22 @@ def format_bordered_text(text: str, header: Optional[str] = None, add_border: bo
 
 
 class Spinner:
-    """A simple spinner to indicate progress."""
+    """A spinner to indicate progress using Halo."""
 
     def __init__(self, message: str = "Processing"):
         """Initialize the spinner."""
-        self.message = message
-        self.spinning = False
-        self.spinner_chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
-        self.spinner_thread = None
-        self.current_char_index = 0
-        self.stop_event = threading.Event()
-        self.message_lock = threading.Lock()
+        self.spinner = Halo(text=f"{message}...", spinner="dots", color="cyan")
 
-    def _spin(self):
-        """Spin the spinner in a separate thread."""
-        last_message_length = 0
+    def __enter__(self):
+        self.spinner.start()
+        return self
 
-        while not self.stop_event.is_set():
-            char = self.spinner_chars[self.current_char_index]
-
-            with self.message_lock:
-                current_message = self.message
-
-            sys.stdout.write("\r" + " " * (last_message_length + 10))
-
-            display_text = f"\r{char} {current_message}..."
-            sys.stdout.write(display_text)
-            sys.stdout.flush()
-
-            last_message_length = len(display_text)
-
-            self.current_char_index = (self.current_char_index + 1) % len(self.spinner_chars)
-            time.sleep(0.1)
-
-        sys.stdout.write("\r" + " " * (last_message_length + 10) + "\r")
-        sys.stdout.flush()
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.spinner.stop()
 
     def update_message(self, new_message: str):
         """Update the spinner's message while it's running."""
-        with self.message_lock:
-            self.message = new_message
-
-    def start(self):
-        """Start the spinner."""
-        if not self.spinning:
-            self.spinning = True
-            self.stop_event.clear()
-            self.spinner_thread = threading.Thread(target=self._spin)
-            self.spinner_thread.daemon = True
-            self.spinner_thread.start()
-
-    def stop(self):
-        """Stop the spinner."""
-        if self.spinning:
-            self.stop_event.set()
-            if self.spinner_thread:
-                self.spinner_thread.join()
-            self.spinning = False
+        self.spinner.text = f"{new_message}..."
 
 
 def _simulate_git_command(command: List[str]) -> str:
