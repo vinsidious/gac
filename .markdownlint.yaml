@@ -2,6 +2,22 @@
 # Default state for all rules
 default: true
 
+# MD013: Line length
+# Set line length limit to 100 chars to match project guidelines
+MD013:
+  line_length: 100
+  tables: false
+  code_blocks: false
+
 # MD029: Ordered list item prefix
 # Allow any style of ordered list markers (1. 2. 3. or 1. 1. 1.)
 MD029: false
+
+# MD041: First line in file should be a top-level heading
+# Disable this rule since it's triggered by license files in dependencies
+MD041: false
+
+# MD012: Multiple consecutive blank lines
+# Allow maximum one consecutive blank line
+MD012:
+  maximum: 1

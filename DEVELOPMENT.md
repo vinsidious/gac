@@ -94,7 +94,7 @@ make format
 
 ### Module Structure
 
-```
+```bash
 src/gac/
 ├── ai.py            # AI provider integration
 ├── cli.py           # Command-line interface

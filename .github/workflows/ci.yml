@@ -99,4 +99,4 @@ jobs:
 
       - name: Run markdownlint
         run: |
-          markdownlint-cli2 --config .markdownlint.yaml "**/*.md"
+          markdownlint-cli2 --config .markdownlint-cli2.yaml "**/*.md"
