@@ -15,7 +15,6 @@ from gac.files import file_matches_pattern
 from gac.prompt import build_prompt, clean_commit_message, create_abbreviated_prompt
 from gac.utils import console
 
-# Set up logger
 logger = logging.getLogger(__name__)
 
 
@@ -48,9 +47,7 @@ def run_subprocess(command: List[str], check: bool = True) -> str:
     return utils_run_subprocess(command, check=check, raise_on_error=check)
 
 
-# Constants for file handling
-MAX_DIFF_TOKENS = 2500  # Maximum number of tokens to include for large files
-# Files that are usually auto-generated or less important for commit context
+MAX_DIFF_TOKENS = 2500
 LARGE_FILE_PATTERNS = [
     "package-lock.json",
     "pnpm-lock.yaml",

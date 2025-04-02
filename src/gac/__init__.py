@@ -1,4 +1,3 @@
-# flake8: noqa: F401
 """Git Auto Commit (GAC) - Generate commit messages using AI."""
 
 from gac.__about__ import __version__

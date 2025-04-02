@@ -8,7 +8,6 @@ from typing import Dict, List
 logger = logging.getLogger(__name__)
 
 
-# Registry of formatters with their commands and file extensions
 FORMATTERS = {
     "python": [
         {

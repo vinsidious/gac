@@ -54,7 +54,6 @@ def setup_logging(
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
-# Define Rich theme for consistent styling
 theme = Theme(
     {
         "success": "green bold",
@@ -65,10 +64,6 @@ theme = Theme(
         "notification": "bright_cyan bold",
     }
 )
-
-# Create a console instance for this module
-# Note: We keep this separate from errors.py console to avoid circular imports
-# Other modules should import this console instead of creating their own
 console = Console(theme=theme)
 logger = logging.getLogger(__name__)
 
@@ -86,7 +81,6 @@ def print_message(message: str, level: str = "info") -> None:
         console.print(message, style=level)
 
 
-# Convenience functions for backward compatibility
 def print_info(message: str) -> None:
     """Print an informational message with color."""
     print_message(message, "info")

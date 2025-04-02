@@ -9,7 +9,6 @@ from pydantic import BaseModel, model_validator
 
 logger = logging.getLogger(__name__)
 
-# Default provider models - used when GAC_PROVIDER is set without GAC_MODEL_NAME
 PROVIDER_MODELS = {
     "anthropic": "claude-3-5-haiku-latest",
     "openai": "gpt-4o-mini",
@@ -21,16 +20,14 @@ PROVIDER_MODELS = {
     "ollama": "llama3.2",
 }
 
-# Default settings
 DEFAULT_CONFIG = {
-    "model": "anthropic:claude-3-5-haiku-latest",  # Default model with provider prefix
-    "use_formatting": True,  # Whether to format code
-    "max_output_tokens": 512,  # Maximum tokens in model output
-    "warning_limit_input_tokens": 16000,  # Maximum tokens in input prompt
-    "temperature": 0.7,  # Default temperature for AI generation
+    "model": "anthropic:claude-3-5-haiku-latest",
+    "use_formatting": True,
+    "max_output_tokens": 512,
+    "warning_limit_input_tokens": 16000,
+    "temperature": 0.7,
 }
 
-# Environment variable names
 ENV_VARS = {
     "model": "GAC_MODEL",
     "provider": "GAC_PROVIDER",
@@ -40,16 +37,15 @@ ENV_VARS = {
     "warning_limit_input_tokens": "GAC_WARNING_LIMIT_INPUT_TOKENS",
 }
 
-# API key environment variables by provider
 API_KEY_ENV_VARS = {
     "anthropic": "ANTHROPIC_API_KEY",
     "openai": "OPENAI_API_KEY",
     "groq": "GROQ_API_KEY",
     "mistral": "MISTRAL_API_KEY",
-    "aws": "AWS_ACCESS_KEY_ID",  # AWS requires multiple credentials
+    "aws": "AWS_ACCESS_KEY_ID",
     "azure": "AZURE_OPENAI_API_KEY",
     "google": "GOOGLE_API_KEY",
-    "ollama": None,  # Ollama doesn't require an API key for local models
+    "ollama": None,
 }
 
 

@@ -4,11 +4,12 @@ This module consolidates all AI provider interaction into a single module,
 reducing complexity and making provider integration simpler.
 """
 
+import functools
 import logging
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import tiktoken
 
@@ -26,14 +27,39 @@ logger = logging.getLogger(__name__)
 MAX_OUTPUT_TOKENS = 256
 DEFAULT_ENCODING = "cl100k_base"
 
-# Priority levels for different parts of a git diff when truncating
-DIFF_PRIORITIES = {
-    "header": 1,  # Diff headers
-    "hunk": 2,  # Hunk headers (@@ -1,5 +1,5 @@)
-    "context": 3,  # Context lines
-    "addition": 0,  # Added lines (highest priority to keep)
-    "deletion": 0,  # Deleted lines (highest priority to keep)
-}
+_token_cache = {}
+
+
+def check_ollama(model_name: Optional[str] = None) -> Union[bool, Tuple[bool, bool]]:
+    """
+    Check if Ollama is available and optionally check for a specific model.
+
+    Args:
+        model_name: Optional model name to check for
+
+    Returns:
+        If model_name is None, returns True if Ollama is available.
+        If model_name is provided, returns (ollama_available, model_available)
+    """
+    try:
+        # Try to list models to check if Ollama server is running
+        import ollama
+
+        models_list = ollama.list()
+
+        if model_name is None:
+            return True
+
+        # Check if the requested model is available
+        for model_info in models_list.get("models", []):
+            if model_info.get("name") == model_name:
+                return (True, True)
+
+        logger.debug(f"Ollama model '{model_name}' is not available locally")
+        return (True, False)
+    except (ImportError, Exception) as e:
+        logger.debug(f"Ollama is not available: {str(e)}")
+        return False if model_name is None else (False, False)
 
 
 def is_ollama_available() -> bool:
@@ -43,15 +69,7 @@ def is_ollama_available() -> bool:
     Returns:
         bool: True if Ollama is available, False otherwise
     """
-    try:
-        # Try to list models to check if Ollama server is running
-        import ollama
-
-        ollama.list()
-        return True
-    except (ImportError, Exception) as e:
-        logger.debug(f"Ollama is not available: {str(e)}")
-        return False
+    return check_ollama()
 
 
 def is_ollama_model_available(model_name: str) -> bool:
@@ -64,22 +82,11 @@ def is_ollama_model_available(model_name: str) -> bool:
     Returns:
         bool: True if the model is available, False otherwise
     """
-    try:
-        # Get list of available models
-        import ollama
-
-        models_list = ollama.list()
-
-        # Check if the requested model is in the list
-        for model_info in models_list.get("models", []):
-            if model_info.get("name") == model_name:
-                return True
-
-        logger.debug(f"Ollama model '{model_name}' is not available locally")
-        return False
-    except (ImportError, Exception) as e:
-        logger.debug(f"Error checking Ollama model availability: {str(e)}")
-        return False
+    result = check_ollama(model_name)
+    if isinstance(result, tuple):
+        ollama_available, model_available = result
+        return model_available
+    return False
 
 
 def get_encoding(model: str) -> tiktoken.Encoding:
@@ -128,6 +135,34 @@ def extract_text_content(content: Union[str, List[Dict[str, str]], Dict[str, Any
     return ""
 
 
+def cached_count_tokens(text: str, model: str) -> int:
+    """
+    Count tokens with caching to avoid repeated encoding of the same content.
+
+    Args:
+        text: The text to count tokens for
+        model: The model identifier
+
+    Returns:
+        The number of tokens in the text
+    """
+    cache_key = (text, model)
+    if cache_key in _token_cache:
+        return _token_cache[cache_key]
+
+    try:
+        encoding = get_encoding(model)
+        token_count = len(encoding.encode(text))
+        _token_cache[cache_key] = token_count
+        return token_count
+    except Exception as e:
+        logger.error(f"Error counting tokens: {e}")
+        # Simple fallback estimation
+        token_count = len(text) // 4
+        _token_cache[cache_key] = token_count
+        return token_count
+
+
 def count_tokens(
     content: Union[str, List[Dict[str, str]], Dict[str, Any]],
     model: str,
@@ -139,25 +174,18 @@ def count_tokens(
     Args:
         content: A string, message object, or list of message dictionaries.
         model: The model identifier in the format "provider:model_name".
+        test_mode: Unused parameter kept for backward compatibility.
 
     Returns:
         The number of tokens in the input.
     """
-
-    try:
-        # Extract text content from input
-        text = extract_text_content(content)
-        if not text:
-            logger.warning("No valid content found to count tokens")
-            return 0
-        encoding = get_encoding(model)
-        return len(encoding.encode(text))
-    except Exception as e:
-        logger.error(f"Error counting tokens: {e}")
-        # Simple fallback estimation
-        if "text" in locals():
-            return len(text) // 4
+    # Extract text content from input
+    text = extract_text_content(content)
+    if not text:
+        logger.warning("No valid content found to count tokens")
         return 0
+
+    return cached_count_tokens(text, model)
 
 
 def truncate_to_token_limit(text: str, model: str, max_tokens: int, buffer: int = 100) -> str:
@@ -481,6 +509,71 @@ def truncate_file_diff(file_diff: str, model: str, max_tokens: int) -> str:
     return "\n".join(result)
 
 
+def _process_ai_response(response) -> str:
+    """
+    Extract and validate text content from AI response
+
+    Args:
+        response: The response object from the AI provider
+
+    Returns:
+        The extracted text content
+
+    Raises:
+        AIError: If the response is empty
+    """
+    response_text = response.choices[0].message.content
+    if not response_text:
+        raise AIError("Empty response from AI provider")
+    return response_text
+
+
+def handle_ai_errors(func):
+    """
+    Decorator for handling AI API errors with consistent retry logic
+
+    Args:
+        func: The function to wrap
+
+    Returns:
+        The wrapped function
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        max_retries = kwargs.get("max_retries", 3)
+        retry_delay = 1.0
+        provider_name = kwargs.get("provider_name", "AI provider")
+
+        retries = 0
+        while retries <= max_retries:
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                if kwargs.get("show_spinner", True):
+                    print_error(f"Error with {provider_name} API: {type(e).__name__}")
+
+                # Handle retry logic for transient errors
+                if retries < max_retries:
+                    wait_time = retry_delay * (2**retries)
+                    logger.info(f"Retrying in {wait_time:.1f} seconds...")
+                    time.sleep(wait_time)
+                    retries += 1
+                else:
+                    # Map common errors to AIError with descriptive message
+                    err_str = str(e).lower()
+                    if "rate limit" in err_str or "too many requests" in err_str:
+                        raise AIError(f"Rate limit exceeded for {provider_name} API: {e}")
+                    elif "timeout" in err_str:
+                        raise AIError(f"Timeout from {provider_name} API: {e}")
+                    elif "auth" in err_str or "key" in err_str or "credentials" in err_str:
+                        raise AIError(f"Authentication error with {provider_name} API: {e}")
+                    else:
+                        raise AIError(f"Error with {provider_name} API: {e}")
+
+    return wrapper
+
+
 def generate_commit_message(
     prompt: str,
     model: str = "anthropic:claude-3-5-haiku-20240307",
@@ -515,8 +608,6 @@ def generate_commit_message(
         raise AIError("aisuite is not installed. Try: pip install aisuite")
 
     provider_name, model_name = model.split(":", 1)
-    retries = 0
-    retry_delay = 1.0
 
     # Get API key for the provider (not needed for Ollama)
     api_key = None
@@ -537,48 +628,27 @@ def generate_commit_message(
 
     messages = [{"role": "user", "content": prompt}]
 
-    while retries <= max_retries:
-        try:
-            logger.debug(
-                f"Starting generation with {provider_name}:{model_name}, temperature {temperature}"
-            )
-            start_time = time.time()
+    # Initialize the client once
+    if provider_name.lower() == "ollama":
+        client = aisuite.Client(provider_configs={"ollama": {}})
+    else:
+        client = aisuite.Client(provider_configs={provider_name.lower(): {"api_key": api_key}})
 
-            # Use spinner as a context manager for the API call if enabled
-            if show_spinner:
-                spinner_message = f"Connecting to {provider_name} API"
-                with Spinner(spinner_message) as spinner:
-                    # Update spinner message to show we're generating
-                    spinner.update_message(f"Generating with model {model_name}")
+    logger.debug(
+        f"Starting generation with {provider_name}:{model_name}, temperature {temperature}"
+    )
+    start_time = time.time()
 
-                    # Initialize and call aisuite client
-                    if provider_name.lower() == "ollama":
-                        client = aisuite.Client(provider_configs={"ollama": {}})
-                    else:
-                        client = aisuite.Client(
-                            provider_configs={provider_name.lower(): {"api_key": api_key}}
-                        )
-
-                    # The provider is specified in the model parameter as "provider:model_name"
-                    response = client.chat.completions.create(
-                        model=model,  # Use the full model string with provider prefix
-                        messages=messages,
-                        temperature=temperature,
-                        max_tokens=max_tokens,
-                    )
-
-                    response_text = response.choices[0].message.content
-
-                    if not response_text:
-                        raise AIError(f"Empty response from {provider_name}")
-            else:
-                # Initialize and call aisuite client without spinner
-                if provider_name.lower() == "ollama":
-                    client = aisuite.Client(provider_configs={"ollama": {}})
-                else:
-                    client = aisuite.Client(
-                        provider_configs={provider_name.lower(): {"api_key": api_key}}
-                    )
+    # Use error handling decorator for the actual API call
+    @handle_ai_errors
+    def make_api_call(
+        client, model, messages, temperature, max_tokens, show_spinner, provider_name, model_name
+    ):
+        if show_spinner:
+            spinner_message = f"Connecting to {provider_name} API"
+            with Spinner(spinner_message) as spinner:
+                # Update spinner message to show we're generating
+                spinner.update_message(f"Generating with model {model_name}")
 
                 # The provider is specified in the model parameter as "provider:model_name"
                 response = client.chat.completions.create(
@@ -588,42 +658,39 @@ def generate_commit_message(
                     max_tokens=max_tokens,
                 )
 
-                response_text = response.choices[0].message.content
+                return _process_ai_response(response)
+        else:
+            # Make API call without spinner
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
 
-                if not response_text:
-                    raise AIError(f"Empty response from {provider_name}")
+            return _process_ai_response(response)
 
-            end_time = time.time()
-            elapsed_time = end_time - start_time
-            logger.debug(f"Received response in {elapsed_time:.2f} seconds")
+    # Make the API call with error handling
+    response_text = make_api_call(
+        client=client,
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        show_spinner=show_spinner,
+        provider_name=provider_name,
+        model_name=model_name,
+    )
 
-            # Show notification message with response time
-            if show_spinner:
-                print_message(f"Response generated in {elapsed_time:.2f} seconds", "notification")
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    logger.debug(f"Received response in {elapsed_time:.2f} seconds")
 
-            return response_text
+    # Show notification message with response time
+    if show_spinner:
+        print_message(f"Response generated in {elapsed_time:.2f} seconds", "notification")
 
-        except Exception as e:
-            if show_spinner:
-                print_error(f"Error with {provider_name} API: {type(e).__name__}")
-
-            # Handle retry logic for transient errors
-            if retries < max_retries:
-                wait_time = retry_delay * (2**retries)
-                logger.info(f"Retrying in {wait_time:.1f} seconds...")
-                time.sleep(wait_time)
-                retries += 1
-            else:
-                # Map common errors to AIError with descriptive message
-                err_str = str(e).lower()
-                if "rate limit" in err_str or "too many requests" in err_str:
-                    raise AIError(f"Rate limit exceeded for {provider_name} API: {e}")
-                elif "timeout" in err_str:
-                    raise AIError(f"Timeout from {provider_name} API: {e}")
-                elif "auth" in err_str or "key" in err_str or "credentials" in err_str:
-                    raise AIError(f"Authentication error with {provider_name} API: {e}")
-                else:
-                    raise AIError(f"Error with {provider_name} API: {e}")
+    return response_text
 
 
 def chat(
@@ -653,22 +720,13 @@ def chat(
     if test_mode:
         return "test_response"
 
-    # Convert messages format
-    prompt = ""
-
     # Add system message if provided
     if system:
         # Add system message to beginning
         messages = [{"role": "system", "content": system}] + messages
 
-    # Extract all content from messages to create a single prompt
-    for msg in messages:
-        if msg.get("role") == "system":
-            prompt += f"[System] {msg.get('content', '')}\n\n"
-        elif msg.get("role") == "user":
-            prompt += f"{msg.get('content', '')}\n\n"
-        elif msg.get("role") == "assistant":
-            prompt += f"[Assistant] {msg.get('content', '')}\n\n"
+    # Convert to a single prompt for simpler processing
+    prompt = format_messages_to_prompt(messages)
 
     # Call the generate_commit_message function
     response = generate_commit_message(
@@ -684,3 +742,26 @@ def chat(
         return response.split("\n")[0]
 
     return response
+
+
+def format_messages_to_prompt(messages: List[Dict[str, str]]) -> str:
+    """
+    Format a list of message dictionaries into a single prompt string.
+
+    Args:
+        messages: List of message dictionaries with 'role' and 'content' keys
+
+    Returns:
+        A formatted prompt string
+    """
+    prompt = ""
+
+    for msg in messages:
+        if msg.get("role") == "system":
+            prompt += f"[System] {msg.get('content', '')}\n\n"
+        elif msg.get("role") == "user":
+            prompt += f"{msg.get('content', '')}\n\n"
+        elif msg.get("role") == "assistant":
+            prompt += f"[Assistant] {msg.get('content', '')}\n\n"
+
+    return prompt
