@@ -66,7 +66,7 @@ def mock_commit_changes():
 def mock_prompt():
     """Mock for click.prompt."""
     with patch("click.prompt") as mock:
-        mock.return_value = "y"  # Default to "yes"
+        mock.return_value = "y"
         yield mock
 
 
