@@ -200,3 +200,4 @@ temp/
 CLAUDE.md
 
 *.bak
+scripts/auto_changelog.py
