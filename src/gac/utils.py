@@ -55,7 +55,6 @@ def setup_logging(
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
-# Define a rich theme for colorful output
 theme = Theme(
     {
         "success": "green bold",
@@ -66,31 +65,8 @@ theme = Theme(
     }
 )
 
-# Create a console for rich output
 console = Console(theme=theme)
-
-# Set up logger
 logger = logging.getLogger(__name__)
-
-# ANSI color codes for terminal output
-BLACK = 0
-RED = 1
-GREEN = 2
-YELLOW = 3
-BLUE = 4
-MAGENTA = 5
-CYAN = 6
-WHITE = 7
-
-# Bright versions
-BRIGHT_BLACK = 8
-BRIGHT_RED = 9
-BRIGHT_GREEN = 10
-BRIGHT_YELLOW = 11
-BRIGHT_BLUE = 12
-BRIGHT_MAGENTA = 13
-BRIGHT_CYAN = 14
-BRIGHT_WHITE = 15
 
 
 class Color(Enum):
@@ -254,9 +230,32 @@ def _simulate_git_command(command: List[str]) -> str:
 
 
 def run_subprocess(
-    command: List[str], silent: bool = False, timeout: int = 60, test_mode: bool = None
+    command: List[str],
+    silent: bool = False,
+    timeout: int = 60,
+    test_mode: bool = None,
+    check: bool = True,
+    strip_output: bool = True,
+    raise_on_error: bool = True,
 ) -> str:
-    """Run a subprocess command safely and return the output."""
+    """Run a subprocess command safely and return the output.
+
+    Args:
+        command: List of command arguments
+        silent: If True, suppress debug logging
+        timeout: Command timeout in seconds
+        test_mode: If True, simulate command execution (for testing)
+        check: Whether to check return code (for compatibility)
+        strip_output: Whether to strip whitespace from output
+        raise_on_error: Whether to raise an exception on error
+
+    Returns:
+        Command output as string
+
+    Raises:
+        GACError: If the command times out
+        subprocess.CalledProcessError: If the command fails and raise_on_error is True
+    """
     if test_mode is None:
         test_mode = os.environ.get("GAC_TEST_MODE") == "1"
 
@@ -276,21 +275,32 @@ def run_subprocess(
             timeout=timeout,
         )
 
-        if result.returncode != 0:
-            error = subprocess.CalledProcessError(
-                result.returncode, command, result.stdout, result.stderr
-            )
-
+        if result.returncode != 0 and (check or raise_on_error):
             if not silent:
                 logger.debug(f"Command stderr: {result.stderr}")
 
+            error = subprocess.CalledProcessError(
+                result.returncode, command, result.stdout, result.stderr
+            )
             raise error
 
-        return result.stdout
+        output = result.stdout
+        if strip_output:
+            output = output.strip()
+
+        return output
     except subprocess.TimeoutExpired as e:
         logger.error(f"Command timed out after {timeout} seconds: {' '.join(command)}")
         raise GACError(f"Command timed out: {' '.join(command)}") from e
+    except subprocess.CalledProcessError as e:
+        if not silent:
+            logger.error(f"Command failed: {e.stderr.strip() if hasattr(e, 'stderr') else str(e)}")
+        if raise_on_error:
+            raise
+        return ""
     except Exception as e:
         if not silent:
             logger.debug(f"Command error: {e}")
-        raise
+        if raise_on_error:
+            raise
+        return ""

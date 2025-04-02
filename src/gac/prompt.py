@@ -9,6 +9,58 @@ from gac.errors import ConfigError
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_TEMPLATE = """Write a concise and meaningful git commit message based on the staged changes shown below.
+
+<format_section>
+  <one_liner>
+  Format it as a single line (50-72 characters if possible). 
+  If applicable, still use conventional commit prefixes like feat/fix/docs/etc., 
+  but keep everything to a single line with no bullet points.
+  </one_liner>
+
+  <multi_line>
+  Format it with a concise summary line (50-72 characters) followed by a 
+  more detailed explanation with multiple bullet points highlighting the 
+  specific changes made. Order the bullet points from most important to least important.
+  </multi_line>
+</format_section>
+
+<conventional_section>
+IMPORTANT: EVERY commit message MUST start with a conventional commit prefix. 
+This is a HARD REQUIREMENT. Choose from:
+- feat: A new feature
+- fix: A bug fix
+- docs: Documentation changes
+- style: Changes that don't affect code meaning (formatting, whitespace)
+- refactor: Code changes that neither fix a bug nor add a feature
+- perf: Performance improvements
+- test: Adding or correcting tests
+- build: Changes to build system or dependencies
+- ci: Changes to CI configuration
+- chore: Other changes that don't modify src or test files
+
+YOU MUST choose the most appropriate type based on the changes. 
+If you CANNOT determine a type, use 'chore'. 
+THE PREFIX IS MANDATORY - NO EXCEPTIONS.
+</conventional_section>
+
+<hint_section>
+Please consider this context from the user: <hint></hint>
+</hint_section>
+
+Do not include any explanation or preamble like 'Here's a commit message', etc.
+Just output the commit message directly.
+
+Git status:
+<git-status>
+<status></status>
+</git-status>
+
+Changes to be committed:
+<git-diff>
+<diff></diff>
+</git-diff>"""
+
 
 def find_template_file():
     """Find a prompt template file in standard locations."""
@@ -24,6 +76,10 @@ def find_template_file():
     if config_dir_path.exists():
         return str(config_dir_path)
 
+    package_template = Path(__file__).parent / "templates" / "default.prompt"
+    if package_template.exists():
+        return str(package_template)
+
     default_template = Path(__file__).parent.parent.parent / "prompts" / "default.prompt"
     if default_template.exists():
         return str(default_template)
@@ -32,7 +88,7 @@ def find_template_file():
 
 
 def load_prompt_template(template_path=None):
-    """Load the prompt template from a file."""
+    """Load the prompt template from a file or use the default embedded template."""
     if template_path:
         if os.path.exists(template_path):
             logger.debug(f"Loading prompt template from {template_path}")
@@ -41,45 +97,17 @@ def load_prompt_template(template_path=None):
         else:
             raise ConfigError(f"Prompt template file not found at {template_path}")
 
-    in_test_mode = os.environ.get("PYTEST_CURRENT_TEST") is not None
-
-    path = find_template_file()
-    if path:
-        logger.debug(f"Loading prompt template from {path}")
-        with open(path, "r") as f:
+    template_file = find_template_file()
+    if template_file:
+        logger.debug(f"Loading prompt template from {template_file}")
+        with open(template_file, "r") as f:
             return f.read()
 
-    if in_test_mode:
-        default_path = Path(__file__).parent.parent.parent / "prompts" / "default.prompt"
-        if default_path.exists():
-            logger.debug(f"Loading default template for tests from {default_path}")
-            with open(default_path, "r") as f:
-                return f.read()
-        else:
-            logger.debug("Using minimal test template")
-            return """
-<one_liner>Format as a single line</one_liner>
-<multi_line>Format with bullet points</multi_line>
-<hint_section>Context: <hint></hint></hint_section>
-
-Git status:
-<git-status>
-<status></status>
-</git-status>
-
-Changes to be committed:
-<git-diff>
-<diff></diff>
-</git-diff>
-"""
-
-    raise ConfigError(
-        "No prompt template file found. Please create one at ~/.config/gac/prompt.template "
-        "or specify a path with --template option or GAC_TEMPLATE_PATH environment variable."
-    )
+    logger.debug("Using embedded default template")
+    return DEFAULT_TEMPLATE
 
 
-def build_prompt_from_template(status, diff, one_liner=False, hint="", template_path=None):
+def build_prompt(status, diff, one_liner=False, hint="", template_path=None):
     """Build a prompt using a template file with XML-style tags."""
     template = load_prompt_template(template_path)
 
@@ -103,15 +131,6 @@ def build_prompt_from_template(status, diff, one_liner=False, hint="", template_
     template = re.sub(r"\n{3,}", "\n\n", template)
 
     return template.strip()
-
-
-def build_prompt(
-    status: str, diff: str, one_liner: bool = False, hint: str = "", template_path: str = None
-) -> str:
-    """Build a prompt for the LLM to generate a commit message."""
-    return build_prompt_from_template(
-        status=status, diff=diff, one_liner=one_liner, hint=hint, template_path=template_path
-    )
 
 
 def clean_commit_message(message: str) -> str:

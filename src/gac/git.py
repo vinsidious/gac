@@ -34,6 +34,7 @@ class FileStatus(Enum):
 def run_subprocess(command: List[str], check: bool = True) -> str:
     """
     Run a subprocess command and return the output.
+    Wrapper around utils.run_subprocess for backward compatibility.
 
     Args:
         command: Command to run as a list of strings
@@ -42,24 +43,9 @@ def run_subprocess(command: List[str], check: bool = True) -> str:
     Returns:
         Command output as string
     """
-    try:
-        result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            check=check,
-        )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Command failed: {e.stderr.strip()}")
-        if check:
-            raise
-        return ""
-    except Exception as e:
-        logger.error(f"Error running command: {e}")
-        if check:
-            raise
-        return ""
+    from gac.utils import run_subprocess as utils_run_subprocess
+
+    return utils_run_subprocess(command, check=check, raise_on_error=check)
 
 
 # Global for test mock injection
@@ -128,25 +114,12 @@ def run_git_command(args: List[str], silent: bool = False, timeout: int = 30) ->
     Returns:
         Command output as string, or empty string on error
     """
-    if not silent:
-        logger.debug(f"Running git command: git {' '.join(args)}")
+    from gac.utils import run_subprocess
 
-    try:
-        result = subprocess.run(
-            ["git"] + args,
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=timeout,
-        )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError as e:
-        if not silent:
-            logger.error(f"Git command failed: {e.stderr.strip()}")
-        return ""
-    except subprocess.TimeoutExpired:
-        logger.error(f"Git command timed out: git {' '.join(args)}")
-        return ""
+    command = ["git"] + args
+    return run_subprocess(
+        command, silent=silent, timeout=timeout, raise_on_error=False, strip_output=True
+    )
 
 
 @with_error_handling(GitError, "Failed to determine git directory")

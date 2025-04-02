@@ -278,39 +278,6 @@ def get_config() -> Config:
     return config
 
 
-def validate_config(config: Config) -> bool:
-    """Validate the current configuration.
-
-    Args:
-        config (Config): The configuration object to validate
-
-    Returns:
-        bool: True if configuration is valid
-
-    Raises:
-        ConfigError: If the configuration is invalid
-    """
-    config.validate_config()
-    return True
-
-
-def get_provider_from_model(model: str) -> str:
-    """Extract the provider name from a model string.
-
-    Args:
-        model (str): The model string in format 'provider:model_name'
-
-    Returns:
-        str: The provider name
-
-    Raises:
-        ValueError: If the model string is not in the correct format
-    """
-    if ":" not in model:
-        raise ValueError("Model string must be in format 'provider:model_name'")
-    return model.split(":")[0]
-
-
 def run_config_wizard() -> Optional[Config]:
     """Interactive configuration wizard for GAC.
 

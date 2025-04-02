@@ -43,6 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dual Interfaces**: Removed dual class/function interfaces for simpler API
 - **Legacy Abstractions**: Removed outdated abstractions from earlier versions
 
+## [0.4.4] - 2025-04-01
+
+### Fixed 🐛
+
+- Added missing `questionary` dependency to fix installation issues
+- Fixed prompt template not found error by adding default template in package directory
+
 ## [0.4.3] - 2025-03-30
 
 ### Added 🚀

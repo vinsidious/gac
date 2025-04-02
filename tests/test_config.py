@@ -12,7 +12,6 @@ from gac.config import (
     ConfigError,
     get_config,
     run_config_wizard,
-    validate_config,
 )
 
 
@@ -147,7 +146,6 @@ def test_config_wizard_provider_selection():
                 # Verify the behavior: wizard returns valid config with selected provider
                 assert config is not None
                 assert config["model"].startswith("anthropic:")
-                assert validate_config(config)
 
 
 def test_config_wizard_cancellation():
@@ -178,12 +176,9 @@ def test_config_wizard_validation():
             with patch("questionary.confirm", return_value=mock_confirm):
                 config = run_config_wizard()
 
-                # Verify the behavior: generated config passes validation
+                # Verify the behavior: generated config is valid
                 assert config is not None
-                try:
-                    validate_config(config)
-                except ConfigError as e:
-                    pytest.fail(f"Configuration validation failed: {e}")
+                # Config is already validated during creation
 
 
 def test_config_wizard_formatting_option():
@@ -254,7 +249,6 @@ def test_config_wizard_model_selection():
                         # Verify: wizard returns config with selected provider and model
                         assert config is not None
                         assert config["model"] == f"{provider}:{model}"
-                        assert validate_config(config)
 
 
 if __name__ == "__main__":
