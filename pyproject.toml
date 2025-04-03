@@ -111,7 +111,7 @@ search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
 
 [tool.coverage.run]
-source_pkgs = ["gac", "tests"]
+source_pkgs = ["gac"]
 branch = true
 parallel = true
 omit = [

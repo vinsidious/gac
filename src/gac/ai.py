@@ -572,7 +572,6 @@ def generate_commit_message(
 
     provider_name, model_name = model.split(":", 1)
 
-    # Get API key for the provider (not needed for Ollama)
     api_key = None
     if provider_name.lower() != "ollama":
         api_key_env_var = API_KEY_ENV_VARS.get(provider_name.lower())
@@ -585,13 +584,11 @@ def generate_commit_message(
             logger.error(f"API key not set: {api_key_env_var}")
             raise AIError(f"API key not set: {api_key_env_var}")
 
-    # Special handling for Ollama
     if provider_name.lower() == "ollama" and not is_ollama_available():
         raise AIError("Ollama is not available. Make sure it's installed and running.")
 
     messages = [{"role": "user", "content": prompt}]
 
-    # Initialize the client once
     if provider_name.lower() == "ollama":
         client = aisuite.Client(provider_configs={"ollama": {}})
     else:
@@ -602,20 +599,18 @@ def generate_commit_message(
     )
     start_time = time.time()
 
-    # Use error handling decorator for the actual API call
     @handle_ai_errors
     def make_api_call(
         client, model, messages, temperature, max_tokens, show_spinner, provider_name, model_name
     ):
         if show_spinner:
-            spinner_message = f"Connecting to {provider_name} API"
-            with Halo(text=spinner_message, spinner="dots", color="cyan") as spinner:
-                # Update spinner message to show we're generating
+            with Halo(
+                text=f"Connecting to {provider_name} API", spinner="dots", color="cyan"
+            ) as spinner:
                 spinner.text = f"Generating with model {model_name}"
 
-                # The provider is specified in the model parameter as "provider:model_name"
                 response = client.chat.completions.create(
-                    model=model,  # Use the full model string with provider prefix
+                    model=model,
                     messages=messages,
                     temperature=temperature,
                     max_tokens=max_tokens,
@@ -623,7 +618,6 @@ def generate_commit_message(
 
                 return _process_ai_response(response)
         else:
-            # Make API call without spinner
             response = client.chat.completions.create(
                 model=model,
                 messages=messages,

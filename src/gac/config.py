@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_CONFIG = {
     "model": "anthropic:claude-3-5-haiku-latest",
     "use_formatting": True,
-    "max_output_tokens": 512,
+    "max_output_tokens": 256,
     "warning_limit_input_tokens": 16000,
     "temperature": 0.7,
 }
