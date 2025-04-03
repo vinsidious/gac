@@ -103,7 +103,7 @@ def main(
         print_message(result["error"], level="error")
         sys.exit(1)
 
-    print_message("Successfully committed changes with message:", "notification", end=" ")
+    print_message("Successfully committed changes with message:", "notification")
     print(result["message"])
     if result.get("pushed"):
         print_message("Changes pushed to remote.", "notification")
