@@ -11,14 +11,54 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Functional Programming**: Complete architectural redesign around functional programming
+  principles
+- **Pure Functions**: Refactored core modules to use pure functions with explicit dependencies
+- **Function Composition**: New pipeline approach for commit workflow
+- **Type Hints**: Comprehensive type annotations throughout the codebase
+- Push functionality to commit workflow
+- Support for more flexible logging levels
+- Pydantic-based configuration management
+- Enhanced error handling with improved logging
+- Progressive loading of AI responses
+- User-configurable prompt templates
+- Compatibility layer for existing scripts and workflows
+- Improved diff truncation logic using the unidiff library
+- Better handling of large diffs with more intelligent truncation
+- More robust file diff handling with fallback mechanisms
+
 ### Changed
 
-### Fixed
+- Simplified project architecture with function-based design
+- Simplified CLI with a single main function and no subcommands
+- Replaced custom spinner with Halo for progress indication
+- Updated dependency management to use uv
+- Shifted to more behavior-driven testing approach
+- Improved developer experience and contribution workflow
+- Enhanced prompt template system with more flexible configuration
+- Improved error messages with more actionable guidance
+- Consolidated and optimized code structure across modules
+
+### Deprecated
+
+- Legacy OOP abstractions and wrapper classes
+- Custom caching implementation
 
 ### Removed
 
-- Removed all token caching mechanisms as they provide minimal benefit for our use case
-- Added explicit mention in ROADMAP that caching will never be implemented
+- CLI subcommand structure (now using a single direct command)
+- cli.py module (merged functionality into main.py)
+- Redundant wrapper classes
+- Deprecated modules and outdated scripts
+- Circular dependencies between modules
+- Custom spinner implementation
+
+### Fixed
+
+- Improved git staging and repository initialization handling
+- Enhanced error logging and user interaction
+- Resolved issues with prompt template configuration
+- Streamlined error recovery mechanisms
 
 ## [0.5.0] - 2025-04-01
 

@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Union
 
 import aisuite
 import tiktoken
+import unidiff
 from halo import Halo
 
 from gac.config import API_KEY_ENV_VARS
@@ -214,7 +215,7 @@ def truncate_with_beginning_and_end(lines: List[str], model: str, max_tokens: in
 
 def truncate_git_diff(diff: str, model: str, max_tokens: int) -> str:
     """
-    Truncate a git diff to fit within token limit.
+    Truncate a git diff to fit within token limit using unidiff library.
 
     Args:
         diff: The git diff to truncate
@@ -224,60 +225,65 @@ def truncate_git_diff(diff: str, model: str, max_tokens: int) -> str:
     Returns:
         Truncated git diff preserving the most important parts
     """
-    # Split into individual file diffs
-    file_diffs = []
-    current_diff = []
-    for line in diff.split("\n"):
-        if line.startswith("diff --git ") and current_diff:
-            file_diffs.append("\n".join(current_diff))
-            current_diff = [line]
-        else:
-            current_diff.append(line)
-
-    if current_diff:
-        file_diffs.append("\n".join(current_diff))
-
-    # If already within token limit, return unchanged
-    if count_tokens("\n".join(file_diffs), model) <= max_tokens:
+    # If already under token limit, return unchanged
+    if count_tokens(diff, model) <= max_tokens:
         return diff
 
-    # Calculate importance metrics for each file diff
-    file_importances = []
-    for file_diff in file_diffs:
-        # Count added/removed lines
-        added = len(re.findall(r"^\+[^+]", file_diff, re.MULTILINE))
-        removed = len(re.findall(r"^-[^-]", file_diff, re.MULTILINE))
-        tokens = count_tokens(file_diff, model)
-        # Calculate importance as (changes per token)
-        importance = (added + removed) / tokens if tokens > 0 else 0
-        file_importances.append((file_diff, importance, tokens))
+    try:
+        # Parse the diff with unidiff
+        patch_set = unidiff.PatchSet.from_string(diff)
 
-    file_importances.sort(key=lambda x: x[1], reverse=True)
+        # If we have no files, return as is (unlikely)
+        if not patch_set:
+            return diff
 
-    # Build result with most important files first, up to token limit
-    result_diffs = []
-    current_tokens = 0
+        # Calculate importance for each file (changes per token ratio)
+        file_importances = []
+        for patched_file in patch_set:
+            # Get statistics
+            added = patched_file.added
+            removed = patched_file.removed
+            file_diff = str(patched_file)
+            tokens = count_tokens(file_diff, model)
 
-    for file_diff, _, tokens in file_importances:
-        if current_tokens + tokens <= max_tokens:
-            result_diffs.append(file_diff)
-            current_tokens += tokens
-        else:
-            # If we can fit a truncated version of the file, try that
-            remaining_tokens = max_tokens - current_tokens
-            if remaining_tokens > 100:
-                truncated_file = truncate_single_file_diff(file_diff, model, remaining_tokens)
-                result_diffs.append(truncated_file)
-            break
+            # Calculate importance score - prioritize files with more changes relative to size
+            importance = (added + removed) / tokens if tokens > 0 else 0
+            file_importances.append((patched_file, importance, tokens, file_diff))
 
-    result = "\n".join(result_diffs)
+        # Sort by importance (most important first)
+        file_importances.sort(key=lambda x: x[1], reverse=True)
 
-    # Add truncation indicator if needed
-    if len(result_diffs) < len(file_diffs):
-        trunc_msg = f"\n\n[... {len(file_diffs) - len(result_diffs)} more files not shown due to token limit ...]"
-        result += trunc_msg
+        # Build result with most important files first, up to token limit
+        result_diffs = []
+        current_tokens = 0
 
-    return result
+        for patched_file, _, tokens, file_diff in file_importances:
+            if current_tokens + tokens <= max_tokens:
+                result_diffs.append(file_diff)
+                current_tokens += tokens
+            else:
+                # Try to include a truncated version of this file if there's room
+                remaining_tokens = max_tokens - current_tokens
+                if remaining_tokens > 100:  # Only if we have meaningful space left
+                    truncated_file = truncate_single_file_diff(file_diff, model, remaining_tokens)
+                    result_diffs.append(truncated_file)
+                break
+
+        result = "".join(result_diffs).rstrip()
+
+        # Add truncation indicator if needed
+        if len(result_diffs) < len(patch_set):
+            trunc_msg = f"\n\n[... {len(patch_set) - len(result_diffs)} more files not shown due to token limit ...]"
+            result += trunc_msg
+
+        return result
+
+    except Exception as e:
+        # Fallback to the file if unidiff parsing fails
+        logger.debug(f"Error parsing diff with unidiff: {e}")
+        # Use simple truncation as fallback
+        ratio = max_tokens / count_tokens(diff, model)
+        return diff[: int(len(diff) * ratio)]
 
 
 def truncate_single_file_diff(file_diff: str, model: str, max_tokens: int) -> str:
@@ -292,61 +298,120 @@ def truncate_single_file_diff(file_diff: str, model: str, max_tokens: int) -> st
     Returns:
         Truncated file diff
     """
-    lines = file_diff.split("\n")
+    # If already under token limit, return unchanged
+    if count_tokens(file_diff, model) <= max_tokens:
+        return file_diff
 
-    # Find header end (first @@ line)
-    header_end = 0
-    for i, line in enumerate(lines):
-        if line.startswith("@@"):
-            header_end = i
-            break
+    try:
+        # Parse with unidiff
+        patched_file = unidiff.PatchSet.from_string(file_diff)[0]
 
-    header = lines[: header_end + 1]  # Include the first @@ line
+        # Extract header (everything up to the first hunk)
+        header_lines = []
+        for line in file_diff.splitlines():
+            header_lines.append(line)
+            if line.startswith("@@"):
+                break
 
-    # If header alone exceeds token limit, return just the file path
-    if count_tokens("\n".join(header), model) > max_tokens:
-        file_path = re.search(r"diff --git a/(.*) b/", file_diff)
-        if file_path:
-            return f"diff --git a/{file_path.group(1)} b/{file_path.group(1)}\n[diff too large for token limit]"
-        return "diff --git [diff too large for token limit]"
+        header = "\n".join(header_lines)
 
-    # Prioritize lines with actual changes (+ and -)
-    content_lines = lines[header_end + 1 :]
-    prioritized_lines = []
-    context_lines = []
+        # If header alone exceeds token limit, return just the file path
+        if count_tokens(header, model) > max_tokens:
+            file_path = f"{patched_file.source_file} → {patched_file.target_file}"
+            return f"diff --git {file_path}\n[diff too large for token limit]"
 
-    for line in content_lines:
-        if line.startswith("+") or line.startswith("-"):
-            # These are actual changes - highest priority
-            prioritized_lines.append((0, line))
-        elif line.startswith("@@"):
-            # Hunk headers - medium priority
-            prioritized_lines.append((1, line))
-        else:
-            # Context lines - lowest priority
-            context_lines.append((2, line))
+        # Collect and prioritize hunks
+        prioritized_hunks = []
+        for hunk in patched_file:
+            # Count significant changes in this hunk
+            changes = sum(1 for line in hunk if line.is_added or line.is_removed)
+            hunk_str = str(hunk)
+            tokens = count_tokens(hunk_str, model)
+            importance = changes / tokens if tokens > 0 else 0
+            prioritized_hunks.append((hunk, importance, hunk_str, tokens))
 
-    # Sort by priority
-    prioritized_lines.sort(key=lambda x: x[0])
-    prioritized_lines.extend(context_lines)
+        # Sort hunks by importance
+        prioritized_hunks.sort(key=lambda x: x[1], reverse=True)
 
-    # Build result with header and as many prioritized lines as fit
-    result = header.copy()
-    current_tokens = count_tokens("\n".join(result), model)
+        # Start with the header
+        result = [header]
+        current_tokens = count_tokens(header, model)
 
-    for _, line in prioritized_lines:
-        line_tokens = count_tokens(line, model)
-        if current_tokens + line_tokens <= max_tokens:
-            result.append(line)
-            current_tokens += line_tokens
-        else:
-            break
+        # Add hunks until we reach the token limit
+        included_hunks = 0
+        for _, _, hunk_str, tokens in prioritized_hunks:
+            if current_tokens + tokens <= max_tokens:
+                result.append(hunk_str)
+                current_tokens += tokens
+                included_hunks += 1
+            else:
+                break
 
-    # Add truncation indicator if needed
-    if len(result) < len(lines):
-        result.append("[... diff truncated due to token limit ...]")
+        # Always add truncation indicator if we didn't include all hunks or if the output is shorter
+        if len(result) < len(prioritized_hunks) + 1 or included_hunks < len(prioritized_hunks):
+            result.append("[... diff truncated due to token limit ...]")
 
-    return "\n".join(result)
+        return "\n".join(result)
+
+    except Exception as e:
+        # Fallback if unidiff parsing fails
+        logger.debug(f"Error parsing single file diff with unidiff: {e}")
+
+        # Simple fallback using regex to find and prioritize changed lines
+        lines = file_diff.splitlines()
+
+        # Find header end (first @@ line)
+        header_end = 0
+        for i, line in enumerate(lines):
+            if line.startswith("@@"):
+                header_end = i
+                break
+
+        header = lines[: header_end + 1]
+        content = lines[header_end + 1 :]
+
+        # If header alone exceeds token limit, return just the file path
+        if count_tokens("\n".join(header), model) > max_tokens:
+            file_path = re.search(r"diff --git a/(.*) b/", file_diff)
+            if file_path:
+                return f"diff --git a/{file_path.group(1)} b/{file_path.group(1)}\n[diff too large for token limit]"
+            return "diff --git [diff too large for token limit]"
+
+        # Prioritize lines with changes
+        prioritized_lines = []
+        context_lines = []
+
+        for line in content:
+            if line.startswith("+") or line.startswith("-"):
+                prioritized_lines.append((0, line))  # Changed lines - highest priority
+            elif line.startswith("@@"):
+                prioritized_lines.append((1, line))  # Hunk headers - medium priority
+            else:
+                context_lines.append((2, line))  # Context lines - lowest priority
+
+        # Sort by priority and add context lines at the end
+        prioritized_lines.sort(key=lambda x: x[0])
+        prioritized_lines.extend(context_lines)
+
+        # Build result with header and as many prioritized lines as fit
+        result = header.copy()
+        current_tokens = count_tokens("\n".join(result), model)
+        included_lines = 0
+
+        for _, line in prioritized_lines:
+            line_tokens = count_tokens(line, model)
+            if current_tokens + line_tokens <= max_tokens:
+                result.append(line)
+                current_tokens += line_tokens
+                included_lines += 1
+            else:
+                break
+
+        # Always add truncation indicator if we didn't include all content
+        if included_lines < len(prioritized_lines):
+            result.append("[... diff truncated due to token limit ...]")
+
+        return "\n".join(result)
 
 
 def _process_ai_response(response) -> str:

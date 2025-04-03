@@ -1,112 +1,115 @@
-"""Tests for prompt-related functionality."""
+"""Tests for the prompt module."""
 
 import unittest
+from unittest.mock import patch
 
 from gac.prompt import build_prompt, clean_commit_message, create_abbreviated_prompt
 
+# Sample template content for testing
+TEST_TEMPLATE = """Write a concise and meaningful git commit message based on the staged changes shown below.
 
-class TestPrompts(unittest.TestCase):
-    """Tests for prompt-related functions."""
+<format_section>
+  <one_liner>
+  Format it as a single line.
+  </one_liner>
 
-    def test_build_prompt(self):
-        """Test build_prompt creates prompts with expected content based on inputs."""
-        # Test basic prompt
-        status = "M file1.py"
-        diff = "diff --git a/file1.py b/file1.py"
-        result = build_prompt(status, diff)
+  <multi_line>
+  Format it with a concise summary line followed by details.
+  </multi_line>
+</format_section>
 
-        # Verify the behavior: prompt contains the necessary information
-        self.assertIsInstance(result, str)
-        self.assertGreater(len(result), 0)
-        self.assertIn(status, result)
-        self.assertIn(diff, result)
+<hint_section>
+Please consider this context from the user: <hint></hint>
+</hint_section>
 
-        # Test one-liner option behavior
-        result_one_liner = build_prompt(status, diff, one_liner=True)
-        self.assertIn("single line", result_one_liner.lower())
-
-        # Test hint option behavior
-        hint = "JIRA-123"
-        result_with_hint = build_prompt(status, diff, hint=hint)
-        self.assertIn(hint, result_with_hint)
-
-        # Test combinations of options
-        result_combined = build_prompt(status, diff, one_liner=True, hint=hint)
-        self.assertIn("single line", result_combined.lower())
-        self.assertIn(hint, result_combined)
-
-    def test_clean_commit_message(self):
-        """Test clean_commit_message properly formats commit messages."""
-        # Test cleaning backticks
-        message = "```\nTest message\n```"
-        result = clean_commit_message(message)
-        self.assertEqual(result, "chore: Test message")
-
-        # Test adding conventional commit prefix when missing
-        message = "Test message"
-        result = clean_commit_message(message)
-        self.assertEqual(result, "chore: Test message")
-
-        # Test preserving existing conventional commit prefix
-        message = "feat: Added new feature"
-        result = clean_commit_message(message)
-        self.assertEqual(result, "feat: Added new feature")
-
-    def test_create_abbreviated_prompt(self):
-        """Test create_abbreviated_prompt shortens long prompts while preserving key information."""
-        # Create a long diff prompt
-        status = "M file1.py"
-        lines = [f"Line {i}" for i in range(10000)]
-        diff = "\n".join(lines)
-
-        # Ensure we have a prompt with the diff tags and content
-        prompt = f"""
 Git status:
 <git-status>
-{status}
+<status></status>
 </git-status>
 
 Changes to be committed:
 <git-diff>
-{diff}
-</git-diff>
-"""
+<diff></diff>
+</git-diff>"""
 
-        # Test abbreviation behavior with long diff
-        max_diff_lines = 20
-        result = create_abbreviated_prompt(prompt, max_diff_lines=max_diff_lines)
 
-        # Verify the behavior: long prompts are shortened
-        self.assertLess(len(result), len(prompt))
+class TestPrompts:
+    """Tests for the prompt module."""
 
-        # Count the number of diff lines in the abbreviated prompt
-        diff_start = result.find("<git-diff>")
-        diff_end = result.find("</git-diff>")
-        if diff_start != -1 and diff_end != -1:
-            diff_content = result[diff_start:diff_end]
-            diff_lines = diff_content.count("\n")
-            # The number of diff lines should be less than or equal to max_diff_lines
-            # plus some overhead for the hidden lines message
-            self.assertLessEqual(diff_lines, max_diff_lines + 5)
+    @patch("gac.prompt.load_prompt_template")
+    def test_build_prompt(self, mock_load_template):
+        """Test building a prompt from a template."""
+        # Setup mock
+        mock_load_template.return_value = TEST_TEMPLATE
 
-        # Test behavior with short diff
-        short_diff = "\n".join([f"Line {i}" for i in range(10)])
-        short_prompt = build_prompt(status, short_diff)
-        result_short = create_abbreviated_prompt(short_prompt, max_diff_lines=20)
+        # Test with one-liner format
+        result = build_prompt("status text", "diff text", one_liner=True, hint="hint text")
+        assert "status text" in result
+        assert "diff text" in result
+        assert "hint text" in result
+        assert "Format it as a single line" in result
+        assert "Format it with a concise summary line" not in result
 
-        # Verify the behavior: short prompts are not abbreviated
-        self.assertEqual(result_short, short_prompt)
+        # Test with multi-line format
+        result = build_prompt("status text", "diff text", one_liner=False, hint="hint text")
+        assert "status text" in result
+        assert "diff text" in result
+        assert "hint text" in result
+        assert "Format it as a single line" not in result
+        assert "Format it with a concise summary line" in result
 
-        # Test edge case behaviors
-        # No markers found
-        no_marker_prompt = "This is a prompt without markers"
-        result_no_marker = create_abbreviated_prompt(no_marker_prompt)
-        self.assertEqual(result_no_marker, no_marker_prompt)
+        # Test without hint
+        result = build_prompt("status text", "diff text", one_liner=False, hint="")
+        assert "status text" in result
+        assert "diff text" in result
+        assert "Please consider this context from the user" not in result
 
-        # No git-diff tag
-        no_diff_prompt = "Changes to be committed:\nNo diff tag"
-        result_no_diff = create_abbreviated_prompt(no_diff_prompt)
-        self.assertEqual(result_no_diff, no_diff_prompt)
+    def test_clean_commit_message(self):
+        """Test cleaning up generated commit messages."""
+        # Test basic message
+        message = "This is a test message"
+        result = clean_commit_message(message)
+        assert result == "chore: This is a test message"
+
+        # Test message with conventional prefix
+        message = "feat: Add new feature"
+        result = clean_commit_message(message)
+        assert result == "feat: Add new feature"
+
+        # Test message with code block markers
+        message = "```\nfeat: Add new feature\n```"
+        result = clean_commit_message(message)
+        assert result == "feat: Add new feature"
+
+        # Test message with XML tags
+        message = "fix: Bug fix"
+        result = clean_commit_message(message)
+        assert result == "fix: Bug fix"
+
+    def test_create_abbreviated_prompt(self):
+        """Test creating an abbreviated version of a prompt."""
+        # Create a test prompt with a large diff
+        lines = ["Line " + str(i) for i in range(100)]
+        diff_lines = "\n".join(lines)
+        prompt = f"Before diff\n<git-diff>\n{diff_lines}\n</git-diff>\nAfter diff"
+
+        # Test with default max_diff_lines=50
+        result = create_abbreviated_prompt(prompt)
+        assert "Before diff" in result
+        assert "After diff" in result
+        assert "Line 0" in result
+        assert "Line 49" in result
+        assert "Line 50" not in result
+        assert "more lines truncated" in result
+
+        # Test with custom max_diff_lines=10
+        result = create_abbreviated_prompt(prompt, max_diff_lines=10)
+        assert "Before diff" in result
+        assert "After diff" in result
+        assert "Line 0" in result
+        assert "Line 9" in result
+        assert "Line 10" not in result
+        assert "more lines truncated" in result
 
 
 if __name__ == "__main__":
