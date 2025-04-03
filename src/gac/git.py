@@ -12,7 +12,7 @@ from gac.ai import count_tokens, generate_commit_message
 from gac.errors import GACError, GitError, handle_error, with_error_handling
 from gac.files import file_matches_pattern
 from gac.prompt import build_prompt, clean_commit_message, create_abbreviated_prompt
-from gac.utils import console
+from gac.utils import console, run_subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -26,24 +26,6 @@ class FileStatus(Enum):
     RENAMED = "R"
     COPIED = "C"
     UNTRACKED = "?"
-
-
-# For backward compatibility with tests
-def run_subprocess(command: List[str], check: bool = True) -> str:
-    """
-    Run a subprocess command and return the output.
-    Wrapper around utils.run_subprocess for backward compatibility.
-
-    Args:
-        command: Command to run as a list of strings
-        check: Whether to check the return code
-
-    Returns:
-        Command output as string
-    """
-    from gac.utils import run_subprocess as utils_run_subprocess
-
-    return utils_run_subprocess(command, check=check, raise_on_error=check)
 
 
 MAX_DIFF_TOKENS = 2500
@@ -72,8 +54,6 @@ def run_git_command(args: List[str], silent: bool = False, timeout: int = 30) ->
     Returns:
         Command output as string, or empty string on error
     """
-    from gac.utils import run_subprocess
-
     command = ["git"] + args
     return run_subprocess(
         command, silent=silent, timeout=timeout, raise_on_error=False, strip_output=True
