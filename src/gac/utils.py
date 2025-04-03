@@ -65,41 +65,13 @@ logger = logging.getLogger(__name__)
 
 
 def print_message(message: str, level: str = "info") -> None:
-    """Print a styled message with the specified level.
-
-    Args:
-        message: The message to print
-        level: The message level/style (info, success, warning, error, header, notification)
-    """
-    if level == "header":
-        console.print(Panel(message, style=level))
-    else:
-        console.print(message, style=level)
-
-
-def print_info(message: str) -> None:
-    """Print an informational message with color."""
-    print_message(message, "info")
-
-
-def print_success(message: str) -> None:
-    """Print a success message with color."""
-    print_message(message, "success")
-
-
-def print_warning(message: str) -> None:
-    """Print a warning message with color."""
-    print_message(message, "warning")
-
-
-def print_error(message: str) -> None:
-    """Print an error message with color."""
-    print_message(message, "error")
+    """Print a styled message with the specified level."""
+    console.print(message, style=level)
 
 
 def print_header(message: str) -> None:
     """Print a header message with color."""
-    print_message(message, "header")
+    console.print(Panel(message, style="header"))
 
 
 def _simulate_git_command(command: List[str]) -> str:

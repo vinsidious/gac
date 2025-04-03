@@ -9,7 +9,7 @@ from typing import Optional
 import click
 
 from gac.git import commit_workflow
-from gac.utils import print_error, print_message, setup_logging
+from gac.utils import print_message, setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ def main(
     )
 
     if not result["success"]:
-        print_error(result["error"])
+        print_message(result["error"], level="error")
         sys.exit(1)
 
     print_message("Successfully committed changes with message:", "notification", end=" ")

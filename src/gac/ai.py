@@ -18,7 +18,7 @@ from halo import Halo
 
 from gac.config import API_KEY_ENV_VARS
 from gac.errors import AIError
-from gac.utils import print_error, print_message
+from gac.utils import print_message
 
 logger = logging.getLogger(__name__)
 
@@ -512,7 +512,9 @@ def handle_ai_errors(func):
                 return func(*args, **kwargs)
             except Exception as e:
                 if kwargs.get("show_spinner", True):
-                    print_error(f"Error with {provider_name} API: {type(e).__name__}")
+                    print_message(
+                        f"Error with {provider_name} API: {type(e).__name__}", level="error"
+                    )
 
                 # Handle retry logic for transient errors
                 if retries < max_retries:
