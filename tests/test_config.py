@@ -42,9 +42,9 @@ class TestConfig(unittest.TestCase):
         config = get_config()
 
         # Verify the behavior: default configuration is returned
-        self.assertEqual(config["model"], DEFAULT_CONFIG["model"])
-        self.assertEqual(config["use_formatting"], DEFAULT_CONFIG["use_formatting"])
-        self.assertEqual(config["max_output_tokens"], DEFAULT_CONFIG["max_output_tokens"])
+        self.assertEqual(config.model, DEFAULT_CONFIG["model"])
+        self.assertEqual(config.use_formatting, DEFAULT_CONFIG["use_formatting"])
+        self.assertEqual(config.max_output_tokens, DEFAULT_CONFIG["max_output_tokens"])
 
     def test_gac_model_with_provider(self):
         """Test that environment variable GAC_MODEL with provider prefix is properly recognized."""
@@ -55,7 +55,7 @@ class TestConfig(unittest.TestCase):
         config = get_config()
 
         # Verify the behavior: config uses the specified model
-        self.assertEqual(config["model"], "openai:gpt-4o-mini")
+        self.assertEqual(config.model, "openai:gpt-4o-mini")
 
     def test_gac_use_formatting_true(self):
         """Test that GAC_USE_FORMATTING=true enables formatting."""
@@ -66,7 +66,7 @@ class TestConfig(unittest.TestCase):
         config = get_config()
 
         # Verify the behavior: formatting is enabled
-        self.assertTrue(config["use_formatting"])
+        self.assertTrue(config.use_formatting)
 
     def test_gac_use_formatting_false(self):
         """Test that GAC_USE_FORMATTING=false disables formatting."""
@@ -77,7 +77,7 @@ class TestConfig(unittest.TestCase):
         config = get_config()
 
         # Verify the behavior: formatting is disabled
-        self.assertFalse(config["use_formatting"])
+        self.assertFalse(config.use_formatting)
 
     def test_gac_use_formatting_invalid(self):
         """Test that invalid GAC_USE_FORMATTING value has expected behavior."""
@@ -88,7 +88,7 @@ class TestConfig(unittest.TestCase):
         config = get_config()
 
         # Verify the behavior: invalid value is interpreted as False
-        self.assertFalse(config["use_formatting"])
+        self.assertFalse(config.use_formatting)
 
     def test_gac_max_output_tokens_valid(self):
         """Test that valid GAC_MAX_OUTPUT_TOKENS value is properly applied."""
@@ -99,7 +99,7 @@ class TestConfig(unittest.TestCase):
         config = get_config()
 
         # Verify the behavior: token count is set to specified value
-        self.assertEqual(config["max_output_tokens"], 4096)
+        self.assertEqual(config.max_output_tokens, 4096)
 
     def test_gac_max_output_tokens_invalid(self):
         """Test that invalid GAC_MAX_OUTPUT_TOKENS value falls back to default."""
@@ -110,7 +110,7 @@ class TestConfig(unittest.TestCase):
         config = get_config()
 
         # Verify the behavior: token count falls back to default
-        self.assertEqual(config["max_output_tokens"], DEFAULT_CONFIG["max_output_tokens"])
+        self.assertEqual(config.max_output_tokens, DEFAULT_CONFIG["max_output_tokens"])
 
 
 def test_config_wizard_provider_selection():
@@ -129,7 +129,7 @@ def test_config_wizard_provider_selection():
 
                 # Verify the behavior: wizard returns valid config with selected provider
                 assert config is not None
-                assert config["model"].startswith("anthropic:")
+                assert config.model.startswith("anthropic:")
 
 
 def test_config_wizard_cancellation():
@@ -187,14 +187,14 @@ def test_config_wizard_formatting_option():
 
                 # Verify the behavior: formatting is disabled in first config
                 assert config1 is not None
-                assert config1["use_formatting"] is False
+                assert config1.use_formatting is False
 
                 # Second run with formatting enabled
                 config2 = run_config_wizard()
 
                 # Verify the behavior: formatting is enabled in second config
                 assert config2 is not None
-                assert config2["use_formatting"] is True
+                assert config2.use_formatting is True
 
 
 def test_config_wizard_model_selection():
@@ -232,7 +232,7 @@ def test_config_wizard_model_selection():
 
                         # Verify: wizard returns config with selected provider and model
                         assert config is not None
-                        assert config["model"] == f"{provider}:{model}"
+                        assert config.model == f"{provider}:{model}"
 
 
 if __name__ == "__main__":

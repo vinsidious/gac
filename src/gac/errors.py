@@ -146,24 +146,6 @@ def format_error_for_user(error: Exception) -> str:
     return base_message
 
 
-def convert_exception(
-    error: Exception, target_error_class: Type[GACError], message: Optional[str] = None
-) -> GACError:
-    """
-    Convert a generic exception to a GAC-specific error type.
-
-    Args:
-        error: The original exception
-        target_error_class: The GAC error class to convert to
-        message: Optional custom message (uses str(error) if not provided)
-
-    Returns:
-        A new exception of the target_error_class
-    """
-    error_msg = message if message is not None else str(error)
-    return target_error_class(error_msg)
-
-
 def with_error_handling(
     error_type: Type[GACError], error_message: str, quiet: bool = False, exit_on_error: bool = True
 ) -> Callable[[Callable[..., T]], Callable[..., Optional[T]]]:
@@ -194,35 +176,3 @@ def with_error_handling(
         return wrapper
 
     return decorator
-
-
-def safely_execute(
-    operation: Callable[..., T],
-    error_message: str,
-    error_type: Type[GACError] = GACError,
-    default_value: Optional[T] = None,
-    quiet: bool = False,
-    exit_on_error: bool = False,
-) -> Optional[T]:
-    """
-    Execute a function with standardized error handling.
-
-    Args:
-        operation: The function to execute
-        error_message: The error message to use if an exception occurs
-        error_type: The specific error type to raise
-        default_value: The value to return if an exception occurs
-        quiet: If True, suppress non-error output
-        exit_on_error: If True, exit the program on error
-
-    Returns:
-        The return value of the operation, or default_value if an exception occurs
-    """
-    try:
-        return operation()
-    except Exception as e:
-        # Create a specific error with our message and the original error
-        specific_error = error_type(f"{error_message}: {e}")
-        # Handle the error using our standardized handler
-        handle_error(specific_error, quiet=quiet, exit_program=exit_on_error)
-        return default_value

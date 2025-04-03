@@ -4,8 +4,6 @@ Tests for utility functions in gac.utils module.
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from gac.utils import Spinner, print_error, print_info, print_message, print_success, print_warning
 
 
@@ -60,17 +58,3 @@ def test_spinner_initialization():
         # Verify spinner type and color
         assert kwargs["spinner"] == "dots"
         assert kwargs["color"] == "cyan"  # Ensure it uses a valid color, not 'rainbow'
-
-
-def test_spinner_color_validity():
-    """Test that the spinner uses a valid color that won't cause KeyError."""
-    # This is an integration test that actually creates a Halo instance
-    # to verify that the color we're using is valid
-    try:
-        from halo import Halo
-
-        spinner = Halo(text="Testing...", spinner="dots", color="cyan")
-        # If this doesn't raise an exception, the color is valid
-        assert spinner is not None
-    except KeyError as e:
-        pytest.fail(f"Invalid color for Halo spinner caused KeyError: {e}")

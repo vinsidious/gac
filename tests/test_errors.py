@@ -9,7 +9,6 @@ from gac.errors import (
     FormattingError,
     GACError,
     GitError,
-    convert_exception,
     format_error_for_user,
     handle_error,
 )
@@ -146,28 +145,6 @@ class TestErrors(unittest.TestCase):
 
             # Verify the behavior: all error types include remediation steps
             self.assertGreater(len(formatted), len(msg))
-
-    def test_convert_exception(self):
-        """Test convert_exception transforms exceptions to the appropriate type."""
-        # Test with default message
-        orig_error = ValueError("Invalid value")
-        converted = convert_exception(orig_error, ConfigError)
-
-        # Verify the behavior: exception is converted to the specified type
-        self.assertIsInstance(converted, ConfigError)
-
-        # Verify the behavior: original error message is preserved
-        self.assertEqual(str(converted), "Invalid value")
-
-        # Test with custom message
-        orig_error = ValueError("Invalid value")
-        converted = convert_exception(orig_error, GitError, "Custom git error")
-
-        # Verify the behavior: exception is converted to the specified type
-        self.assertIsInstance(converted, GitError)
-
-        # Verify the behavior: custom message is used
-        self.assertEqual(str(converted), "Custom git error")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""Git-related utility functions for GAC."""
+"""Git operations for GAC."""
 
 import logging
 import os
@@ -220,66 +220,6 @@ def push_changes() -> bool:
     return True
 
 
-def generate_commit(
-    staged_files: Optional[List[str]] = None,
-    formatting: bool = True,
-    model: Optional[str] = None,
-    hint: str = "",
-    one_liner: bool = False,
-    show_prompt: bool = False,
-    show_prompt_full: bool = False,
-    quiet: bool = False,
-    no_spinner: bool = False,
-    template: Optional[str] = None,
-) -> Optional[str]:
-    """
-    Generate a commit message based on staged changes.
-
-    DEPRECATED: This function is deprecated and will be removed in a future version.
-    Use generate_commit_with_options with a dictionary created by create_generate_options
-    instead.
-
-    Args:
-        staged_files: Optional list of staged files (if None, all staged files are used)
-        formatting: Whether to format code
-        model: Override model to use
-        hint: Additional context for the prompt
-        one_liner: Generate a single-line commit message
-        show_prompt: Show an abbreviated version of the prompt
-        show_prompt_full: Show the complete prompt
-        quiet: Suppress non-error output
-        no_spinner: Disable progress spinner during API calls
-        template: Path to a custom prompt template file
-
-    Returns:
-        Generated commit message or None if failed
-    """
-    warnings.warn(
-        "generate_commit with individual parameters is deprecated and will be removed "
-        "in a future version. Use generate_commit_with_options with a dictionary "
-        "created by create_generate_options instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
-    # Create options dictionary
-    options = create_generate_options(
-        staged_files=staged_files,
-        formatting=formatting,
-        model=model,
-        hint=hint,
-        one_liner=one_liner,
-        show_prompt=show_prompt,
-        show_prompt_full=show_prompt_full,
-        quiet=quiet,
-        no_spinner=no_spinner,
-        template=template,
-    )
-
-    # Delegate to generate_commit_with_options
-    return generate_commit_with_options(options)
-
-
 def create_commit_options(
     message: Optional[str] = None,
     staged_files: Optional[List[str]] = None,
@@ -406,18 +346,6 @@ def commit_changes_with_options(options: Dict[str, Any]) -> Optional[str]:
             )
 
     return message
-
-
-@with_error_handling(GitError, "Failed to check for staged changes", exit_on_error=False)
-def has_staged_changes() -> bool:
-    """
-    Check if there are any staged changes.
-
-    Returns:
-        True if there are staged changes, False otherwise
-    """
-    status = get_git_status_summary()
-    return status.get("has_staged", False)
 
 
 def get_project_description() -> str:

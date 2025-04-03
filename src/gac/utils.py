@@ -3,7 +3,7 @@
 import logging
 import os
 import subprocess
-from typing import List, Optional, Union
+from typing import List, Union
 
 from halo import Halo
 from rich.console import Console
@@ -101,22 +101,6 @@ def print_error(message: str) -> None:
 def print_header(message: str) -> None:
     """Print a header message with color."""
     print_message(message, "header")
-
-
-def format_bordered_text(text: str, header: Optional[str] = None, add_border: bool = True) -> str:
-    """Format text with a simple border using '===' style."""
-    lines = text.split("\n")
-    result = []
-
-    if header and add_border:
-        header_length = min(len(header), 80)
-        result.append(header)
-        result.append("=" * header_length)
-
-    for line in lines:
-        result.append(line)
-
-    return "\n".join(result)
 
 
 class Spinner:

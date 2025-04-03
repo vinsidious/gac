@@ -7,6 +7,7 @@ reducing complexity and making provider integration simpler.
 import functools
 import logging
 import os
+import random
 import re
 import time
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -24,6 +25,14 @@ MAX_OUTPUT_TOKENS = 256
 DEFAULT_ENCODING = "cl100k_base"
 
 _token_cache = {}
+
+EXAMPLES = [
+    "Generated commit message",
+    "This is a generated commit message",
+    "Another example of a generated commit message",
+    "Yet another example of a generated commit message",
+    "One more example of a generated commit message",
+]
 
 
 def check_ollama(model_name: Optional[str] = None) -> Union[bool, Tuple[bool, bool]]:
@@ -66,23 +75,6 @@ def is_ollama_available() -> bool:
         bool: True if Ollama is available, False otherwise
     """
     return check_ollama()
-
-
-def is_ollama_model_available(model_name: str) -> bool:
-    """
-    Check if a specific Ollama model is available locally.
-
-    Args:
-        model_name: The name of the Ollama model (without provider prefix)
-
-    Returns:
-        bool: True if the model is available, False otherwise
-    """
-    result = check_ollama(model_name)
-    if isinstance(result, tuple):
-        ollama_available, model_available = result
-        return model_available
-    return False
 
 
 def get_encoding(model: str) -> tiktoken.Encoding:
@@ -182,34 +174,6 @@ def count_tokens(
         return 0
 
     return cached_count_tokens(text, model)
-
-
-def truncate_to_token_limit(text: str, model: str, max_tokens: int, buffer: int = 100) -> str:
-    """
-    Truncate text to fit within a token limit.
-
-    Args:
-        text: The text to truncate
-        model: The model name to use for counting
-        max_tokens: Maximum number of tokens allowed
-        buffer: Token buffer to leave room for other content
-
-    Returns:
-        Truncated text that fits within the token limit
-    """
-    current_tokens = count_tokens(text, model, False)
-    target_tokens = max_tokens - buffer
-
-    if current_tokens <= target_tokens:
-        return text
-
-    # Simple truncation for short text
-    if len(text) < 1000:
-        ratio = target_tokens / current_tokens
-        return text[: int(len(text) * ratio)]
-
-    # For larger text, use smart truncation
-    return smart_truncate_text(text, model, target_tokens)
 
 
 def smart_truncate_text(text: str, model: str, max_tokens: int) -> str:
@@ -598,7 +562,7 @@ def generate_commit_message(
         AIError: If there's an issue with the AI provider
     """
     if test_mode or os.environ.get("PYTEST_CURRENT_TEST"):
-        return "Generated commit message"
+        return random.choice(EXAMPLES)
 
     if not aisuite:
         raise AIError("aisuite is not installed. Try: pip install aisuite")
@@ -687,77 +651,3 @@ def generate_commit_message(
         print_message(f"Response generated in {elapsed_time:.2f} seconds", "notification")
 
     return response_text
-
-
-def chat(
-    messages: List[Dict[str, str]],
-    model: str = "anthropic:claude-3",
-    system: Optional[str] = None,
-    temperature: float = 0.7,
-    test_mode: bool = False,
-    one_liner: bool = False,
-    show_spinner: bool = True,
-) -> str:
-    """
-    Chat with an AI model using a list of messages.
-
-    Args:
-        messages: List of message dictionaries
-        model: Model name to use
-        system: Optional system message
-        temperature: Temperature parameter
-        test_mode: Whether to run in test mode
-        one_liner: Whether to return only the first line of the response
-        show_spinner: Whether to show a spinner during API calls
-
-    Returns:
-        Generated response
-    """
-    if test_mode:
-        return "test_response"
-
-    # Add system message if provided
-    if system:
-        # Add system message to beginning
-        messages = [{"role": "system", "content": system}] + messages
-
-    # Convert to a single prompt for simpler processing
-    prompt = format_messages_to_prompt(messages)
-
-    # Call the generate_commit_message function
-    response = generate_commit_message(
-        prompt=prompt,
-        model=model,
-        temperature=temperature,
-        test_mode=test_mode,
-        show_spinner=show_spinner,
-    )
-
-    # Return only the first line if one_liner is True
-    if one_liner and response:
-        return response.split("\n")[0]
-
-    return response
-
-
-def format_messages_to_prompt(messages: List[Dict[str, str]]) -> str:
-    """
-    Format a list of message dictionaries into a single prompt string.
-
-    Args:
-        messages: List of message dictionaries with 'role' and 'content' keys
-
-    Returns:
-        A formatted prompt string
-    """
-    prompt = ""
-
-    for msg in messages:
-        if msg.get("role") == "system":
-            prompt += f"[System] {msg.get('content', '')}\n\n"
-        elif msg.get("role") == "user":
-            prompt += f"{msg.get('content', '')}\n\n"
-        elif msg.get("role") == "assistant":
-            prompt += f"[Assistant] {msg.get('content', '')}\n\n"
-
-    return prompt

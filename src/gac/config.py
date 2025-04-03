@@ -116,41 +116,7 @@ class Config(BaseModel):
 
         return self
 
-    def with_updates(self, **kwargs) -> "Config":
-        """Create a new Config instance with updated values.
-
-        Args:
-            **kwargs: Key-value pairs to update
-
-        Returns:
-            Config: A new Config instance with updated values
-        """
-        # Get current values as a dictionary
-        current_values = self.model_dump()
-
-        # Update with new values
-        current_values.update(kwargs)
-
-        # Create and return a new instance
-        return Config(**current_values)
-
     # Dictionary-compatible access methods for testing compatibility
-    def __getitem__(self, key: str) -> Any:
-        """Dictionary-style access to config attributes.
-
-        Args:
-            key: Attribute name
-
-        Returns:
-            Value of the attribute
-
-        Raises:
-            KeyError: If key is not a valid attribute
-        """
-        if not hasattr(self, key):
-            raise KeyError(f"Config has no attribute '{key}'")
-        return getattr(self, key)
-
     def get(self, key: str, default: Any = None) -> Any:
         """Dictionary-style get method with default value.
 
