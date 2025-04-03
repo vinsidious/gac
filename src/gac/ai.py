@@ -14,10 +14,11 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import aisuite
 import tiktoken
+from halo import Halo
 
 from gac.config import API_KEY_ENV_VARS
 from gac.errors import AIError
-from gac.utils import Spinner, print_error, print_message
+from gac.utils import print_error, print_message
 
 logger = logging.getLogger(__name__)
 
@@ -606,9 +607,9 @@ def generate_commit_message(
     ):
         if show_spinner:
             spinner_message = f"Connecting to {provider_name} API"
-            with Spinner(spinner_message) as spinner:
+            with Halo(text=spinner_message, spinner="dots", color="cyan") as spinner:
                 # Update spinner message to show we're generating
-                spinner.update_message(f"Generating with model {model_name}")
+                spinner.text = f"Generating with model {model_name}"
 
                 # The provider is specified in the model parameter as "provider:model_name"
                 response = client.chat.completions.create(

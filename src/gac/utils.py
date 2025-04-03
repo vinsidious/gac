@@ -5,7 +5,6 @@ import os
 import subprocess
 from typing import List, Union
 
-from halo import Halo
 from rich.console import Console
 from rich.panel import Panel
 from rich.theme import Theme
@@ -101,25 +100,6 @@ def print_error(message: str) -> None:
 def print_header(message: str) -> None:
     """Print a header message with color."""
     print_message(message, "header")
-
-
-class Spinner:
-    """A spinner to indicate progress using Halo."""
-
-    def __init__(self, message: str = "Processing"):
-        """Initialize the spinner."""
-        self.spinner = Halo(text=f"{message}...", spinner="dots", color="cyan")
-
-    def __enter__(self):
-        self.spinner.start()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.spinner.stop()
-
-    def update_message(self, new_message: str):
-        """Update the spinner's message while it's running."""
-        self.spinner.text = f"{new_message}..."
 
 
 def _simulate_git_command(command: List[str]) -> str:
