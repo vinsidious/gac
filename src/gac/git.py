@@ -2,7 +2,6 @@
 
 import logging
 import os
-import warnings
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -546,84 +545,11 @@ def generate_commit_with_options(options: Dict[str, Any]) -> Optional[str]:
         model=model_to_use,
         temperature=temperature,
         show_spinner=not options.get("no_spinner", False),
-        test_mode="PYTEST_CURRENT_TEST" in os.environ,
     )
 
     if message:
         return clean_commit_message(message)
     return None
-
-
-def commit_changes(
-    message: Optional[str] = None,
-    staged_files: Optional[List[str]] = None,
-    force: bool = False,
-    add_all: bool = False,
-    formatting: bool = True,
-    model: Optional[str] = None,
-    hint: str = "",
-    one_liner: bool = False,
-    show_prompt: bool = False,
-    show_prompt_full: bool = False,
-    quiet: bool = False,
-    no_spinner: bool = False,
-    push: bool = False,
-    template: Optional[str] = None,
-) -> Optional[str]:
-    """
-    Generate commit message and commit staged changes.
-
-    DEPRECATED: This function is deprecated and will be removed in a future version.
-    Use commit_changes_with_options with an options dictionary created by
-    create_commit_options instead.
-
-    Args:
-        message: Optional pre-generated commit message
-        staged_files: Optional list of staged files (if None, all staged files are used)
-        force: Skip all confirmation prompts
-        add_all: Stage all changes before committing
-        formatting: Whether to format code
-        model: Override model to use
-        hint: Additional context for the prompt
-        one_liner: Generate a single-line commit message
-        show_prompt: Show an abbreviated version of the prompt
-        show_prompt_full: Show the complete prompt
-        quiet: Suppress non-error output
-        no_spinner: Disable progress spinner during API calls
-        push: Push changes to remote after committing
-        template: Path to a custom prompt template file
-
-    Returns:
-        The generated commit message or None if failed
-    """
-    warnings.warn(
-        "commit_changes with individual parameters is deprecated and will be removed "
-        "in a future version. Use commit_changes_with_options with an options dictionary "
-        "created by create_commit_options instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
-    # Create options dictionary from the individual parameters
-    options = create_commit_options(
-        message=message,
-        staged_files=staged_files,
-        force=force,
-        add_all=add_all,
-        formatting=formatting,
-        model=model,
-        hint=hint,
-        one_liner=one_liner,
-        show_prompt=show_prompt,
-        show_prompt_full=show_prompt_full,
-        quiet=quiet,
-        no_spinner=no_spinner,
-        push=push,
-        template=template,
-    )
-
-    # Delegate to commit_changes_with_options
-    return commit_changes_with_options(options)
 
 
 def get_git_status_summary() -> Dict[str, Any]:

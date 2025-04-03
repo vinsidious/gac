@@ -15,6 +15,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+### Removed
+
+- Removed all token caching mechanisms as they provide minimal benefit for our use case
+- Added explicit mention in ROADMAP that caching will never be implemented
+
 ## [0.5.0] - 2025-04-01
 
 ### Added

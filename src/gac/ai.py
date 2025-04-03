@@ -10,7 +10,7 @@ import os
 import random
 import re
 import time
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Union
 
 import aisuite
 import tiktoken
@@ -25,8 +25,6 @@ logger = logging.getLogger(__name__)
 MAX_OUTPUT_TOKENS = 256
 DEFAULT_ENCODING = "cl100k_base"
 
-_token_cache = {}
-
 EXAMPLES = [
     "Generated commit message",
     "This is a generated commit message",
@@ -36,46 +34,16 @@ EXAMPLES = [
 ]
 
 
-def check_ollama(model_name: Optional[str] = None) -> Union[bool, Tuple[bool, bool]]:
-    """
-    Check if Ollama is available and optionally check for a specific model.
-
-    Args:
-        model_name: Optional model name to check for
-
-    Returns:
-        If model_name is None, returns True if Ollama is available.
-        If model_name is provided, returns (ollama_available, model_available)
-    """
+def is_ollama_available() -> bool:
+    """Check if Ollama is available."""
     try:
-        # Try to list models to check if Ollama server is running
         import ollama
 
-        models_list = ollama.list()
-
-        if model_name is None:
-            return True
-
-        # Check if the requested model is available
-        for model_info in models_list.get("models", []):
-            if model_info.get("name") == model_name:
-                return (True, True)
-
-        logger.debug(f"Ollama model '{model_name}' is not available locally")
-        return (True, False)
+        _ = ollama.list()
+        return True
     except (ImportError, Exception) as e:
         logger.debug(f"Ollama is not available: {str(e)}")
-        return False if model_name is None else (False, False)
-
-
-def is_ollama_available() -> bool:
-    """
-    Check if Ollama is running locally and available.
-
-    Returns:
-        bool: True if Ollama is available, False otherwise
-    """
-    return check_ollama()
+        return False
 
 
 def get_encoding(model: str) -> tiktoken.Encoding:
@@ -124,38 +92,9 @@ def extract_text_content(content: Union[str, List[Dict[str, str]], Dict[str, Any
     return ""
 
 
-def cached_count_tokens(text: str, model: str) -> int:
-    """
-    Count tokens with caching to avoid repeated encoding of the same content.
-
-    Args:
-        text: The text to count tokens for
-        model: The model identifier
-
-    Returns:
-        The number of tokens in the text
-    """
-    cache_key = (text, model)
-    if cache_key in _token_cache:
-        return _token_cache[cache_key]
-
-    try:
-        encoding = get_encoding(model)
-        token_count = len(encoding.encode(text))
-        _token_cache[cache_key] = token_count
-        return token_count
-    except Exception as e:
-        logger.error(f"Error counting tokens: {e}")
-        # Simple fallback estimation
-        token_count = len(text) // 4
-        _token_cache[cache_key] = token_count
-        return token_count
-
-
 def count_tokens(
     content: Union[str, List[Dict[str, str]], Dict[str, Any]],
     model: str,
-    test_mode: bool = False,
 ) -> int:
     """
     Count tokens in content using the model's tokenizer.
@@ -163,7 +102,6 @@ def count_tokens(
     Args:
         content: A string, message object, or list of message dictionaries.
         model: The model identifier in the format "provider:model_name".
-        test_mode: Unused parameter kept for backward compatibility.
 
     Returns:
         The number of tokens in the input.
@@ -174,7 +112,15 @@ def count_tokens(
         logger.warning("No valid content found to count tokens")
         return 0
 
-    return cached_count_tokens(text, model)
+    try:
+        encoding = get_encoding(model)
+        token_count = len(encoding.encode(text))
+        return token_count
+    except Exception as e:
+        logger.error(f"Error counting tokens: {e}")
+        # Simple fallback estimation
+        token_count = len(text) // 4
+        return token_count
 
 
 def smart_truncate_text(text: str, model: str, max_tokens: int) -> str:
@@ -189,80 +135,23 @@ def smart_truncate_text(text: str, model: str, max_tokens: int) -> str:
     Returns:
         Intelligently truncated text
     """
+    # If already under the token limit, return as is
+    if count_tokens(text, model) <= max_tokens:
+        return text
+
+    # Simple case - no line breaks
     if "\n" not in text:
-        # No line breaks, simple truncation
-        ratio = max_tokens / count_tokens(text, model, False)
+        ratio = max_tokens / count_tokens(text, model)
         truncated_len = int(len(text) * ratio)
         return text[:truncated_len]
 
-    # Split into lines for more intelligent truncation
-    lines = text.split("\n")
-
-    # If it's a git diff, use specialized diff truncation
+    # If it's a git diff, use specialized treatment
     if text.startswith("diff --git "):
-        return smart_truncate_diff(text, model, max_tokens)
+        return truncate_git_diff(text, model, max_tokens)
 
-    # For other multi-line text, prioritize beginning and end
+    # For other multi-line text, preserve beginning and end
+    lines = text.split("\n")
     return truncate_with_beginning_and_end(lines, model, max_tokens)
-
-
-def smart_truncate_diff(diff: str, model: str, max_tokens: int) -> str:
-    """
-    Intelligently truncate a git diff to fit within a token limit.
-
-    Args:
-        diff: The git diff to truncate
-        model: The model name to use for counting
-        max_tokens: Maximum number of tokens allowed
-
-    Returns:
-        Truncated diff that preserves the most important changes
-    """
-    # Parse the diff into separate file diffs
-    file_diffs = split_into_file_diffs(diff)
-
-    # If already within token limit, return unchanged
-    if count_tokens("\n".join(file_diffs), model, False) <= max_tokens:
-        return diff
-
-    # Calculate tokens per file diff
-    file_diff_tokens = {}
-    for file_diff in file_diffs:
-        file_diff_tokens[file_diff] = count_tokens(file_diff, model, False)
-
-    # Sort file diffs by change density (changes per token)
-    file_diffs_sorted = sort_diffs_by_importance(file_diffs, file_diff_tokens)
-
-    # Rebuild diff with the most important files first, up to token limit
-    result_diff = []
-    current_tokens = 0
-
-    for file_diff in file_diffs_sorted:
-        tokens = file_diff_tokens[file_diff]
-
-        # If adding this file would exceed limit, try to truncate the file diff
-        if current_tokens + tokens > max_tokens:
-            remaining_tokens = max_tokens - current_tokens
-            if remaining_tokens > 100:  # Only truncate if we have reasonable space
-                truncated_file_diff = truncate_file_diff(file_diff, model, remaining_tokens)
-                result_diff.append(truncated_file_diff)
-            break
-
-        result_diff.append(file_diff)
-        current_tokens += tokens
-
-    # Return reconstructed diff
-    result = "\n".join(result_diff)
-
-    # Add indicator that diff was truncated if needed
-    if len(result_diff) < len(file_diffs):
-        trunc_msg = (
-            f"\n\n[... {len(file_diffs) - len(result_diff)} more files not shown "
-            "due to token limit ...]"
-        )
-        result += trunc_msg
-
-    return result
 
 
 def truncate_with_beginning_and_end(lines: List[str], model: str, max_tokens: int) -> str:
@@ -286,7 +175,7 @@ def truncate_with_beginning_and_end(lines: List[str], model: str, max_tokens: in
         result.append(lines[-1])
 
     # If already within limit, return original text
-    if count_tokens("\n".join(result), model, False) >= max_tokens:
+    if count_tokens("\n".join(result), model) >= max_tokens:
         # Even first and last lines exceed limit, just take the first line
         return lines[0]
 
@@ -298,7 +187,7 @@ def truncate_with_beginning_and_end(lines: List[str], model: str, max_tokens: in
     while beginning_idx <= ending_idx:
         # Try adding a line from the beginning
         candidate = lines[beginning_idx]
-        if count_tokens("\n".join(result + [candidate]), model, False) < max_tokens:
+        if count_tokens("\n".join(result + [candidate]), model) < max_tokens:
             result.insert(1, candidate)
             beginning_idx += 1
         else:
@@ -309,7 +198,7 @@ def truncate_with_beginning_and_end(lines: List[str], model: str, max_tokens: in
 
         # Try adding a line from the end
         candidate = lines[ending_idx]
-        if count_tokens("\n".join(result + [candidate]), model, False) < max_tokens:
+        if count_tokens("\n".join(result + [candidate]), model) < max_tokens:
             result.insert(-1, candidate)
             ending_idx -= 1
         else:
@@ -323,70 +212,75 @@ def truncate_with_beginning_and_end(lines: List[str], model: str, max_tokens: in
     return "\n".join(result)
 
 
-def split_into_file_diffs(diff: str) -> List[str]:
+def truncate_git_diff(diff: str, model: str, max_tokens: int) -> str:
     """
-    Split a git diff into separate file diffs.
+    Truncate a git diff to fit within token limit.
 
     Args:
-        diff: The full git diff
+        diff: The git diff to truncate
+        model: Model name for token counting
+        max_tokens: Maximum allowed tokens
 
     Returns:
-        List of individual file diffs
+        Truncated git diff preserving the most important parts
     """
-    if not diff:
-        return []
-
-    # Split on diff headers
+    # Split into individual file diffs
     file_diffs = []
     current_diff = []
-    lines = diff.split("\n")
-
-    for line in lines:
-        if line.startswith("diff --git "):
-            # Start of a new file diff
-            if current_diff:
-                file_diffs.append("\n".join(current_diff))
-                current_diff = []
-            current_diff.append(line)
-        elif current_diff:
+    for line in diff.split("\n"):
+        if line.startswith("diff --git ") and current_diff:
+            file_diffs.append("\n".join(current_diff))
+            current_diff = [line]
+        else:
             current_diff.append(line)
 
-    # Add the last file diff
     if current_diff:
         file_diffs.append("\n".join(current_diff))
 
-    return file_diffs
+    # If already within token limit, return unchanged
+    if count_tokens("\n".join(file_diffs), model) <= max_tokens:
+        return diff
 
-
-def sort_diffs_by_importance(file_diffs: List[str], file_diff_tokens: Dict[str, int]) -> List[str]:
-    """
-    Sort file diffs by importance (change density).
-
-    Args:
-        file_diffs: List of file diffs
-        file_diff_tokens: Dictionary mapping file diffs to token counts
-
-    Returns:
-        Sorted list of file diffs
-    """
-    # Calculate change density for each file diff
-    change_density = {}
+    # Calculate importance metrics for each file diff
+    file_importances = []
     for file_diff in file_diffs:
         # Count added/removed lines
         added = len(re.findall(r"^\+[^+]", file_diff, re.MULTILINE))
         removed = len(re.findall(r"^-[^-]", file_diff, re.MULTILINE))
-        changes = added + removed
+        tokens = count_tokens(file_diff, model)
+        # Calculate importance as (changes per token)
+        importance = (added + removed) / tokens if tokens > 0 else 0
+        file_importances.append((file_diff, importance, tokens))
 
-        # Calculate density (changes per token)
-        tokens = file_diff_tokens[file_diff]
-        density = changes / tokens if tokens > 0 else 0
-        change_density[file_diff] = density
+    file_importances.sort(key=lambda x: x[1], reverse=True)
 
-    # Sort by change density (highest first)
-    return sorted(file_diffs, key=lambda x: change_density[x], reverse=True)
+    # Build result with most important files first, up to token limit
+    result_diffs = []
+    current_tokens = 0
+
+    for file_diff, _, tokens in file_importances:
+        if current_tokens + tokens <= max_tokens:
+            result_diffs.append(file_diff)
+            current_tokens += tokens
+        else:
+            # If we can fit a truncated version of the file, try that
+            remaining_tokens = max_tokens - current_tokens
+            if remaining_tokens > 100:
+                truncated_file = truncate_single_file_diff(file_diff, model, remaining_tokens)
+                result_diffs.append(truncated_file)
+            break
+
+    result = "\n".join(result_diffs)
+
+    # Add truncation indicator if needed
+    if len(result_diffs) < len(file_diffs):
+        trunc_msg = f"\n\n[... {len(file_diffs) - len(result_diffs)} more files not shown due to token limit ...]"
+        result += trunc_msg
+
+    return result
 
 
-def truncate_file_diff(file_diff: str, model: str, max_tokens: int) -> str:
+def truncate_single_file_diff(file_diff: str, model: str, max_tokens: int) -> str:
     """
     Truncate a single file diff to fit within token limit.
 
@@ -400,67 +294,52 @@ def truncate_file_diff(file_diff: str, model: str, max_tokens: int) -> str:
     """
     lines = file_diff.split("\n")
 
-    # Always keep the header
+    # Find header end (first @@ line)
     header_end = 0
     for i, line in enumerate(lines):
         if line.startswith("@@"):
             header_end = i
             break
 
-    header = lines[:header_end]
-    diff_content = lines[header_end:]
+    header = lines[: header_end + 1]  # Include the first @@ line
 
     # If header alone exceeds token limit, return just the file path
-    if count_tokens("\n".join(header), model, False) > max_tokens:
+    if count_tokens("\n".join(header), model) > max_tokens:
         file_path = re.search(r"diff --git a/(.*) b/", file_diff)
         if file_path:
-            return (
-                f"diff --git a/{file_path.group(1)} b/{file_path.group(1)}\n"
-                "[diff too large for token limit]"
-            )
+            return f"diff --git a/{file_path.group(1)} b/{file_path.group(1)}\n[diff too large for token limit]"
         return "diff --git [diff too large for token limit]"
 
-    # Categorize lines by priority
-    categorized_lines = []
-    current_hunk = []
-    in_hunk = False
+    # Prioritize lines with actual changes (+ and -)
+    content_lines = lines[header_end + 1 :]
+    prioritized_lines = []
+    context_lines = []
 
-    for line in diff_content:
-        if line.startswith("@@"):
-            # New hunk header
-            if current_hunk:
-                categorized_lines.append((2, current_hunk))
-                current_hunk = []
-            in_hunk = True
-            current_hunk.append(line)
-        elif in_hunk:
-            if line.startswith("+"):
-                categorized_lines.append((0, [line]))  # Addition (highest priority)
-            elif line.startswith("-"):
-                categorized_lines.append((0, [line]))  # Deletion (highest priority)
-            else:
-                current_hunk.append(line)  # Context line
-
-    # Add the last hunk if any
-    if current_hunk:
-        categorized_lines.append((2, current_hunk))
-
-    # Sort by priority (lowest number = highest priority)
-    categorized_lines.sort(key=lambda x: x[0])
-
-    # Rebuild the diff with priority lines first, up to token limit
-    result = header.copy()
-    current_tokens = count_tokens("\n".join(result), model, False)
-
-    for _, lines_group in categorized_lines:
-        group_text = "\n".join(lines_group)
-        group_tokens = count_tokens(group_text, model, False)
-
-        if current_tokens + group_tokens <= max_tokens:
-            result.extend(lines_group)
-            current_tokens += group_tokens
+    for line in content_lines:
+        if line.startswith("+") or line.startswith("-"):
+            # These are actual changes - highest priority
+            prioritized_lines.append((0, line))
+        elif line.startswith("@@"):
+            # Hunk headers - medium priority
+            prioritized_lines.append((1, line))
         else:
-            # We've reached the token limit
+            # Context lines - lowest priority
+            context_lines.append((2, line))
+
+    # Sort by priority
+    prioritized_lines.sort(key=lambda x: x[0])
+    prioritized_lines.extend(context_lines)
+
+    # Build result with header and as many prioritized lines as fit
+    result = header.copy()
+    current_tokens = count_tokens("\n".join(result), model)
+
+    for _, line in prioritized_lines:
+        line_tokens = count_tokens(line, model)
+        if current_tokens + line_tokens <= max_tokens:
+            result.append(line)
+            current_tokens += line_tokens
+        else:
             break
 
     # Add truncation indicator if needed
@@ -544,7 +423,6 @@ def generate_commit_message(
     max_tokens: int = 1024,
     show_spinner: bool = True,
     max_retries: int = 3,
-    test_mode: bool = False,
 ) -> str:
     """
     Generate a commit message using aisuite.
@@ -556,7 +434,6 @@ def generate_commit_message(
         max_tokens: Maximum tokens in the generated response
         show_spinner: Whether to show a spinner during API calls
         max_retries: Maximum number of retries for failed API calls
-        test_mode: If True, returns a fixed message without calling the API
 
     Returns:
         Generated commit message
@@ -564,7 +441,7 @@ def generate_commit_message(
     Raises:
         AIError: If there's an issue with the AI provider
     """
-    if test_mode or os.environ.get("PYTEST_CURRENT_TEST"):
+    if os.environ.get("PYTEST_CURRENT_TEST"):
         return random.choice(EXAMPLES)
 
     if not aisuite:

@@ -9,58 +9,6 @@ from gac.errors import ConfigError
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_TEMPLATE = """Write a concise and meaningful git commit message based on the staged changes shown below.
-
-<format_section>
-  <one_liner>
-  Format it as a single line (50-72 characters if possible).
-  If applicable, still use conventional commit prefixes like feat/fix/docs/etc.,
-  but keep everything to a single line with no bullet points.
-  </one_liner>
-
-  <multi_line>
-  Format it with a concise summary line (50-72 characters) followed by a
-  more detailed explanation with multiple bullet points highlighting the
-  specific changes made. Order the bullet points from most important to least important.
-  </multi_line>
-</format_section>
-
-<conventional_section>
-IMPORTANT: EVERY commit message MUST start with a conventional commit prefix.
-This is a HARD REQUIREMENT. Choose from:
-- feat: A new feature
-- fix: A bug fix
-- docs: Documentation changes
-- style: Changes that don't affect code meaning (formatting, whitespace)
-- refactor: Code changes that neither fix a bug nor add a feature
-- perf: Performance improvements
-- test: Adding or correcting tests
-- build: Changes to build system or dependencies
-- ci: Changes to CI configuration
-- chore: Other changes that don't modify src or test files
-
-YOU MUST choose the most appropriate type based on the changes.
-If you CANNOT determine a type, use 'chore'.
-THE PREFIX IS MANDATORY - NO EXCEPTIONS.
-</conventional_section>
-
-<hint_section>
-Please consider this context from the user: <hint></hint>
-</hint_section>
-
-Do not include any explanation or preamble like 'Here's a commit message', etc.
-Just output the commit message directly.
-
-Git status:
-<git-status>
-<status></status>
-</git-status>
-
-Changes to be committed:
-<git-diff>
-<diff></diff>
-</git-diff>"""  # noqa: E501
-
 
 def find_template_file():
     """Find a prompt template file in standard locations."""
@@ -103,8 +51,8 @@ def load_prompt_template(template_path=None):
         with open(template_file, "r") as f:
             return f.read()
 
-    logger.debug("Using embedded default template")
-    return DEFAULT_TEMPLATE
+    logger.error("No template file found and no default template defined.")
+    raise ConfigError("No template file found and no default template defined.")
 
 
 def build_prompt(status, diff, one_liner=False, hint="", template_path=None):

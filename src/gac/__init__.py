@@ -4,7 +4,8 @@ from gac.__about__ import __version__
 from gac.ai import generate_commit_message
 from gac.format import format_files
 from gac.git import (
-    commit_changes,
+    commit_changes_with_options,
+    create_commit_options,
     get_staged_diff,
     get_staged_files,
     get_status,
@@ -18,7 +19,8 @@ from gac.prompt import build_prompt, clean_commit_message
 __all__ = [
     "__version__",
     "generate_commit_message",
-    "commit_changes",
+    "commit_changes_with_options",
+    "create_commit_options",
     "format_files",
     "build_prompt",
     "clean_commit_message",

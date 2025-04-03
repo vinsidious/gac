@@ -134,10 +134,10 @@ src/gac/
 
 ## Performance Considerations
 
-- Use `functools.lru_cache` for memoization
 - Profile code performance
 - Minimize unnecessary computations
 - Use lazy evaluation when possible
+- Never implement caching mechanisms of any kind
 
 ## Advanced Development
 

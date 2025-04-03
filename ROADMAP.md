@@ -6,7 +6,9 @@ Git Auto Commit (gac) is a CLI tool that uses large language models to generate 
 messages based on staged changes. We have completed a major architectural shift toward functional
 programming, emphasizing pure functions, immutability, and composability. The codebase now follows a
 functional paradigm with improved type hints, better error handling, and a more streamlined
-architecture.
+architecture. We have significantly improved test coverage, particularly for the main.py and ai.py
+modules. The codebase has been simplified by removing deprecated functions and unnecessary
+parameters.
 
 ## Next Steps
 
@@ -34,7 +36,6 @@ architecture.
 3. **Performance and Reliability Improvements** 🔄
 
    - [x] Optimize token usage for large diffs
-   - [x] Implement smarter caching system
    - [ ] Create more robust connection error handling
    - [ ] Implement request retry mechanisms with backoff
    - [ ] Add filesystem-based fallbacks for network failures
@@ -128,6 +129,8 @@ We've decided against these items to maintain focus:
 - ~~Create a pipeline factory for the commit workflow~~
 - ~~Implement pipeline pattern for data transformation~~
 - ~~Reduce startup time through lazy imports~~
+- ~~Caching mechanisms of any kind~~ - We will NEVER implement caching since it is of minimal
+  benefit in our use case where text content rarely repeats
 
 ## Reconsidered Items
 
@@ -146,7 +149,6 @@ Items we originally ruled out but have reconsidered:
 - [x] Support for conventional commits format (--conventional flag)
 - [x] Improved error handling with specific error types and better messages
 - [x] Colorized output for better user experience and readability
-- [x] Implemented caching for repeated operations
 - [x] Added dynamic progress indicators for API calls
 - [x] Added full support for local Ollama models with direct API integration
 - [x] Removed core.py entirely as it was just a wrapper
@@ -159,3 +161,4 @@ Items we originally ruled out but have reconsidered:
 - [x] Added functional error handling with decorators and helper functions
 - [x] Created function composition helpers for git operations
 - [x] Implemented a pure functional workflow API
+- [x] Removed all caching mechanisms as they provide minimal benefit for our use case
