@@ -110,10 +110,12 @@ def main(
         print_message(result["error"], level="error")
         sys.exit(1)
 
-    print_message("Successfully committed changes with message:", "notification")
-    print(result["message"])
-    if result.get("pushed"):
-        print_message("Changes pushed to remote.", "notification")
+    # Show success message only when not in quiet mode
+    if not quiet:
+        print_message("Successfully committed changes with message:", "notification")
+        print(result["message"])
+        if result.get("pushed"):
+            print_message("Changes pushed to remote.", "notification")
     sys.exit(0)
 
 

@@ -319,9 +319,8 @@ def commit_changes_with_options(options: Dict[str, Any]) -> Optional[str]:
         logger.error("Failed to generate commit message.")
         return None
 
-    # Always display the commit message
-    if not options.get("quiet"):
-        console.print(Panel(message, title="Suggested Commit Message", border_style="bright_blue"))
+    # Always display the suggested commit message panel, even in quiet mode
+    console.print(Panel(message, title="Suggested Commit Message", border_style="bright_blue"))
 
     # If force mode is not enabled, prompt for confirmation
     if not options.get("force") and not options.get("quiet"):
@@ -529,7 +528,7 @@ def generate_commit_with_options(options: Dict[str, Any]) -> Optional[str]:
     else:
         model_to_use = config.get("model", "anthropic:claude-3-5-haiku-latest")
 
-    # Always show a minimal message when generating the commit message
+    # Only show model info when not in quiet mode
     if not options.get("quiet"):
         # Split provider:model if applicable
         if ":" in model_to_use:
@@ -544,7 +543,7 @@ def generate_commit_with_options(options: Dict[str, Any]) -> Optional[str]:
         prompt=prompt,
         model=model_to_use,
         temperature=temperature,
-        show_spinner=not options.get("no_spinner", False),
+        show_spinner=not options.get("no_spinner", False) and not options.get("quiet", False),
     )
 
     if message:
