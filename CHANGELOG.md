@@ -11,54 +11,40 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- **Functional Programming**: Complete architectural redesign around functional programming
-  principles
-- **Pure Functions**: Refactored core modules to use pure functions with explicit dependencies
-- **Function Composition**: New pipeline approach for commit workflow
-- **Type Hints**: Comprehensive type annotations throughout the codebase
-- Push functionality to commit workflow
-- Support for more flexible logging levels
-- Pydantic-based configuration management
-- Enhanced error handling with improved logging
-- Progressive loading of AI responses
-- User-configurable prompt templates
-- Compatibility layer for existing scripts and workflows
-- Improved diff truncation logic using the unidiff library
-- Better handling of large diffs with more intelligent truncation
-- More robust file diff handling with fallback mechanisms
+- Comprehensive markdownlint and Prettier configuration for improved code style consistency
+- Node.js project configuration for frontend tooling support
+- Enhanced CI/CD workflows with scheduled nightly builds and dependency management
 
 ### Changed
 
-- Simplified project architecture with function-based design
-- Simplified CLI with a single main function and no subcommands
-- Replaced custom spinner with Halo for progress indication
-- Updated dependency management to use uv
-- Shifted to more behavior-driven testing approach
-- Improved developer experience and contribution workflow
-- Enhanced prompt template system with more flexible configuration
-- Improved error messages with more actionable guidance
-- Consolidated and optimized code structure across modules
+- Simplified print utility functions with direct Rich console usage
+- Refactored AI generation and configuration handling for improved modularity
+- Updated project architecture to emphasize functional programming principles
+- Optimized token counting and diff truncation logic
+- Replaced custom spinner implementation with direct Halo usage
+- Enhanced error handling and logging mechanisms
 
 ### Deprecated
 
-- Legacy OOP abstractions and wrapper classes
-- Custom caching implementation
+- Removed legacy OOP abstractions and wrapper classes
+- Discontinued support for multiple CLI subcommands
 
 ### Removed
 
-- CLI subcommand structure (now using a single direct command)
-- cli.py module (merged functionality into main.py)
-- Redundant wrapper classes
-- Deprecated modules and outdated scripts
-- Circular dependencies between modules
+- Deprecated and unused functions across multiple modules
+- Redundant run_subprocess wrapper in git module
 - Custom spinner implementation
 
 ### Fixed
 
-- Improved git staging and repository initialization handling
-- Enhanced error logging and user interaction
-- Resolved issues with prompt template configuration
-- Streamlined error recovery mechanisms
+- Resolved configuration wizard TypeError in main script
+- Improved config module with simplified configuration management
+- Enhanced error handling in AI and configuration modules
+
+### Security
+
+- Updated dependency management to use uv for more secure and reproducible builds
+- Improved CI workflow security with virtual environment activation and dependency isolation
 
 ## [0.5.0] - 2025-04-01
 
