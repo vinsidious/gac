@@ -55,7 +55,6 @@ def get_encoding(model: str) -> tiktoken.Encoding:
     Returns:
         The appropriate tiktoken encoding
     """
-    # Extract model name from provider:model format
     model_name = model.split(":")[-1] if ":" in model else model
 
     if "claude" in model_name.lower():

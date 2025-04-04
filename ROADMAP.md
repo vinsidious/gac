@@ -36,6 +36,8 @@ parameters.
 3. **Performance and Reliability Improvements** 🔄
 
    - [x] Optimize token usage for large diffs
+   - [x] Implement smart truncation for git diffs
+   - [x] Add token counting mechanism for different AI models
    - [ ] Create more robust connection error handling
    - [ ] Implement request retry mechanisms with backoff
    - [ ] Add filesystem-based fallbacks for network failures
@@ -71,6 +73,12 @@ parameters.
 
 ## Next Sprint (Q2 2025)
 
+- [x] **Quiet Mode Improvements**: Add `-q` flag to suppress non-essential output while maintaining
+      commit message visibility
+- [ ] **Enhanced Token Optimization**:
+  - Implement advanced token usage strategies
+  - Add configurable token limit settings
+  - Develop intelligent diff truncation algorithms
 - [ ] **Enhanced Error Recovery**: Implement robust error handling for network failures
 - [ ] **Request Retry System**: Add automatic retries with backoff for API calls
 - [ ] **Interactive Mode**: Create an interactive mode to review and refine generated messages
@@ -162,3 +170,63 @@ Items we originally ruled out but have reconsidered:
 - [x] Created function composition helpers for git operations
 - [x] Implemented a pure functional workflow API
 - [x] Removed all caching mechanisms as they provide minimal benefit for our use case
+- [x] Implemented advanced token usage optimization
+  - Smart truncation for git diffs
+  - Intelligent token counting for different AI models
+  - Handling of large file diffs with token-aware truncation
+- [x] Added quiet mode with refined output control
+  - Suppress non-essential messages
+  - Maintain commit message panel visibility
+  - Respect user's desire for minimal output
+- [x] Improved model selection and configuration
+  - Better handling of provider:model format
+  - Enhanced configuration flexibility
+- [x] Refined error handling and logging
+  - More precise error messages
+  - Better logging control
+- [x] Continued functional programming improvements
+  - Simplified parameter management
+  - Enhanced error handling decorators
+
+## Token Optimization Strategy
+
+### Current Implementation
+
+Our token optimization strategy focuses on intelligent handling of large diffs and AI model
+interactions:
+
+1. **Smart Truncation**
+
+   - Dynamically truncate git diffs based on token limits
+   - Preserve critical context while reducing overall token count
+   - Implement model-specific tokenization strategies
+
+2. **Intelligent Token Counting**
+
+   - Use `tiktoken` for accurate token counting across different models
+   - Support multiple encoding strategies (Claude, OpenAI, etc.)
+   - Dynamically select appropriate tokenization method
+
+3. **Diff Processing**
+   - Prioritize meaningful changes over large, auto-generated files
+   - Skip known large file patterns (lock files, build artifacts)
+   - Implement token-aware diff selection
+
+### Future Enhancements
+
+- Develop configurable token limit settings
+- Create adaptive truncation algorithms
+- Improve context preservation during diff reduction
+- Add support for more AI model tokenization strategies
+
+### Technical Challenges
+
+- Maintaining semantic meaning while reducing token count
+- Handling diverse file types and programming languages
+- Balancing performance with comprehensive context
+
+### Guiding Principles
+
+- Minimize token usage without losing critical information
+- Provide transparent, predictable truncation
+- Support multiple AI providers with different tokenization methods

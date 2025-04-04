@@ -7,17 +7,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+[Unreleased]
+
+## [v0.6.1] - 2025-04-04
+
+### Added 🚀
+
+- Advanced semantic diff analysis for more contextual commit messages
+- Improved git diff parsing for complex repository structures
+- Enhanced AI model compatibility layer
+- Detailed token usage reporting and optimization
+- Added `--version` flag to display the current version of the tool
+
+### Changed 🔧
+
+- Refined functional programming patterns in core modules
+- Improved error resilience in AI provider integrations
+- Streamlined configuration validation mechanisms
+
+### Fixed 🐛
+
+- Resolved edge cases in multi-file staging scenarios
+- Improved handling of large monorepo git diffs
+- Enhanced security checks in configuration loading
+
+### Performance ⚡
+
+- Optimized token counting for large diffs
+- Reduced memory footprint in AI processing pipeline
+
+### Security 🛡️
+
+- Added additional input sanitization for AI prompts
+- Improved environment variable handling for sensitive configurations
 
 ## [v0.6.0] - 2025-04-03
 
-### Added
+### Added 🌟
 
 - Comprehensive markdownlint and Prettier configuration for improved code style consistency
 - Node.js project configuration for frontend tooling support
 - Enhanced CI/CD workflows with scheduled nightly builds and dependency management
 
-### Changed
+### Changed 🔄
 
 - Simplified print utility functions with direct Rich console usage
 - Refactored AI generation and configuration handling for improved modularity
@@ -26,31 +58,31 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Replaced custom spinner implementation with direct Halo usage
 - Enhanced error handling and logging mechanisms
 
-### Deprecated
+### Deprecated 🗑️
 
 - Removed legacy OOP abstractions and wrapper classes
 - Discontinued support for multiple CLI subcommands
 
-### Removed
+### Removed 🚫
 
 - Deprecated and unused functions across multiple modules
 - Redundant run_subprocess wrapper in git module
 - Custom spinner implementation
 
-### Fixed
+### Fixed 🐞
 
 - Resolved configuration wizard TypeError in main script
 - Improved config module with simplified configuration management
 - Enhanced error handling in AI and configuration modules
 
-### Security
+### Security 🔒
 
 - Updated dependency management to use uv for more secure and reproducible builds
 - Improved CI workflow security with virtual environment activation and dependency isolation
 
 ## [0.5.0] - 2025-04-01
 
-### Added
+### Added 🌈
 
 - **Functional Programming**: Complete architectural redesign around functional programming
   principles
@@ -65,7 +97,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - User-configurable prompt templates
 - Compatibility layer for existing scripts and workflows
 
-### Changed
+### Changed 🔧
 
 - Simplified project architecture with function-based design
 - Simplified CLI with a single main function and no subcommands
@@ -77,12 +109,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Improved error messages with more actionable guidance
 - Consolidated and optimized code structure across modules
 
-### Deprecated
+### Deprecated 🚫
 
 - Legacy OOP abstractions and wrapper classes
 - Custom caching implementation
 
-### Removed
+### Removed 🗑️
 
 - CLI subcommand structure (now using a single direct command)
 - cli.py module (merged functionality into main.py)
@@ -91,7 +123,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Circular dependencies between modules
 - Custom spinner implementation
 
-### Fixed
+### Fixed 🐛
 
 - Improved git staging and repository initialization handling
 - Enhanced error logging and user interaction
@@ -124,7 +156,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Increased test coverage to 94%
 - Streamlined configuration and formatting modules
 
-### Refactored 🔨
+### Refactored 🛠️
 
 - Updated `main()` to support enhanced formatting system for all file types
 - Simplified git module functions and added more robust file handling
@@ -156,22 +188,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.4.1] - 2025-03-29
 
-### Bug Fixes
+### Bug Fixes 🐞
 
-- fix release workflow to use pip install -e ".[dev]" instead of requirements.txt
+- Fix release workflow to use pip install -e ".[dev]" instead of requirements.txt
 
 ## [0.4.0] - 2025-03-29
 
-### Added
+### Added 🌟
 
-- 🌟 Enhanced project description retrieval for improved commit message context
-- 🔄 Added optional hint context for commit messages
-- 📝 Added one-liner commit message generation option
+- Enhanced project description retrieval for improved commit message context
+- Added optional hint context for commit messages
+- Added one-liner commit message generation option
 - 🔍 Added support for simulated files in test mode
 - 🚀 Created changelog preparation script for release management
 - 🔧 Added formatting module with code extraction
 
-### Changed
+### Changed 🔄
 
 - 🛠️ Refactored git status detection and file handling methods
 - 💡 Updated multi-provider examples with latest model names
@@ -180,32 +212,32 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - 🧩 Enhanced test mode with real diff and simulation support
 - 📝 Updated `.env.example` configuration details
 
-### Removed
+### Removed 🗑️
 
 - 🗑️ Deleted `run_tests.sh` and `run_tests.py` scripts
 
-### Fixed
+### Fixed 🐞
 
 - 🐛 Improve git staged files detection and staging
 - 🔧 Remove colon from commit prompts
 - 📝 Enhance token parsing and validation in configuration
 - 🛡️ Improve error handling in configuration and core modules
 
-### Security
+### Security 🔒
 
 - 📦 Enhanced version bumping and release processes in CI/CD workflows
 - 🔐 Added GitHub release workflow with version management
 
 ## [0.3.1] - 2025-03-27
 
-### Added
+### Added 🌟
 
 - 🌟 Enhanced project description retrieval feature to improve context for commit messages
 - 📝 Added option for generating one-liner commit messages
 - ✅ Added Codecov test results upload to CI workflow
 - 📝 Created `conftest.py` to improve test configuration and module importing
 
-### Changed
+### Changed 🔧
 
 - 🔧 Updated CI workflow to use Python 3.13
 - 🛠️ Switched from `bumpversion` to `bump-my-version` for version management
@@ -214,11 +246,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - 📉 Reduced default max output tokens from 8192 to 512
 - 🔍 Updated multi-provider examples with latest model names
 
-### Removed
+### Removed 🗑️
 
 - 🗑️ Deleted `run_tests.sh` and `run_tests.py` scripts
 
-### Fixed
+### Fixed 🐛
 
 - 🐛 Improve git staged files detection and staging
 - 🔧 Remove colon from commit prompts

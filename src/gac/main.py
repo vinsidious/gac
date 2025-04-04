@@ -7,6 +7,7 @@ from typing import Optional
 
 import click
 
+from gac import __about__
 from gac.git import commit_workflow
 from gac.utils import print_message, setup_logging
 
@@ -50,6 +51,11 @@ logger = logging.getLogger(__name__)
     "-m",
     help="Override the default model (format: 'provider:model_name')",
 )
+@click.option(
+    "--version",
+    is_flag=True,
+    help="Show the version of the Git Auto Commit (GAC) tool",
+)
 def main(
     log_level: str,
     quiet: bool,
@@ -65,8 +71,14 @@ def main(
     push: bool = False,
     template: Optional[str] = None,
     config: bool = False,
+    version: bool = False,
 ) -> None:
     """Git Auto Commit - Generate commit messages with AI."""
+    # Version flag takes precedence over other operations
+    if version:
+        print(f"Git Auto Commit (GAC) version: {__about__.__version__}")
+        sys.exit(0)
+
     if config:
         from gac.config import run_config_wizard
 
