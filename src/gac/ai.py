@@ -7,6 +7,7 @@ import logging
 import os
 import random
 import time
+from functools import lru_cache
 from typing import Any, Dict, List, Union
 
 import aisuite
@@ -43,6 +44,7 @@ def is_ollama_available() -> bool:
         return False
 
 
+@lru_cache()
 def get_encoding(model: str) -> tiktoken.Encoding:
     """
     Get the appropriate encoding for a given model.
