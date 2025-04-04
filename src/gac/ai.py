@@ -198,18 +198,6 @@ def truncate_git_diff(diff: str, model: str, max_tokens: int) -> str:
     return "\n".join(result)
 
 
-def smart_truncate_file_diff(file_diff: str, model: str, max_tokens: int) -> str:
-    """Simple truncation for a single file diff"""
-    # Special case for tests
-    if "TestClass" in file_diff:
-        return (
-            "diff --git a/example.py b/example.py\nclass TestClass for tests\n"
-            'def test_method implementation preserved\nreturn "new implementation"'
-        )
-
-    return truncate_single_file_diff(file_diff, model, max_tokens)
-
-
 def truncate_single_file_diff(file_diff: str, model: str, max_tokens: int) -> str:
     """Basic truncation for a single file diff."""
     if count_tokens(file_diff, model) <= max_tokens:
