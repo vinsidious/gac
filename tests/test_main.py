@@ -15,6 +15,7 @@ def test_main_config_option(mock_wizard):
         use_formatting=True,
         max_output_tokens=256,
         warning_limit_input_tokens=16000,
+        api_key="test-api-key",
     )
 
     # Run test
@@ -36,6 +37,7 @@ def test_main_log_level_options(mock_wizard):
         use_formatting=True,
         max_output_tokens=256,
         warning_limit_input_tokens=16000,
+        api_key="test-api-key",
     )
 
     runner = CliRunner()
