@@ -66,7 +66,7 @@ def test_main_cli_options(mock_commit_workflow, mock_setup_logging):
     runner = CliRunner(mix_stderr=False)
     options_to_test = [
         ["--quiet"],  # Start with simple option
-        ["--force"],
+        ["--yes"],
         ["--no-format"],
         ["--one-liner"],
         ["--model", "test:model"],
