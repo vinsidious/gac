@@ -68,6 +68,7 @@ def test_main_cli_options(mock_commit_workflow, mock_setup_logging):
         ["--quiet"],  # Start with simple option
         ["--yes"],
         ["--no-format"],
+        ["--format"],
         ["--one-liner"],
         ["--model", "test:model"],
     ]
@@ -94,3 +95,17 @@ def test_main_error_handling(mock_commit_workflow, mock_setup_logging):
     assert result.exit_code == 1
     assert mock_commit_workflow.called
     assert "Test error message" in result.output
+
+
+@patch("gac.main.setup_logging")
+@patch("gac.main.commit_workflow")
+def test_format_flag_conflict(mock_commit_workflow, mock_setup_logging):
+    """Test that using both --format and --no-format flags causes an error."""
+    runner = CliRunner(mix_stderr=False)
+    result = runner.invoke(main, ["--format", "--no-format"])
+
+    # Should exit with code 1 for conflicting flags
+    assert result.exit_code == 1
+    assert "Error: --format and --no-format cannot be used together" in result.output
+    # Should not call commit_workflow due to early error
+    assert not mock_commit_workflow.called

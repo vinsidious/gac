@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
     type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"], case_sensitive=False),
     help="Set log level (default: WARNING)",
 )
+@click.option("--format", "-f", is_flag=True, help="Force formatting of staged files")
 @click.option("--no-format", "-nf", is_flag=True, help="Skip formatting of staged files")
 @click.option("--one-liner", "-o", is_flag=True, help="Generate a single-line commit message")
 @click.option("--push", "-p", is_flag=True, help="Push changes to remote after committing")
@@ -51,6 +52,7 @@ def main(
     quiet: bool,
     yes: bool = False,
     add_all: bool = False,
+    format: bool = False,
     no_format: bool = False,
     model: Optional[str] = None,
     one_liner: bool = False,
@@ -72,6 +74,10 @@ def main(
             print_message("Configuration saved successfully!", "notification")
         return
 
+    if format and no_format:
+        print_message("Error: --format and --no-format cannot be used together", "error")
+        sys.exit(1)
+
     log_level = log_level.upper()
     numeric_log_level = logging.WARNING
     if log_level == "DEBUG":
@@ -88,7 +94,7 @@ def main(
     result = commit_workflow(
         message=None,
         stage_all=add_all,
-        format_files=not no_format,
+        format_files=format or not no_format,
         model=model,
         hint=hint,
         one_liner=one_liner,
