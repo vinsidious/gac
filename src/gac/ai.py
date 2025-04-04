@@ -273,7 +273,10 @@ def truncate_git_diff(diff: str, model: str, max_tokens: int) -> str:
 
         # Add truncation indicator if needed
         if len(result_diffs) < len(patch_set):
-            trunc_msg = f"\n\n[... {len(patch_set) - len(result_diffs)} more files not shown due to token limit ...]"
+            trunc_msg = (
+                f"\n\n[... {len(patch_set) - len(result_diffs)} more files not shown due "
+                "to token limit ...]"
+            )
             result += trunc_msg
 
         return result
@@ -374,7 +377,10 @@ def truncate_single_file_diff(file_diff: str, model: str, max_tokens: int) -> st
         if count_tokens("\n".join(header), model) > max_tokens:
             file_path = re.search(r"diff --git a/(.*) b/", file_diff)
             if file_path:
-                return f"diff --git a/{file_path.group(1)} b/{file_path.group(1)}\n[diff too large for token limit]"
+                return (
+                    f"diff --git a/{file_path.group(1)} b/{file_path.group(1)}\n"
+                    "[diff too large for token limit]"
+                )
             return "diff --git [diff too large for token limit]"
 
         # Prioritize lines with changes

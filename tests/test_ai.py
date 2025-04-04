@@ -116,7 +116,7 @@ class TestAiUtils:
             # Reset for scenario 2
             mock_count_tokens.reset_mock()
             # Scenario 2: Can fit more lines
-            # First call checks first+last, then we add Line 2, then Line 4, then check if can add more
+            # First call checks first+last, then we add Line 2, then Line 4, then check if can add more  # noqa: E501
             mock_count_tokens.side_effect = [3, 4, 5, 6, 7]
             result = truncate_with_beginning_and_end(lines, "test:model", 5)
             # Should contain first, last, and ellipsis

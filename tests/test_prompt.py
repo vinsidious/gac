@@ -5,6 +5,8 @@ from unittest.mock import patch
 
 from gac.prompt import build_prompt, clean_commit_message, create_abbreviated_prompt
 
+# fmt: off
+# flake8: noqa: E501
 # Sample template content for testing
 TEST_TEMPLATE = """Write a concise and meaningful git commit message based on the staged changes shown below.
 
@@ -31,6 +33,7 @@ Changes to be committed:
 <git-diff>
 <diff></diff>
 </git-diff>"""
+# fmt: on
 
 
 class TestPrompts:

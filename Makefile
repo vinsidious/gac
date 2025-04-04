@@ -25,7 +25,7 @@ coverage:
 lint:
 	uv run -- black --check src/ tests/
 	uv run -- isort --check src/ tests/
-	uv run -- flake8 --max-line-length=100 --ignore=E501,E203,W503 src/ tests/
+	uv run -- flake8 --max-line-length=100 --ignore=E203,W503 src/ tests/
 
 # Format code
 format:
