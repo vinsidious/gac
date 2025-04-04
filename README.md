@@ -16,24 +16,41 @@ principles, GAC simplifies your Git workflow by automatically crafting descripti
 ## ✨ Key Features
 
 - 🤖 AI-Generated Commit Messages
-- 🧩 Multi-Provider Support (Anthropic, OpenAI, Groq, Mistral)
+- 🧩 Multi-Provider API Support (Anthropic, OpenAI, Groq, Mistral)
 - 🌐 Local Model Integration (Ollama)
 - 🔧 Automatic Code Formatting
 - 🚀 Functional Programming Design
-- 🔒 Secure and Configurable
-- 🐍 Python 3.10+ Compatibility
 
-## 🚀 Quick Installation
+## 🔌 Development Status
+
+This project is under active development and not yet available via package managers. To try it out:
 
 ```bash
-# Recommended method
-pipx install gac
+# Clone the repository
+git clone https://github.com/cellwebb/gac.git
+cd gac
 
-# Alternative: pip installation
-pip install gac
+# Install in development mode
+pip install -e .
 ```
 
-## 🎬 Quick Start
+## Installation
+
+### Using pipx (recommended)
+
+To install directly from GitHub:
+
+```bash
+pipx install git+https://github.com/yourusername/git-auto-commit.git
+```
+
+For a specific version or branch:
+
+```bash
+pipx install git+https://github.com/yourusername/git-auto-commit.git@branch-or-tag
+```
+
+## 🎬 Usage
 
 1. Stage your changes:
 
@@ -47,14 +64,15 @@ git add .
 gac
 ```
 
-## 🛠 Configuration Options
+## 🛠 Configuration
 
 ### AI Provider Setup
 
 1. Get an API key from your preferred provider
-2. Set the environment variable:
+2. Set the environment variables:
 
 ```bash
+export GAC_MODEL=anthropic:claude-3-5-haiku-latest
 export ANTHROPIC_API_KEY=your_key_here
 ```
 
@@ -71,20 +89,27 @@ gac --config-wizard
 # Stage all changes and commit
 gac -a
 
-# Use a specific AI model
-gac -m openai:gpt-4o
+# Automatically confirm suggested commit message (use at your own risk)
+gac -f
+
+# Automatically push after committing (use at your own risk)
+gac -p
 
 # Generate one-line commit message
 gac -o
 
 # Provide context hint
 gac -h "Fix authentication bug"
+
+# All together now
+gac -afpo -h "Fixing JIRA ticket #420"
+
 ```
 
 ## 🔌 Supported Providers
 
-- Anthropic Claude
-- OpenAI GPT
+- Anthropic
+- OpenAI
 - Groq
 - Mistral
 - Local Models (Ollama)
