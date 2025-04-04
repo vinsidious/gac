@@ -83,6 +83,25 @@ export ANTHROPIC_API_KEY=your_key_here
 gac --config
 ```
 
+The configuration wizard guides you through selecting:
+
+- Your preferred AI provider
+- The specific model to use
+- Code formatting preferences
+
+Your choices are automatically saved to a `.gac.env` file in your home directory, making them
+persistent across terminal sessions.
+
+### Configuration Files
+
+GAC supports several configuration methods:
+
+- `.gac.env` file in your home directory (created by configuration wizard)
+- Local `.env` file in your project directory
+- Environment variables in your current shell session
+
+Priority order: Environment variables > Local `.env` > Home `.gac.env` > Defaults
+
 ## 🌈 Advanced Usage
 
 ```bash

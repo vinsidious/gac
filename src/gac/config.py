@@ -2,13 +2,28 @@
 
 import logging
 import os
+import pathlib
 from typing import Any, Optional
 
 import questionary
+from dotenv import load_dotenv, set_key
 from pydantic import BaseModel, model_validator
 
 logger = logging.getLogger(__name__)
 
+# Load .env file if it exists
+load_dotenv()
+
+# Define the path to the user's .env file
+USER_ENV_FILE = pathlib.Path.home() / ".gac.env"
+
+# Create the .env file if it doesn't exist
+if not USER_ENV_FILE.exists():
+    USER_ENV_FILE.touch()
+    logger.debug(f"Created .env file at {USER_ENV_FILE}")
+
+# Load user-specific .env file
+load_dotenv(USER_ENV_FILE)
 
 DEFAULT_CONFIG = {
     "model": "anthropic:claude-3-5-haiku-latest",
@@ -226,6 +241,7 @@ def run_config_wizard() -> Optional[Config]:
     """Interactive configuration wizard for GAC.
 
     Guides the user through setting up their preferred AI provider and model.
+    Saves the configuration to the user's .env file.
 
     Returns:
         Optional[Config]: Configured settings or None if wizard is cancelled
@@ -279,6 +295,13 @@ def run_config_wizard() -> Optional[Config]:
     print(f"Model: {model_name}")
     print(f"Auto-formatting: {'Enabled' if use_formatting else 'Disabled'}")
 
+    # Skip the .env file prompt during testing
+    save_to_env = False
+    if "PYTEST_CURRENT_TEST" not in os.environ:
+        save_to_env = questionary.confirm(
+            "Would you like to save these settings to your .env file?", default=True
+        ).ask()
+
     confirm = questionary.confirm("Do you want to save these settings?", default=True).ask()
 
     if not confirm:
@@ -296,6 +319,17 @@ def run_config_wizard() -> Optional[Config]:
     try:
         config.validate_config()
         print("\n✅ Configuration validated successfully!")
+
+        # Apply settings to environment variables in the current process
+        os.environ["GAC_MODEL"] = config.model
+        os.environ["GAC_USE_FORMATTING"] = str(config.use_formatting).lower()
+
+        # Save settings to .env file if requested
+        if save_to_env:
+            set_key(USER_ENV_FILE, "GAC_MODEL", config.model)
+            set_key(USER_ENV_FILE, "GAC_USE_FORMATTING", str(config.use_formatting).lower())
+            print(f"📝 Configuration saved to {USER_ENV_FILE}")
+
         return config
     except ConfigError as e:
         print(f"❌ Configuration validation failed: {e}")

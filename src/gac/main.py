@@ -2,7 +2,6 @@
 """Main entry point for GAC."""
 
 import logging
-import os
 import sys
 from typing import Optional
 
@@ -16,7 +15,11 @@ logger = logging.getLogger(__name__)
 
 @click.command()
 @click.option("--add-all", "-a", is_flag=True, help="Stage all changes before committing")
-@click.option("--config", is_flag=True, help="Run the interactive configuration wizard")
+@click.option(
+    "--config",
+    is_flag=True,
+    help="Run the interactive configuration wizard and save settings to ~/.gac.env",
+)
 @click.option(
     "--log-level",
     default="WARNING",
@@ -69,8 +72,6 @@ def main(
 
         result = run_config_wizard()
         if result:
-            os.environ["GAC_MODEL"] = result.model
-            os.environ["GAC_USE_FORMATTING"] = str(result.use_formatting).lower()
             print_message("Configuration saved successfully!", "notification")
         return
 
