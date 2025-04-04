@@ -5,6 +5,8 @@ on:
     branches:
       - main
   workflow_dispatch: # Allow manual triggering
+  schedule:
+    - cron: '0 */2 * * *'  # Run every two hours to check for idle time
 
 # Add permissions at workflow level
 permissions:
@@ -15,91 +17,41 @@ jobs:
   check-for-changes:
     runs-on: ubuntu-latest
     outputs:
-      should_release: ${{ steps.check_date.outputs.should_release }}
-    steps:
-      - name: Check if changes were made today
-        id: check_date
-        run: |
-          # Get the current date in YYYY-MM-DD format
-          TODAY=$(date +"%Y-%m-%d")
-          # Check if there were any commits today
-          if [[ $(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/commits?since=${TODAY}T00:00:00Z" | \
-            jq '. | length') -gt 0 ]]; then
-            echo "should_release=true" >> $GITHUB_OUTPUT
-          else
-            echo "should_release=false" >> $GITHUB_OUTPUT
-          fi
-
-  nightly-release:
-    needs: check-for-changes
-    if:
-      ${{ needs.check-for-changes.outputs.should_release == 'true' || github.event_name ==
-      'workflow_dispatch' }}
-    runs-on: ubuntu-latest
-    # Add permissions for this job too for clarity
-    permissions:
-      contents: write
-      packages: write
+      should_release: ${{ steps.check_idle.outputs.should_release }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Need full history for versioning
+          fetch-depth: 0  # Need full history for checking commits
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Install uv
+      - name: Check if repo has been idle for at least 1 hour
+        id: check_idle
         run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          # Get the timestamp of the most recent commit
+          LATEST_COMMIT_TIMESTAMP=$(git log -1 --format=%ct)
+          CURRENT_TIMESTAMP=$(date +%s)
+          
+          # Calculate time difference in seconds
+          TIME_DIFF=$((CURRENT_TIMESTAMP - LATEST_COMMIT_TIMESTAMP))
+          
+          # Check if it's been at least 1 hour (3600 seconds) since the last commit
+          if [ $TIME_DIFF -ge 3600 ]; then
+            echo "Last commit was $TIME_DIFF seconds ago (more than 1 hour)"
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "Last commit was $TIME_DIFF seconds ago (less than 1 hour)"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Install dependencies
+      - name: Check if nightly has already been released today
+        if: steps.check_idle.outputs.should_release == 'true'
+        id: check_existing
         run: |
-          uv venv .venv
-          source .venv/bin/activate
-          uv pip install -e ".[dev]"
-          uv pip install build twine tomlkit
-          # Verify key package installations
-          python -c "import tomlkit; print(f'Using tomlkit version: {tomlkit.__version__}')"
-
-      - name: Get date for nightly version
-        id: date
-        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
-
-      - name: Create nightly version
-        id: nightly_version
-        run: |
-          # Extract current version from pyproject.toml
-          CURRENT_VERSION=$(python -c "import tomlkit; print(tomlkit.parse(open('pyproject.toml').read())['tool']['bump-my-version']['current_version'])")
-          # Create nightly version string
-          NIGHTLY_VERSION="${CURRENT_VERSION}-nightly.${{ steps.date.outputs.date }}"
-          echo "version=${NIGHTLY_VERSION}" >> $GITHUB_OUTPUT
-          echo "Building nightly version: ${NIGHTLY_VERSION}"
-
-      - name: Build package
-        run: |
-          source .venv/bin/activate
-          python -m build
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: nightly-${{ steps.date.outputs.date }}
-          name: Nightly Release ${{ steps.nightly_version.outputs.version }}
-          body: |
-            Nightly build created from the latest changes on the main branch.
-
-            This is an automated nightly release and may contain unstable features.
-
-            Version: ${{ steps.nightly_version.outputs.version }}
-          prerelease: true
-          files: |
-            dist/*.whl
-            dist/*.tar.gz
+          TODAY=$(date +"%Y%m%d")
+          # Check if a nightly tag exists for today
+          if git tag -l | grep -q "nightly-$TODAY"; then
+            echo "A nightly release for today already exists"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          else
+            echo "No nightly release for today exists yet"
+          fi
