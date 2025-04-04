@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 
+from gac.config import Config
 from gac.main import main
 
 
@@ -9,7 +10,12 @@ from gac.main import main
 def test_main_config_option(mock_wizard):
     """Test the config option in main function."""
     # Setup mock
-    mock_wizard.return_value = {"model": "test:model", "use_formatting": True}
+    mock_wizard.return_value = Config(
+        model="anthropic:test-model",
+        use_formatting=True,
+        max_output_tokens=256,
+        warning_limit_input_tokens=16000,
+    )
 
     # Run test
     runner = CliRunner()
@@ -18,13 +24,19 @@ def test_main_config_option(mock_wizard):
     # Verify
     assert result.exit_code == 0
     assert mock_wizard.called
+    assert "Configuration saved successfully!" in result.output
 
 
 @patch("gac.config.run_config_wizard")
 def test_main_log_level_options(mock_wizard):
     """Test different log level options."""
     # Setup mock
-    mock_wizard.return_value = {"model": "test:model", "use_formatting": True}
+    mock_wizard.return_value = Config(
+        model="anthropic:test-model",
+        use_formatting=True,
+        max_output_tokens=256,
+        warning_limit_input_tokens=16000,
+    )
 
     runner = CliRunner()
     log_levels = ["DEBUG", "INFO", "WARNING", "ERROR"]
@@ -33,6 +45,7 @@ def test_main_log_level_options(mock_wizard):
         result = runner.invoke(main, ["--log-level", level, "--config"])
         assert result.exit_code == 0
         assert mock_wizard.called
+        assert "Configuration saved successfully!" in result.output
         mock_wizard.reset_mock()
 
 
