@@ -552,10 +552,7 @@ def generate_commit_message(
         client, model, messages, temperature, max_tokens, show_spinner, provider_name, model_name
     ):
         if show_spinner:
-            with Halo(
-                text=f"Connecting to {provider_name} API", spinner="dots", color="cyan"
-            ) as spinner:
-                spinner.text = f"Generating with model {model_name}"
+            with Halo(text=f"Generating with model {model_name}", spinner="dots", color="cyan"):
 
                 response = client.chat.completions.create(
                     model=model,
