@@ -1,9 +1,6 @@
 name: Nightly Release
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch: # Allow manual triggering
   schedule:
     - cron: "0 */2 * * *" # Run every two hours to check for idle time
