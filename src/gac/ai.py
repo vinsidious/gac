@@ -78,10 +78,7 @@ def extract_text_content(content: Union[str, List[Dict[str, str]], Dict[str, Any
     return ""
 
 
-def count_tokens(
-    content: Union[str, List[Dict[str, str]], Dict[str, Any]],
-    model: str,
-) -> int:
+def count_tokens(content: Union[str, List[Dict[str, str]], Dict[str, Any]], model: str) -> int:
     """Count tokens in content using the model's tokenizer."""
     text = extract_text_content(content)
     if not text:
@@ -92,7 +89,6 @@ def count_tokens(
         return len(encoding.encode(text))
     except Exception as e:
         logger.error(f"Error counting tokens: {e}")
-        # Simple fallback estimation
         return len(text) // 4
 
 
