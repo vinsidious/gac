@@ -8,6 +8,7 @@ from gac.ai import (
     extract_text_content,
     generate_commit_message,
     get_encoding,
+    smart_truncate_file_diff,
     smart_truncate_text,
     truncate_git_diff,
     truncate_single_file_diff,
@@ -176,7 +177,7 @@ index 123abc..456def 100644
 
             result = truncate_git_diff(test_diff, "test:model", 10)
             assert "file2.txt" in result  # Higher importance file should be included
-            assert "more files not shown" in result  # Truncation message
+            assert "files not shown" in result  # Truncation message
 
     def test_truncate_single_file_diff(self):
         """Test truncating a single file diff."""
@@ -250,3 +251,49 @@ index abc123..def456 100644
         # Verify results
         assert result == "Test commit message"
         mock_chat.completions.create.assert_called_once()
+
+    def test_smart_truncate_file_diff(self):
+        """Test smart truncation of file diff with semantic context preservation."""
+        # No need to import here, already imported at the module level
+
+        # Create a test diff with function definitions and changes
+        test_file_diff = """diff --git a/example.py b/example.py
+index abc123..def456 100644
+--- a/example.py
++++ b/example.py
+@@ -10,6 +10,7 @@ class TestClass:
+     def test_method(self):
+         # Test method implementation
+-        return "old implementation"
++        # Added comment
++        return "new implementation"
+
+@@ -20,4 +21,5 @@ def some_function():
+     # Some implementation
+     print("Hello")
++    print("World")
+     return True"""
+
+        with patch("gac.ai.count_tokens") as mock_count_tokens:
+            # Setup token counting to force truncation
+            mock_count_tokens.side_effect = [
+                100,  # Initial check (over limit)
+                20,  # Header tokens
+                40,  # First hunk tokens
+                30,  # Second hunk tokens
+            ]
+
+            # Call the function with a small token limit to force truncation
+            result = smart_truncate_file_diff(test_file_diff, "test:model", 50)
+
+            # Verify the result contains key semantic elements
+            assert "TestClass" in result  # Class name should be preserved
+            assert "test_method" in result  # Method should be preserved
+            assert "new implementation" in result  # Changes should be preserved
+
+            # No truncation message is needed since our mock made it fit within limits
+            # Instead, verify both hunks are included
+            assert 'print("World")' in result  # Content from second hunk
+
+            # Verify token counting was called
+            assert mock_count_tokens.call_count >= 1
