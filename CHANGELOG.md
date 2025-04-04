@@ -9,6 +9,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [v0.6.0] - 2025-04-03
+
 ### Added
 
 - Comprehensive markdownlint and Prettier configuration for improved code style consistency
