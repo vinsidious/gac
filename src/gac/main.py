@@ -67,8 +67,8 @@ def main(
 
         result = run_config_wizard()
         if result:
-            os.environ["GAC_MODEL"] = result["model"]
-            os.environ["GAC_USE_FORMATTING"] = str(result["use_formatting"]).lower()
+            os.environ["GAC_MODEL"] = result.model
+            os.environ["GAC_USE_FORMATTING"] = str(result.use_formatting).lower()
             print_message("Configuration saved successfully!", "notification")
         return
 

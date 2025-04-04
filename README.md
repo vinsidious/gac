@@ -80,7 +80,7 @@ export ANTHROPIC_API_KEY=your_key_here
 
 ```bash
 # Run configuration wizard
-gac --config-wizard
+gac --config
 ```
 
 ## 🌈 Advanced Usage
