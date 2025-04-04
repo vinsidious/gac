@@ -420,25 +420,6 @@ def truncate_single_file_diff(file_diff: str, model: str, max_tokens: int) -> st
         return "\n".join(result)
 
 
-def _process_ai_response(response) -> str:
-    """
-    Extract and validate text content from AI response
-
-    Args:
-        response: The response object from the AI provider
-
-    Returns:
-        The extracted text content
-
-    Raises:
-        AIError: If the response is empty
-    """
-    response_text = response.choices[0].message.content
-    if not response_text:
-        raise AIError("Empty response from AI provider")
-    return response_text
-
-
 def handle_ai_errors(func):
     """
     Decorator for handling AI API errors with consistent retry logic
@@ -551,16 +532,23 @@ def generate_commit_message(
     def make_api_call(
         client, model, messages, temperature, max_tokens, show_spinner, provider_name, model_name
     ):
+        """Make an API call to the AI provider to generate a commit message."""
+
+        def _process_ai_response(response) -> str:
+            """Extract and validate text content from AI response"""
+            response_text = response.choices[0].message.content
+            if not response_text:
+                raise AIError("Empty response from AI provider")
+            return response_text
+
         if show_spinner:
             with Halo(text=f"Generating with model {model_name}", spinner="dots", color="cyan"):
-
                 response = client.chat.completions.create(
                     model=model,
                     messages=messages,
                     temperature=temperature,
                     max_tokens=max_tokens,
                 )
-
                 return _process_ai_response(response)
         else:
             response = client.chat.completions.create(
@@ -569,10 +557,8 @@ def generate_commit_message(
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
-
             return _process_ai_response(response)
 
-    # Make the API call with error handling
     response_text = make_api_call(
         client=client,
         model=model,
