@@ -9,32 +9,29 @@ setup:
 install:
 	uv pip install -e .
 
+# Update dependencies
+update:
+	uv pip install -U -e ".[dev]"
+
 # Install with development dependencies
 install-dev:
 	uv pip install -e ".[dev]"
 
-# Run tests
 test:
 	uv run -- pytest
 
-# Run tests with coverage
-coverage:
+test-cov:
 	uv run -- python -m pytest --cov=src --cov-report=term --cov-report=html
 
-# Run linting
 lint:
 	uv run -- black src/ tests/
 	uv run -- isort src/ tests/
 	uv run -- flake8 --max-line-length=100 --ignore=E203,W503 src/ tests/
 
-# Format python code
 format:
 	uv run -- black src/ tests/
 	uv run -- isort src/ tests/
-
-# Update dependencies
-update:
-	uv pip install -U -e ".[dev]"
+	npx prettier --write "**/*.{md,yaml,yml,json}"
 
 # Clean build artifacts
 clean:

@@ -26,7 +26,7 @@ jobs:
         run: |
           # Get the timestamp of the most recent nightly release tag
           LAST_NIGHTLY_TAG=$(git tag -l 'nightly-*' | sort -V | tail -n 1)
-          
+
           if [ -z "$LAST_NIGHTLY_TAG" ]; then
             # No previous nightly release, so release
             echo "No previous nightly release found"
@@ -58,7 +58,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Create nightly release tag
         run: |
