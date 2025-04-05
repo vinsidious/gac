@@ -283,7 +283,7 @@ def generate_commit_message(
     while retries <= max_retries:
         try:
             if show_spinner:
-                with Halo(text=f"Generating with model {model_name}", spinner="dots", color="cyan"):
+                with Halo(text=f"Generating with model {model_name}", spinner="dots"):
                     response = client.chat.completions.create(
                         model=model,
                         messages=messages,
