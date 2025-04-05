@@ -26,6 +26,7 @@ test-cov:
 lint:
 	uv run -- black src/ tests/
 	uv run -- isort src/ tests/
+	npx prettier --write "**/*.{md,yaml,yml,json}"
 	uv run -- flake8 --max-line-length=100 --ignore=E203,W503 src/ tests/
 
 format:
