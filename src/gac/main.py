@@ -126,7 +126,7 @@ def main(
     if not quiet:
         print_message("Successfully committed changes with message:", "notification")
         print(result["message"])
-        if result.get("pushed"):
+        if result.get("pushed", False) is True:
             print_message("Changes pushed to remote.", "notification")
     sys.exit(0)
 

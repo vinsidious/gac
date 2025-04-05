@@ -215,8 +215,19 @@ def push_changes() -> bool:
     Returns:
         True if successful, False otherwise
     """
-    run_git_command(["push"])
-    return True
+    # First check if there's a configured remote repository
+    remote_exists = run_git_command(["remote"])
+    if not remote_exists:
+        logger.error("No configured remote repository.")
+        return False
+
+    # Attempt to push changes
+    result = run_git_command(["push"])
+    if "fatal: No configured push destination" in result:
+        logger.error("No configured push destination.")
+        return False
+
+    return "error" not in result.lower() and "fatal" not in result.lower()
 
 
 def create_commit_options(
@@ -276,7 +287,7 @@ def create_commit_options(
 
 
 @with_error_handling(GitError, "Failed to commit changes", exit_on_error=False)
-def commit_changes_with_options(options: Dict[str, Any]) -> Optional[str]:
+def commit_changes_with_options(options: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """
     Generate commit message and commit staged changes using an options dictionary.
 
@@ -287,7 +298,7 @@ def commit_changes_with_options(options: Dict[str, Any]) -> Optional[str]:
         options: Dictionary with commit options
 
     Returns:
-        The generated commit message or None if failed
+        Dictionary with commit result or None if failed
     """
     logger.debug(f"commit_changes_with_options called with add_all={options.get('add_all')}")
 
@@ -336,14 +347,15 @@ def commit_changes_with_options(options: Dict[str, Any]) -> Optional[str]:
         return None
 
     # Push changes if requested
+    pushed = False
     if options.get("push") and success:
-        push_success = push_changes()
-        if not push_success:
+        pushed = push_changes()
+        if not pushed:
             handle_error(
                 GACError("Failed to push changes"), quiet=options.get("quiet"), exit_program=False
             )
 
-    return message
+    return {"message": message, "pushed": pushed}
 
 
 def get_project_description() -> str:
@@ -705,16 +717,16 @@ def commit_workflow(
     )
 
     # Execute the commit operation
-    commit_message = commit_changes_with_options(options)
+    commit_result = commit_changes_with_options(options)
 
     # Return the result
-    if commit_message:
+    if commit_result:
         return {
             "success": True,
-            "message": commit_message,
+            "message": commit_result["message"],
             "repository": status["repo_dir"],
             "branch": status["branch"],
-            "pushed": push,
+            "pushed": commit_result.get("pushed", False),
         }
 
     return {"success": False, "error": "Failed to commit changes"}
