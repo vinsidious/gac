@@ -160,3 +160,42 @@ Check out our [ROADMAP.md](ROADMAP.md) to see planned features and improvements.
 
 - Powered by functional programming principles
 - Inspired by the need for smarter commit workflows
+
+## Configuration Wizard
+
+When you run the configuration wizard, you will first select your preferred AI provider. After
+selecting the provider, you will be prompted to **enter the model name manually** instead of
+selecting from a predefined list. This allows for greater flexibility in choosing models without the
+need to maintain a list of available options.
+
+### Steps:
+
+1. **Select AI Provider:** Choose from the list of supported AI providers (`anthropic`, `openai`,
+   `groq`, `mistral`).
+2. **Enter Model Name:** Manually input the model name you wish to use.
+3. **Formatting Preference:** Choose whether to enable automatic Python file formatting.
+4. **Save Configuration:** Decide whether to save these settings to your `.env` file.
+
+### Example
+
+```bash
+$ gac configure
+🚀 Git Auto Commit (GAC) Configuration Wizard
+-------------------------------------------
+? Select your preferred AI provider: [Use arrows to move, type to filter]
+❯ anthropic
+  openai
+  groq
+  mistral
+
+? Enter the anthropic model name: claude-3-5-haiku-latest
+? Would you like to automatically format Python files? Yes
+📋 Configuration Summary:
+Provider: anthropic
+Model: claude-3-5-haiku-latest
+Auto-formatting: Enabled
+? Would you like to save these settings to your .env file? Yes
+? Do you want to save these settings? Yes
+✅ Configuration validated successfully!
+📝 Configuration saved to /Users/cell/.gac.env
+```

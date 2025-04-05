@@ -114,87 +114,98 @@ class TestConfig(unittest.TestCase):
 
 
 def test_config_wizard_provider_selection():
-    """Test that the configuration wizard allows selecting a provider and model."""
+    """Test that the configuration wizard allows selecting a provider and entering a model."""
     # Mock user selections
     mock_select = MagicMock()
-    mock_select.ask.side_effect = ["anthropic", "claude-3-5-haiku-latest"]
+    mock_select.ask.side_effect = ["anthropic"]
+    mock_text = MagicMock()
+    mock_text.ask.side_effect = ["custom-model-name"]
     mock_confirm = MagicMock()
     mock_confirm.ask.return_value = True
 
     # Run the wizard with mocked inputs
     with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test_key"}):
         with patch("questionary.select", return_value=mock_select):
-            with patch("questionary.confirm", return_value=mock_confirm):
-                config = run_config_wizard()
+            with patch("questionary.text", return_value=mock_text):
+                with patch("questionary.confirm", return_value=mock_confirm):
+                    config = run_config_wizard()
 
-                # Verify the behavior: wizard returns valid config with selected provider
-                assert config is not None
-                assert config.model.startswith("anthropic:")
+                    # Verify the behavior: wizard returns valid config with selected provider and model  # noqa: E501
+                    assert config is not None
+                    assert config.model == "anthropic:custom-model-name"
 
 
 def test_config_wizard_cancellation():
     """Test that the configuration wizard can be cancelled by the user."""
     # Mock user cancellation
     mock_select = MagicMock()
-    mock_select.ask.return_value = None
+    mock_select.ask.return_value = "openai"
+    mock_text = MagicMock()
+    mock_text.ask.return_value = None  # Simulate user cancelling at model name input
+    mock_confirm = MagicMock()
+    mock_confirm.ask.return_value = False
 
     # Run the wizard with mocked inputs
     with patch("questionary.select", return_value=mock_select):
-        config = run_config_wizard()
+        with patch("questionary.text", return_value=mock_text):
+            with patch("questionary.confirm", return_value=mock_confirm):
+                config = run_config_wizard()
 
-        # Verify the behavior: wizard returns None when cancelled
-        assert config is None
+                # Verify the behavior: wizard returns None when cancelled
+                assert config is None
 
 
 def test_config_wizard_validation():
     """Test that wizard-generated configurations pass validation."""
     # Mock user selections
     mock_select = MagicMock()
-    mock_select.ask.side_effect = ["anthropic", "claude-3-5-haiku-latest"]
+    mock_select.ask.side_effect = ["groq"]
+    mock_text = MagicMock()
+    mock_text.ask.side_effect = ["custom-groq-model"]
     mock_confirm = MagicMock()
     mock_confirm.ask.return_value = True
 
     # Run the wizard with mocked inputs
-    with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test_key"}):
+    with patch.dict(os.environ, {"GROQ_API_KEY": "test_key"}):
         with patch("questionary.select", return_value=mock_select):
-            with patch("questionary.confirm", return_value=mock_confirm):
-                config = run_config_wizard()
+            with patch("questionary.text", return_value=mock_text):
+                with patch("questionary.confirm", return_value=mock_confirm):
+                    config = run_config_wizard()
 
-                # Verify the behavior: generated config is valid
-                assert config is not None
-                # Config is already validated during creation
+                    # Verify the behavior: generated config is valid
+                    assert config is not None
+                    assert config.model == "groq:custom-groq-model"
+                    assert config.use_formatting is True
 
 
 def test_config_wizard_formatting_option():
     """Test that the formatting option can be toggled in the wizard."""
     # Mock user selections for two different runs
     mock_select = MagicMock()
-    mock_select.ask.side_effect = [
-        "anthropic",
-        "claude-3-5-haiku-latest",
-        "anthropic",
-        "claude-3-5-haiku-latest",
-    ]
+    mock_select.ask.side_effect = ["mistral", "openai"]
+    mock_text = MagicMock()
+    mock_text.ask.side_effect = ["mistral-large-latest", "gpt-4o"]
     mock_confirm = MagicMock()
     mock_confirm.ask.side_effect = [False, True, True, True]
 
     # Run the wizard twice with different formatting choices
-    with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test_key"}):
+    with patch.dict(os.environ, {"MISTRAL_API_KEY": "test_key", "OPENAI_API_KEY": "test_key"}):
         with patch("questionary.select", return_value=mock_select):
-            with patch("questionary.confirm", return_value=mock_confirm):
-                # First run with formatting disabled
-                config1 = run_config_wizard()
+            with patch("questionary.text", return_value=mock_text):
+                with patch("questionary.confirm", return_value=mock_confirm):
+                    # First run with formatting disabled
+                    config1 = run_config_wizard()
 
-                # Verify the behavior: formatting is disabled in first config
-                assert config1 is not None
-                assert config1.use_formatting is False
+                    # Verify the behavior: formatting is disabled in first config
+                    assert config1 is not None
+                    assert config1.use_formatting is False
 
-                # Second run with formatting enabled
-                config2 = run_config_wizard()
+                    # Second run with formatting enabled
+                    config2 = run_config_wizard()
 
-                # Verify the behavior: formatting is enabled in second config
-                assert config2 is not None
-                assert config2.use_formatting is True
+                    # Verify the behavior: formatting is enabled in second config
+                    assert config2 is not None
+                    assert config2.use_formatting is True
 
 
 def test_config_wizard_model_selection():
@@ -216,23 +227,22 @@ def test_config_wizard_model_selection():
     }
 
     # Test each provider and model combination
-    with patch.dict(os.environ, env_vars):
+    with patch.dict(os.environ, env_vars, clear=True):
         for provider, models in providers_and_models.items():
             for model in models:
                 # Mock user selections
-                mock_select = MagicMock()
-                mock_select.ask.side_effect = [provider, model]
-                mock_confirm = MagicMock()
-                mock_confirm.ask.return_value = True
+                with (
+                    patch("questionary.select", return_value=MagicMock(ask=lambda: provider)),
+                    patch("questionary.text", return_value=MagicMock(ask=lambda: model)),
+                    patch("questionary.confirm", return_value=MagicMock(ask=lambda: True)),
+                ):
 
-                # Run the wizard with mocked inputs
-                with patch("questionary.select", return_value=mock_select):
-                    with patch("questionary.confirm", return_value=mock_confirm):
-                        config = run_config_wizard()
+                    # Run the wizard with mocked inputs
+                    config = run_config_wizard()
 
-                        # Verify: wizard returns config with selected provider and model
-                        assert config is not None
-                        assert config.model == f"{provider}:{model}"
+                    # Verify: wizard returns config with selected provider and model
+                    assert config is not None
+                    assert config.model == f"{provider}:{model}"
 
 
 if __name__ == "__main__":

@@ -238,21 +238,13 @@ def get_config() -> Config:
 
 
 def run_config_wizard() -> Optional[Config]:
-    """Interactive configuration wizard for GAC.
-
-    Guides the user through setting up their preferred AI provider and model.
-    Saves the configuration to the user's .env file.
-
-    Returns:
-        Optional[Config]: Configured settings or None if wizard is cancelled
-    """
-    # These are the only cloud AI providers we support - no plans to add more
-    # Ollama is handled separately as it's for local models only
-    supported_providers = ["anthropic", "openai", "groq", "mistral"]
+    """Interactive configuration wizard for GAC."""
 
     # Welcome message
     print("\n🚀 Git Auto Commit (GAC) Configuration Wizard")
     print("-------------------------------------------")
+
+    supported_providers = ["anthropic", "openai", "groq", "mistral"]
 
     # Provider selection
     provider = questionary.select(
@@ -263,19 +255,8 @@ def run_config_wizard() -> Optional[Config]:
         print("Configuration wizard cancelled.")
         return None
 
-    # Model selection based on provider
-    models = {
-        "anthropic": [
-            "claude-3-5-haiku-latest",
-            "claude-3-sonnet-20240229",
-            "claude-3-opus-20240229",
-        ],
-        "openai": ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"],
-        "groq": ["llama3-70b-8192", "mixtral-8x7b-32768"],
-        "mistral": ["mistral-large-latest", "mistral-medium-latest"],
-    }
-
-    model_name = questionary.select(f"Select a {provider} model:", choices=models[provider]).ask()
+    # Prompt user to enter the model name manually
+    model_name = questionary.text(f"Enter the {provider} model name:").ask()
 
     if not model_name:
         print("Configuration wizard cancelled.")
