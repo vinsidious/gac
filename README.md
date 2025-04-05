@@ -94,13 +94,16 @@ persistent across terminal sessions.
 
 ### Configuration Files
 
-GAC supports several configuration methods:
+GAC supports several configuration locations with the following precedence (highest to lowest):
 
-- `.gac.env` file in your home directory (created by configuration wizard)
-- Local `.env` file in your project directory
-- Environment variables in your current shell session
+1. Environment variables in your current shell session
+2. Project-level `.gac.env` file in your current directory
+3. User-level `.gac.env` file in your home directory
+4. Package-level `config.env` file (installed with the module)
+5. Default built-in values
 
-Priority order: Environment variables > Local `.env` > Home `.gac.env` > Defaults
+This multi-level configuration system allows for shared team settings in the package, user
+preferences in the home directory, and project-specific overrides in each repository.
 
 ## 🌈 Advanced Usage
 
@@ -163,39 +166,35 @@ Check out our [ROADMAP.md](ROADMAP.md) to see planned features and improvements.
 
 ## Configuration Wizard
 
-When you run the configuration wizard, you will first select your preferred AI provider. After
-selecting the provider, you will be prompted to **enter the model name manually** instead of
-selecting from a predefined list. This allows for greater flexibility in choosing models without the
-need to maintain a list of available options.
-
-### Steps:
+When you run the configuration wizard with `gac --config`, you will:
 
 1. **Select AI Provider:** Choose from the list of supported AI providers (`anthropic`, `openai`,
    `groq`, `mistral`).
 2. **Enter Model Name:** Manually input the model name you wish to use.
 3. **Formatting Preference:** Choose whether to enable automatic Python file formatting.
-4. **Save Configuration:** Decide whether to save these settings to your `.env` file.
+4. **Save Location:** Select where to save your configuration:
+   - Package config (for all users, requires appropriate permissions)
+   - User config (recommended, saved to `~/.gac.env`)
+   - Project config (only for current repository, saved to `.gac.env` in project directory)
+5. **Confirm Settings:** Review and confirm your configuration choices.
 
 ### Example
 
 ```bash
-$ gac configure
+$ gac --config
 🚀 Git Auto Commit (GAC) Configuration Wizard
 -------------------------------------------
-? Select your preferred AI provider: [Use arrows to move, type to filter]
-❯ anthropic
-  openai
-  groq
-  mistral
-
+? Select your preferred AI provider: anthropic
 ? Enter the anthropic model name: claude-3-5-haiku-latest
 ? Would you like to automatically format Python files? Yes
+
 📋 Configuration Summary:
 Provider: anthropic
 Model: claude-3-5-haiku-latest
 Auto-formatting: Enabled
-? Would you like to save these settings to your .env file? Yes
+
+? Where would you like to save these settings? User config (recommended)
 ? Do you want to save these settings? Yes
 ✅ Configuration validated successfully!
-📝 Configuration saved to /Users/cell/.gac.env
+📝 Configuration saved to /Users/username/.gac.env
 ```

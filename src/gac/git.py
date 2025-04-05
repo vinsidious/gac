@@ -384,11 +384,6 @@ def get_project_description() -> str:
         return "Unknown repository"
 
 
-def is_test_mode() -> bool:
-    """Check if we're running in test mode."""
-    return os.environ.get("GAC_TEST_MODE", "").lower() == "true"
-
-
 def is_large_file(file_path: str) -> bool:
     """
     Check if a file is considered large or auto-generated.
@@ -411,7 +406,7 @@ def is_large_file(file_path: str) -> bool:
             return False
 
         # Count tokens in the diff
-        token_count = count_tokens(diff, "test:model")
+        token_count = count_tokens(diff, "anthropic:claude-3-5-haiku-latest")
 
         # Consider large if token count exceeds threshold
         return token_count > MAX_DIFF_TOKENS

@@ -83,18 +83,54 @@ export ANTHROPIC_API_KEY=your_key_here
 - Groq: Set `GROQ_API_KEY`
 - Mistral: Set `MISTRAL_API_KEY`
 
-### Configuration Options
+### Configuration Locations
 
-You can configure GAC using environment variables or the interactive wizard:
+GAC loads configuration from multiple locations with the following precedence (highest to lowest):
+
+1. Environment variables (set in your terminal session)
+2. Project configuration (`.gac.env` in your current directory)
+3. User configuration (`.gac.env` in your home directory)
+4. Package configuration (installed with the module)
+5. Default built-in values
+
+This multi-level approach allows:
+
+- Shared team settings in the package configuration
+- Personal preferences in your home directory
+- Project-specific overrides in each repository
+
+### Configuration Wizard
+
+The easiest way to set up GAC is using the configuration wizard:
 
 ```bash
 # Run configuration wizard
 gac --config-wizard
+```
 
-# Or set environment variables
+The wizard will guide you through selecting:
+
+- Your preferred AI provider
+- Model name
+- Formatting preferences
+- Where to save your configuration:
+  - Package-level (all users, requires write permissions)
+  - User-level in your home directory (recommended)
+  - Project-level in your current directory
+
+### Environment Variables
+
+You can also configure GAC directly using environment variables:
+
+```bash
+# Model selection (required)
 export GAC_MODEL=anthropic:claude-3-5-haiku-latest
+
+# Optional settings
 export GAC_USE_FORMATTING=true
 export GAC_MAX_OUTPUT_TOKENS=512
+export GAC_WARNING_LIMIT_INPUT_TOKENS=16000
+export GAC_TEMPERATURE=0.7
 ```
 
 ## Advanced Usage
@@ -121,7 +157,7 @@ gac -m ollama:llama3
 gac -a
 
 # Use a specific model
-gac -m openai:gpt-4o
+gac -m openai:gpt-4o-mini
 
 # Generate one-line commit message
 gac -o

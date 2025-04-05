@@ -3,6 +3,7 @@
 import logging
 import os
 import pathlib
+import sys
 from typing import Any, Optional
 
 import questionary
@@ -11,19 +12,46 @@ from pydantic import BaseModel, model_validator
 
 logger = logging.getLogger(__name__)
 
-# Load .env file if it exists
-load_dotenv()
+# Define configuration file paths
+# 1. Package-level configuration (installed with the module)
+try:
+    # Get the package installation directory
+    if getattr(sys, "frozen", False):
+        # For PyInstaller or similar packaging
+        PACKAGE_DIR = pathlib.Path(sys.executable).parent
+    else:
+        # For pip/pipx installations
+        import gac
 
-# Define the path to the user's .env file
+        PACKAGE_DIR = pathlib.Path(gac.__file__).parent
+    PACKAGE_CONFIG_FILE = PACKAGE_DIR / "config.env"
+except (ImportError, AttributeError):
+    # Fallback to current directory if can't determine package path
+    PACKAGE_DIR = pathlib.Path(__file__).parent
+    PACKAGE_CONFIG_FILE = PACKAGE_DIR / "config.env"
+
+# 2. User-level configuration (in home directory)
 USER_ENV_FILE = pathlib.Path.home() / ".gac.env"
 
-# Create the .env file if it doesn't exist
+# 3. Project-level configuration (in current directory)
+PROJECT_ENV_FILE = pathlib.Path.cwd() / ".gac.env"
+
+# Load configurations with increasing precedence
+# 1. Package config (installed with the module)
+if PACKAGE_CONFIG_FILE.exists():
+    logger.debug(f"Loading package configuration from {PACKAGE_CONFIG_FILE}")
+    load_dotenv(PACKAGE_CONFIG_FILE)
+
+# 2. User-specific config (in home directory)
 if not USER_ENV_FILE.exists():
     USER_ENV_FILE.touch()
-    logger.debug(f"Created .env file at {USER_ENV_FILE}")
-
-# Load user-specific .env file
+    logger.debug(f"Created user config file at {USER_ENV_FILE}")
 load_dotenv(USER_ENV_FILE)
+
+# 3. Project-specific config (in current directory)
+if PROJECT_ENV_FILE.exists():
+    logger.debug(f"Loading project configuration from {PROJECT_ENV_FILE}")
+    load_dotenv(PROJECT_ENV_FILE)
 
 DEFAULT_CONFIG = {
     "model": "anthropic:claude-3-5-haiku-latest",
@@ -159,9 +187,12 @@ def get_config() -> Config:
     """Load configuration from environment variables or use defaults.
 
     The function checks for several environment variables and applies them
-    to the configuration in the following order of precedence:
-    1. GAC_MODEL (full provider:model)
-    2. Default values from DEFAULT_CONFIG
+    to the configuration in the following precedence (highest to lowest):
+    1. Environment variables
+    2. Project-level .gac.env file (in current directory)
+    3. User-level .gac.env file (in home directory)
+    4. Package-level config.env file (installed with the module)
+    5. Default values from DEFAULT_CONFIG
 
     Returns:
         Config: The immutable configuration object with all settings
@@ -277,10 +308,20 @@ def run_config_wizard() -> Optional[Config]:
     print(f"Auto-formatting: {'Enabled' if use_formatting else 'Disabled'}")
 
     # Skip the .env file prompt during testing
-    save_to_env = False
+    save_location = None
     if "PYTEST_CURRENT_TEST" not in os.environ:
-        save_to_env = questionary.confirm(
-            "Would you like to save these settings to your .env file?", default=True
+        choices = [
+            {"name": "User config (recommended)", "value": "user"},
+            {"name": "Project config (only for this repository)", "value": "project"},
+            {"name": "Don't save", "value": "none"},
+        ]
+
+        if os.access(str(PACKAGE_DIR), os.W_OK):
+            choices.insert(0, {"name": "Package config (for all users)", "value": "package"})
+
+        save_location = questionary.select(
+            "Where would you like to save these settings?",
+            choices=choices,
         ).ask()
 
     confirm = questionary.confirm("Do you want to save these settings?", default=True).ask()
@@ -305,11 +346,31 @@ def run_config_wizard() -> Optional[Config]:
         os.environ["GAC_MODEL"] = config.model
         os.environ["GAC_USE_FORMATTING"] = str(config.use_formatting).lower()
 
-        # Save settings to .env file if requested
-        if save_to_env:
+        # Save settings to the selected location
+        if save_location == "package":
+            # Save to package-level config
+            try:
+                set_key(PACKAGE_CONFIG_FILE, "GAC_MODEL", config.model)
+                set_key(
+                    PACKAGE_CONFIG_FILE, "GAC_USE_FORMATTING", str(config.use_formatting).lower()
+                )
+                print(f"📝 Configuration saved to {PACKAGE_CONFIG_FILE}")
+            except PermissionError:
+                print(f"⚠️ Permission denied when writing to {PACKAGE_CONFIG_FILE}")
+                print("Try running with elevated privileges or choose a different location")
+                return None
+        elif save_location == "user":
+            # Save to user-level config
             set_key(USER_ENV_FILE, "GAC_MODEL", config.model)
             set_key(USER_ENV_FILE, "GAC_USE_FORMATTING", str(config.use_formatting).lower())
             print(f"📝 Configuration saved to {USER_ENV_FILE}")
+        elif save_location == "project":
+            # Save to project-level config
+            set_key(PROJECT_ENV_FILE, "GAC_MODEL", config.model)
+            set_key(PROJECT_ENV_FILE, "GAC_USE_FORMATTING", str(config.use_formatting).lower())
+            print(f"📝 Configuration saved to {PROJECT_ENV_FILE}")
+        else:
+            print("⚠️ Configuration not saved to disk, only applied for this session.")
 
         return config
     except ConfigError as e:

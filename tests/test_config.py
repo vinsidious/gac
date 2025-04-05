@@ -4,7 +4,7 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-from gac.config import DEFAULT_CONFIG, get_config, run_config_wizard
+from gac.config import DEFAULT_CONFIG, Config, get_config, run_config_wizard
 
 
 class TestConfig(unittest.TestCase):
@@ -231,18 +231,60 @@ def test_config_wizard_model_selection():
         for provider, models in providers_and_models.items():
             for model in models:
                 # Mock user selections
+                mock_select = MagicMock()
+                # Mock two select calls - first for provider, second for save location
+                mock_select.ask.side_effect = [provider, "none"]  # none = don't save
+
                 with (
-                    patch("questionary.select", return_value=MagicMock(ask=lambda: provider)),
+                    patch("questionary.select", return_value=mock_select),
                     patch("questionary.text", return_value=MagicMock(ask=lambda: model)),
                     patch("questionary.confirm", return_value=MagicMock(ask=lambda: True)),
                 ):
-
                     # Run the wizard with mocked inputs
                     config = run_config_wizard()
 
                     # Verify: wizard returns config with selected provider and model
                     assert config is not None
                     assert config.model == f"{provider}:{model}"
+
+
+def test_config_precedence():
+    """Test that configuration precedence is respected."""
+    # Set up environment variables for testing
+    with patch.dict(
+        os.environ,
+        {
+            "ANTHROPIC_API_KEY": "mock-api-key",  # Required for all tests
+        },
+        clear=True,
+    ):
+
+        # Test 1: Only default config (from DEFAULT_CONFIG)
+        # Clear any specific config values
+        for var in ["GAC_MODEL", "GAC_USE_FORMATTING"]:
+            if var in os.environ:
+                del os.environ[var]
+
+        config = get_config()
+        assert config.model == DEFAULT_CONFIG["model"]
+
+        # Test 2: Environment variable overrides default
+        os.environ["GAC_MODEL"] = "anthropic:env-model"
+        config = get_config()
+        assert config.model == "anthropic:env-model"
+
+        # Test 3: Direct modification of Config object
+        # This verifies that we can create a Config object with different values
+        custom_config = Config(
+            model="anthropic:custom-model",
+            use_formatting=False,
+            max_output_tokens=500,
+            warning_limit_input_tokens=20000,
+            api_key="custom-key",
+        )
+        assert custom_config.model == "anthropic:custom-model"
+        assert custom_config.use_formatting is False
+        assert custom_config.max_output_tokens == 500
 
 
 if __name__ == "__main__":

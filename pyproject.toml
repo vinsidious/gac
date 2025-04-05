@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+requires = ["hatchling", "hatch-vcs", "packaging>=23.1"]
 build-backend = "hatchling.build"
 
 [project]
@@ -24,10 +24,13 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-    # AI components
-    "aisuite>=0.1.11",
-    "anthropic<0.31.0,>=0.30.1",  # Constrained to match aisuite's requirements
-    "tiktoken>=0.9.0",
+    # AI components - base providers
+    "aisuite",
+    "anthropic",
+    "groq",
+    "mistralai",
+    "openai",
+    "tiktoken",
     
     # Core functionality
     "pydantic>=2.11.1",
@@ -55,9 +58,13 @@ dependencies = [
 gac = "gac.main:main"
 
 [project.optional-dependencies]
-providers = [
-    # All supported AI providers
-    "aisuite[anthropic,openai,groq,mistral,ollama]",
+ollama = [
+    # Ollama provider
+    "ollama>=0.4.0",
+]
+all = [
+    # Complete provider support including Ollama
+    "ollama>=0.4.0",
 ]
 dev = [
     # Version management
@@ -71,10 +78,6 @@ dev = [
     # Linting
     "flake8>=7.2.0",
     "flake8-pyproject>=1.2.3",
-]
-all = [
-    # Complete provider support
-    "aisuite[all]",
 ]
 
 [project.urls]
@@ -153,6 +156,7 @@ skip-excluded = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gac"]
+include-files = ["src/gac/config.env"]
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -162,13 +166,19 @@ exclude = [
     "*.tests",
     "*.tests.*",
 ]
+include = [
+    "src/gac/config.env",
+]
 
 [tool.hatch.envs.default]
 dependencies = [
     # AI components
-    "aisuite[all]",
-    "ollama>=0.4.0",
-    
+    "aisuite",
+    "anthropic",
+    "openai",
+    "groq",
+    "mistralai",
+  
     # Core functionality
     "pydantic>=2.11.1",
     
