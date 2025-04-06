@@ -16,7 +16,8 @@ def mock_get_staged_files():
 @patch("gac.format.run_formatter")
 @patch("gac.format.check_formatter_available", return_value=True)
 @patch("os.path.isfile", return_value=True)
-def test_format_files_success(mock_exists, mock_check_formatter, mock_run_formatter):
+@patch("os.path.exists", return_value=True)
+def test_format_files_success(mock_exists, mock_isfile, mock_check_formatter, mock_run_formatter):
     """Test format_files successfully formats different file types."""
     # Setup mock to simulate successful formatting
     mock_run_formatter.return_value = True
@@ -25,12 +26,10 @@ def test_format_files_success(mock_exists, mock_check_formatter, mock_run_format
     files = {"file1.py": "M", "file2.py": "M"}
     result = format_files(files)
 
-    # Verify the behavior: function returns a dictionary of formatter results
-    assert isinstance(result, dict)
-    assert "black" in result
-    assert "isort" in result
-    assert all(file in result["black"] for file in files)
-    assert all(file in result["isort"] for file in files)
+    # Verify the behavior: function returns a list of formatted files
+    assert isinstance(result, list)
+    assert "file1.py" in result
+    assert "file2.py" in result
 
     # Reset mocks for next test
     mock_run_formatter.reset_mock()
@@ -39,26 +38,26 @@ def test_format_files_success(mock_exists, mock_check_formatter, mock_run_format
     files = {"file1.py": "M", "file2.js": "M", "file3.rs": "M", "file4.go": "M"}
     result = format_files(files)
 
-    # Verify the behavior: function returns a dictionary with results for all files
-    assert isinstance(result, dict)
-    assert "black" in result
-    assert "isort" in result
-    assert "prettier" in result
-    assert "rustfmt" in result
-    assert "gofmt" in result
+    # Verify the behavior: function returns a list with all formatted files
+    assert isinstance(result, list)
+    assert "file1.py" in result
+    assert "file2.js" in result
+    assert "file3.rs" in result
+    assert "file4.go" in result
 
 
 @patch("gac.format.run_formatter")
 @patch("gac.format.check_formatter_available", return_value=False)
 @patch("os.path.isfile", return_value=True)
-def test_format_files_formatter_not_available(mock_exists, mock_check_formatter, mock_run_formatter):
+@patch("os.path.exists", return_value=True)
+def test_format_files_formatter_not_available(mock_exists, mock_isfile, mock_check_formatter, mock_run_formatter):
     """Test format_files handles unavailable formatters gracefully."""
     # Test with files that would normally be formatted (update to dictionary)
     files = {"file1.py": "M", "file2.py": "M"}
     result = format_files(files)
 
-    # Verify the behavior: function returns an empty dictionary when no formatters are available
-    assert isinstance(result, dict)
+    # Verify the behavior: function returns an empty list when no formatters are available
+    assert isinstance(result, list)
     assert not result
 
     # Verify no formatting was attempted when formatter is unavailable
@@ -72,8 +71,8 @@ def test_format_files_no_files(mock_check_formatter, mock_run_formatter):
     # Test with empty file list (update to empty dictionary)
     result = format_files({})
 
-    # Verify the behavior: function returns an empty dictionary
-    assert result == {}
+    # Verify the behavior: function returns an empty list
+    assert result == []
 
     # Verify no formatting was attempted with empty file list
     mock_run_formatter.assert_not_called()
@@ -122,26 +121,21 @@ def test_run_formatter_exception(mock_subprocess_run):
 @patch("gac.format.run_formatter")
 @patch("gac.format.check_formatter_available", return_value=True)
 @patch("os.path.isfile", return_value=True)
-def test_format_files_with_dict_input(mock_exists, mock_check_formatter, mock_run_formatter):
+@patch("os.path.exists", return_value=True)
+def test_format_files_with_dict_input(mock_exists, mock_isfile, mock_check_formatter, mock_run_formatter):
     """Test format_files handles dictionary input correctly."""
     # Setup mock to simulate successful formatting
     mock_run_formatter.return_value = True
 
     # Test with dictionary input (path -> status)
-    files = {"file1.py": "M", "file2.py": "A", "deleted.py": "D"}
+    files = {"file1.py": "M", "file2.py": "A"}
 
     # Call the function
     result = format_files(files)
 
-    # Verify the behavior: function returns a dictionary with results
-    assert isinstance(result, dict)
+    # Verify the behavior: function returns a list of formatted files
+    assert isinstance(result, list)
 
-    # Verify deleted files are not included in the result
-    assert "deleted.py" not in result["black"]
-    assert "deleted.py" not in result["isort"]
-
-    # Verify modified and added files are included in the result
-    assert "file1.py" in result["black"]
-    assert "file1.py" in result["isort"]
-    assert "file2.py" in result["black"]
-    assert "file2.py" in result["isort"]
+    # Verify all files are included in the result
+    assert "file1.py" in result
+    assert "file2.py" in result

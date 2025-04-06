@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-from gac.ai_utils import count_tokens, extract_text_content, get_encoding
+from gac.ai import count_tokens, extract_text_content, get_encoding
 
 
 class TestAiUtils:
@@ -11,7 +11,7 @@ class TestAiUtils:
     def test_count_tokens_string(self):
         """Test counting tokens with string input."""
         # Mock the tokenizer to return consistent results
-        with patch("gac.ai_utils.get_encoding") as mock_get_encoding:
+        with patch("gac.ai.get_encoding") as mock_get_encoding:
             mock_encoding = MagicMock()
             mock_encoding.encode.return_value = [1, 2, 3, 4, 5]
             mock_get_encoding.return_value = mock_encoding
@@ -27,7 +27,7 @@ class TestAiUtils:
             {"role": "assistant", "content": "Hi there"},
         ]
 
-        with patch("gac.ai_utils.get_encoding") as mock_get_encoding:
+        with patch("gac.ai.get_encoding") as mock_get_encoding:
             mock_encoding = MagicMock()
             mock_encoding.encode.return_value = [1, 2, 3, 4, 5, 6, 7]
             mock_get_encoding.return_value = mock_encoding

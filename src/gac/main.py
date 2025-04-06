@@ -110,6 +110,7 @@ def main(
         if not git_dir:
             raise GitError("Not in a git repository")
     except Exception as e:
+        logger.error(f"Error checking git repository: {e}")
         handle_error(GitError("Not in a git repository"), exit_program=True)
         return  # This line won't be reached due to exit_program=True, but it's good practice
 

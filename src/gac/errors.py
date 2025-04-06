@@ -154,7 +154,7 @@ def format_error_for_user(error: Exception) -> str:
             elif error.error_type == "connection":
                 return f"{base_message}\n\nPlease check your internet connection and try again."
             elif error.error_type == "rate_limit":
-                return f"{base_message}\n\nYou've hit the rate limit for this AI provider. Please wait and try again later."
+                return f"{base_message}\n\nYou've hit the rate limit for this AI provider. Please wait and try again later."  # noqa: E501
             elif error.error_type == "timeout":
                 return f"{base_message}\n\nThe request timed out. Please try again or use a different model."
             elif error.error_type == "model":
