@@ -47,6 +47,43 @@ class AIError(GACError):
 
     exit_code = 4
 
+    def __init__(self, message: str, error_type: str = "unknown", exit_code: Optional[int] = None):
+        """Initialize an AIError with a specific error type.
+
+        Args:
+            message: The error message
+            error_type: The type of AI error (from AI_ERROR_CODES keys)
+            exit_code: Optional exit code to override the default
+        """
+        super().__init__(message, exit_code)
+        self.error_type = error_type
+        self.error_code = AI_ERROR_CODES.get(error_type, AI_ERROR_CODES["unknown"])
+
+    @classmethod
+    def authentication_error(cls, message: str) -> "AIError":
+        """Create an authentication error."""
+        return cls(message, error_type="authentication")
+
+    @classmethod
+    def connection_error(cls, message: str) -> "AIError":
+        """Create a connection error."""
+        return cls(message, error_type="connection")
+
+    @classmethod
+    def rate_limit_error(cls, message: str) -> "AIError":
+        """Create a rate limit error."""
+        return cls(message, error_type="rate_limit")
+
+    @classmethod
+    def timeout_error(cls, message: str) -> "AIError":
+        """Create a timeout error."""
+        return cls(message, error_type="timeout")
+
+    @classmethod
+    def model_error(cls, message: str) -> "AIError":
+        """Create a model error."""
+        return cls(message, error_type="model")
+
 
 class FormattingError(GACError):
     """Error related to code formatting."""
@@ -54,34 +91,18 @@ class FormattingError(GACError):
     exit_code = 5
 
 
-class AIAuthenticationError(AIError):
-    """Error related to AI authentication failures."""
+# Simplified error hierarchy - we use a single AIError class with error codes
+# instead of multiple subclasses for better maintainability
 
-    pass
-
-
-class AIConnectionError(AIError):
-    """Error related to AI connection failures."""
-
-    pass
-
-
-class AIRateLimitError(AIError):
-    """Error related to AI rate limit exceeded."""
-
-    pass
-
-
-class AITimeoutError(AIError):
-    """Error related to AI API timeouts."""
-
-    pass
-
-
-class AIModelError(AIError):
-    """Error related to unsupported or invalid AI models."""
-
-    pass
+# Error codes for AI errors
+AI_ERROR_CODES = {
+    "authentication": 401,  # Authentication failures
+    "connection": 503,  # Connection issues
+    "rate_limit": 429,  # Rate limits
+    "timeout": 408,  # Timeouts
+    "model": 400,  # Model-related errors
+    "unknown": 500,  # Unknown errors
+}
 
 
 def handle_error(error: Exception, quiet: bool = False, exit_program: bool = True) -> None:
@@ -125,9 +146,23 @@ def format_error_for_user(error: Exception) -> str:
     """
     base_message = str(error)
 
+    # More specific remediation for AI errors based on error type
+    if isinstance(error, AIError):
+        if hasattr(error, "error_type"):
+            if error.error_type == "authentication":
+                return f"{base_message}\n\nPlease check your API key and ensure it is valid."
+            elif error.error_type == "connection":
+                return f"{base_message}\n\nPlease check your internet connection and try again."
+            elif error.error_type == "rate_limit":
+                return f"{base_message}\n\nYou've hit the rate limit for this AI provider. Please wait and try again later."
+            elif error.error_type == "timeout":
+                return f"{base_message}\n\nThe request timed out. Please try again or use a different model."
+            elif error.error_type == "model":
+                return f"{base_message}\n\nPlease check that the specified model exists and is available to you."
+        return f"{base_message}\n\nPlease check your API key, model name, and internet connection."
+
     # Mapping of error types to remediation steps
     remediation_steps = {
-        AIError: "Please check your API key, model name, and internet connection.",
         ConfigError: "Please check your configuration settings.",
         GitError: "Please ensure Git is installed and you're in a valid Git repository.",
         FormattingError: "Please check that required formatters are installed.",

@@ -1,4 +1,8 @@
-"""Git operations for GAC."""
+"""Git operations for GAC.
+
+This module provides a simplified interface to Git commands.
+It focuses on the core operations needed for commit generation.
+"""
 
 import logging
 import os

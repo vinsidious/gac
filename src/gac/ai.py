@@ -1,18 +1,57 @@
 """AI provider integration for GAC.
 
 This module provides core functionality for AI provider interaction.
+It consolidates all AI-related functionality including token counting and commit message generation.
 """
 
 import logging
 import time
+from functools import lru_cache
+from typing import Any, Dict, List, Union
 
 import aisuite as ai
+import tiktoken
 from halo import Halo
 
-from gac.constants import MAX_OUTPUT_TOKENS, MAX_RETRIES, TEMPERATURE
+from gac.constants import DEFAULT_ENCODING, MAX_OUTPUT_TOKENS, MAX_RETRIES, TEMPERATURE
 from gac.errors import AIError
 
 logger = logging.getLogger(__name__)
+
+
+def count_tokens(content: Union[str, List[Dict[str, str]], Dict[str, Any]], model: str) -> int:
+    """Count tokens in content using the model's tokenizer."""
+    text = extract_text_content(content)
+    if not text:
+        return 0
+
+    try:
+        encoding = get_encoding(model)
+        return len(encoding.encode(text))
+    except Exception as e:
+        logger.error(f"Error counting tokens: {e}")
+        return len(text) // 4
+
+
+def extract_text_content(content: Union[str, List[Dict[str, str]], Dict[str, Any]]) -> str:
+    """Extract text content from various input formats."""
+    if isinstance(content, str):
+        return content
+    elif isinstance(content, list):
+        return "\n".join(msg["content"] for msg in content if isinstance(msg, dict) and "content" in msg)
+    elif isinstance(content, dict) and "content" in content:
+        return content["content"]
+    return ""
+
+
+@lru_cache(maxsize=128)
+def get_encoding(model: str) -> tiktoken.Encoding:
+    """Get the appropriate encoding for a given model."""
+    model_name = model.split(":")[-1] if ":" in model else model
+    try:
+        return tiktoken.encoding_for_model(model_name)
+    except KeyError:
+        return tiktoken.get_encoding(DEFAULT_ENCODING)
 
 
 def generate_commit_message(
@@ -27,7 +66,7 @@ def generate_commit_message(
     try:
         provider, model_name = model.split(":", 1)
     except ValueError:
-        raise AIError(f"Invalid model format: {model}. Please use the format 'provider:model_name'.")
+        raise AIError.model_error(f"Invalid model format: {model}. Please use the format 'provider:model_name'.")
 
     client = ai.Client()
 
@@ -75,4 +114,22 @@ def generate_commit_message(
                 time.sleep(wait_time)
     if spinner:
         spinner.fail("Failed to generate commit message")
-    raise AIError(f"Failed to generate commit message after {max_retries} attempts: {last_error}")
+
+    # Categorize the error type
+    error_type = "unknown"
+    error_str = str(last_error).lower()
+
+    if "api key" in error_str or "unauthorized" in error_str or "authentication" in error_str:
+        error_type = "authentication"
+    elif "timeout" in error_str:
+        error_type = "timeout"
+    elif "rate limit" in error_str or "too many requests" in error_str:
+        error_type = "rate_limit"
+    elif "connect" in error_str or "network" in error_str:
+        error_type = "connection"
+    elif "model" in error_str or "not found" in error_str:
+        error_type = "model"
+
+    raise AIError(
+        f"Failed to generate commit message after {max_retries} attempts: {last_error}", error_type=error_type
+    )

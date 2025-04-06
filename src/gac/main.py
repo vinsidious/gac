@@ -14,7 +14,7 @@ from rich.panel import Panel
 from gac import __about__
 from gac.ai import generate_commit_message
 from gac.constants import DEFAULT_LOG_LEVEL, LOGGING_LEVELS, MAX_OUTPUT_TOKENS, MAX_RETRIES, TEMPERATURE
-from gac.errors import AIError
+from gac.errors import AIError, GitError, handle_error
 from gac.format import format_files
 from gac.git import get_staged_files, run_git_command
 from gac.prompt import build_prompt
@@ -36,7 +36,7 @@ load_dotenv(".gac.env")
 @click.option("--no-format", "-nf", is_flag=True, help="Skip formatting of staged files")
 @click.option("--one-liner", "-o", is_flag=True, help="Generate a single-line commit message")
 @click.option("--push", "-p", is_flag=True, help="Push changes to remote after committing")
-@click.option("--show-prompt", "-s", is_flag=True, help="Show the complete prompt sent to the LLM")
+@click.option("--show-prompt", "-s", is_flag=True, help="Show the prompt sent to the LLM")
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
 @click.option("--hint", "-h", default="", help="Additional context to include in the prompt")
@@ -103,19 +103,26 @@ def main(
     dry_run: bool = False,
 ) -> None:
     """Main application logic for GAC."""
-    git_dir = run_git_command(["rev-parse", "--show-toplevel"])
-    if not git_dir:
-        print_message("Error: Not in a git repository", "error")
-        sys.exit(1)
+    # Check if in a git repository
+
+    try:
+        git_dir = run_git_command(["rev-parse", "--show-toplevel"])
+        if not git_dir:
+            raise GitError("Not in a git repository")
+    except Exception as e:
+        handle_error(GitError("Not in a git repository"), exit_program=True)
+        return  # This line won't be reached due to exit_program=True, but it's good practice
 
     if model is None:
         model = os.getenv("GAC_MODEL")
         if model is None:
-            print_message(
-                "Error: No model specified. Please set the GAC_MODEL environment variable or use --model.", "error"
+            handle_error(
+                AIError.model_error(
+                    "No model specified. Please set the GAC_MODEL environment variable or use --model."
+                ),
+                exit_program=True,
             )
-            print_message("Example: export GAC_MODEL='anthropic:claude-3-haiku-latest'", "info")
-            sys.exit(1)
+            return  # This line won't be reached due to exit_program=True
     if should_format_files is None:
         format_files_env = os.getenv("GAC_FORMAT_FILES")
         should_format_files = format_files_env.lower() == "true" if format_files_env else True
@@ -127,8 +134,11 @@ def main(
         run_git_command(["add", "--all"])
 
     if not get_staged_files(existing_only=False):
-        print_message("Error: No staged changes found. Stage your changes with git add first or use --add-all", "error")
-        sys.exit(1)
+        handle_error(
+            GitError("No staged changes found. Stage your changes with git add first or use --add-all"),
+            exit_program=True,
+        )
+        return  # This line won't be reached due to exit_program=True
 
     if should_format_files:
         # TODO: Add logic for files that have both staged and unstaged changes
@@ -191,19 +201,28 @@ def main(
     try:
         run_git_command(["commit", "-m", commit_message])
     except Exception as e:
-        print_message(f"Error committing changes: {e}", "error")
-        sys.exit(1)
+        handle_error(
+            GitError(f"Error committing changes: {e}"),
+            exit_program=True,
+        )
+        return  # This line won't be reached due to exit_program=True
 
     if push:
         try:
             from gac.git import push_changes
 
             if not push_changes():
-                print_message("Failed to push changes.", "error")
-                sys.exit(1)
+                handle_error(
+                    GitError("Failed to push changes. Check your remote configuration."),
+                    exit_program=True,
+                )
+                return  # This line won't be reached due to exit_program=True
         except Exception as e:
-            print_message(f"Error pushing changes: {e}", "error")
-            sys.exit(1)
+            handle_error(
+                GitError(f"Error pushing changes: {e}"),
+                exit_program=True,
+            )
+            return  # This line won't be reached due to exit_program=True
 
     if not quiet:
         print_message("Successfully committed changes with message:", "notification")
