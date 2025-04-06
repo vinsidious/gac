@@ -9,13 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added 🚀
-
-- Added support for Ollama provider and dotenv configuration
-- Added test file for future test cases
-- Enhanced configuration wizard with manual model input
-- Added example model configuration files for AI providers
-- Added script to update models.json with current models from provider APIs
+## [v0.7.1] - 2025-04-06
 
 ### Changed 🔧
 
@@ -267,7 +261,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - 🗑️ Deleted `run_tests.sh` and `run_tests.py` scripts
 
-### Fixed 🐞
+### Fixed 🐛
 
 - 🐛 Improve git staged files detection and staging
 - 🔧 Remove colon from commit prompts
