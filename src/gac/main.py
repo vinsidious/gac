@@ -121,7 +121,7 @@ def main(
 
     backup_model = os.getenv("GAC_BACKUP_MODEL", None)
 
-    if stage_all:
+    if stage_all and (not dry_run):
         print_message("Staging all changes", "info")
         run_git_command(["add", "--all"])
 
