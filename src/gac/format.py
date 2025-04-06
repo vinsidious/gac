@@ -103,47 +103,45 @@ def check_formatter_available(formatter_config: Dict) -> bool:
         return False
 
 
-def format_files(files) -> Dict[str, List[str]]:
+def format_files(files: List[str], dry_run: bool = False) -> List[str]:
     """Format the given files."""
     if not files:
-        return {}
+        return []
 
-    # Convert files to dictionary format if it's a list
-    files_dict = {}
-    if isinstance(files, list):
-        for file in files:
-            files_dict[file] = "M"  # Assume modified
-    else:
-        files_dict = files  # Already a dictionary
+    files_to_format = []
+    for file in files:
+        if not os.path.exists(file):
+            logger.warning(f"File {file} does not exist. Skipping.")
+        else:
+            files_to_format.append(file)
 
-    # Group files by extension for appropriate formatter selection
     grouped_by_ext = {}
-    for file_path, status in files_dict.items():
-        if status == "D":  # Skip deleted files
-            continue
-
-        # Get file extension
+    for file_path in files_to_format:
         _, ext = os.path.splitext(file_path)
         if ext not in grouped_by_ext:
             grouped_by_ext[ext] = []
         grouped_by_ext[ext].append(file_path)
 
-    # Apply appropriate formatters based on file extensions
-    formatted_files = {}
-
+    formatted_files = []
     for ext, ext_files in grouped_by_ext.items():
-        # Find all formatters that handle this extension
-        for lang, formatters in FORMATTERS.items():
+        # Find formatters that support this extension
+        for language, formatters in FORMATTERS.items():
             for formatter in formatters:
                 if ext in formatter["extensions"]:
                     # Check if formatter is available
                     if check_formatter_available(formatter):
-                        # Format the files
-                        success = run_formatter(formatter["command"], ext_files, formatter["name"])
-                        if success:
-                            if formatter["name"] not in formatted_files:
-                                formatted_files[formatter["name"]] = []
-                            formatted_files[formatter["name"]].extend(ext_files)
+                        if dry_run:
+                            # In dry run mode, just record what would be formatted
+                            for file in ext_files:
+                                if file not in formatted_files:
+                                    formatted_files.append(file)
+                        else:
+                            # Format the files
+                            success = run_formatter(formatter["command"], ext_files, formatter["name"])
+                            if success:
+                                for file in ext_files:
+                                    if file not in formatted_files:
+                                        formatted_files.append(file)
 
     return formatted_files
 
@@ -160,8 +158,8 @@ if __name__ == "__main__":
     result = format_files(files_to_format)
 
     if result:
-        print(f"Formatted {sum(len(f) for f in result.values())} files:")
-        for formatter, formatted in result.items():
-            print(f"  - {formatter}: {formatted}")
+        print(f"Formatted {len(result)} files:")
+        for file in result:
+            print(f"  - {file}")
     else:
         print("No files were formatted.")

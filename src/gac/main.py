@@ -86,6 +86,7 @@ def cli(
         require_confirmation=not yes,
         push=push,
         quiet=quiet,
+        dry_run=dry_run,
     )
 
 
@@ -132,11 +133,9 @@ def main(
     if should_format_files:
         # TODO: Add logic for files that have both staged and unstaged changes
         files_to_format = get_staged_files(existing_only=True)
-        formatted_files = format_files(files_to_format)
-        all_formatted = []
-        for files_list in formatted_files.values():
-            all_formatted.extend(files_list)
-        run_git_command(["add"] + all_formatted)
+        formatted_files = format_files(files_to_format, dry_run=dry_run)
+        if formatted_files and not dry_run:
+            run_git_command(["add"] + formatted_files)
 
     prompt = build_prompt(
         status=run_git_command(["status"]), diff=run_git_command(["diff", "--staged"]), one_liner=one_liner, hint=hint
@@ -185,6 +184,8 @@ def main(
     if dry_run:
         print_message("Dry run: would commit with message:", "notification")
         print(commit_message)
+        staged_files = get_staged_files(existing_only=False)
+        print_message(f"Dry run: would commit {len(staged_files)} files", "info")
         sys.exit(0)
 
     try:
