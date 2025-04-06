@@ -7,7 +7,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-[Unreleased]
+## [Unreleased]
+
+### Added 🚀
+
+- Added support for Ollama provider and dotenv configuration
+- Added test file for future test cases
+- Enhanced configuration wizard with manual model input
+- Added example model configuration files for AI providers
+- Added script to update models.json with current models from provider APIs
+
+### Changed 🔧
+
+- Updated default AI model to `groq:meta-llama/llama-4-scout-17b-16e-instruct`
+- Added `anthropic:claude-3-5-haiku-latest` as the backup model
+- Increased line length limit to 120 characters in markdown linting configurations
+- Updated `.gitignore` file to include `.gac.env`
+- Refactored `.env.example` to `.gac.env.example` for clarity
+- Enhanced configuration management with support for multiple config locations
+
+### Removed 🗑️
+
+- Removed obsolete documentation files (CHANGES.md, DEVELOPMENT.md, REFACTORING.md)
+- Removed unused demo script and test-specific functionality
+- Removed deprecated model update script and example file
+- Removed unused prompt template file
+
+### Fixed 🐛
+
+- Fixed condition to prevent staging when in dry run mode
+- Improved remote push validation and error handling
+- Improved commit message generation retry logic and error handling
+- Updated test.txt to reflect new test case
+
+### Refactored 🛠️
+
+- Improved error handling in `main.py` for git repository checks
+- Updated `errors.py` for consistent error messages
+- Refactored `format_files` function to return a list instead of dictionary
+- Consolidated AI-related functionality into a single cohesive module
+- Standardized error handling throughout the application
+- Simplified Git module with improved documentation
+- Improved CLI option descriptions
+- Simplified codebase through consolidation
+- Separated CLI logic from main application workflow
+- Improved formatter configuration lookup
+- Enhanced AI model configuration and error handling
+
+### CI/Build 🏗️
+
+- Updated GitHub Actions workflow and Makefile
+- Added Prettier formatting to lint target in Makefile
+- Improved nightly release workflow logic
 
 ## [v0.6.1] - 2025-04-04
 
