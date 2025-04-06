@@ -284,3 +284,5 @@ dist
 .gac.env
 
 .cursor/
+auto_release.py
+prep_changelog_for_release.py
