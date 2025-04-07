@@ -4,10 +4,82 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project
-adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Added 🚀
+
+- **Configuration Management**:
+
+  - Added package-level configuration file `config.env` in `src/gac` directory with default model
+    `anthropic:claude-3-5-haiku-latest`
+  - Implemented multi-level configuration loading with precedence:
+    1. Project-level `.gac.env`
+    2. User-level `~/.gac.env`
+    3. Package-level `config.env`
+  - Added new test files to improve test coverage:
+    - `test_constants.py` with comprehensive tests for project constants
+    - `test_utils.py` to validate utility functions
+
+- **Testing Improvements**:
+  - Enhanced test suite with more comprehensive test cases
+  - Added tests for:
+    - File status enums
+    - Logging constants
+    - Encoding constants
+    - Error handling scenarios
+    - Prompt message cleaning
+
+### Changed 🔧
+
+- **Release Workflow**:
+
+  - Updated GitHub Actions release workflow to use semantic versioning
+  - Modified version bumping to use `minor` instead of `patch`
+  - Dynamically extract version and release notes from repository state
+  - Use `github.ref_name` for tag and release body generation
+
+- **Configuration and CLI**:
+
+  - Removed non-essential configuration wizard
+  - Simplified `main.py` configuration handling
+  - Removed `--config` flag from CLI options
+  - Streamlined configuration loading process
+
+- **Markdown Linting**:
+
+  - Migrated from `.markdownlint.yaml` to `.markdownlint-cli2.yaml`
+  - Updated Makefile to use `markdownlint-cli2` for Markdown linting
+  - Added configuration for more consistent markdown formatting
+
+- **Project Structure**:
+  - Reorganized `.gitignore` for improved clarity and organization
+  - Removed deprecated and unused test files
+  - Simplified project configuration files
+
+### Removed 🗑️
+
+- **Deprecated Components**:
+  - Removed `SIMPLIFICATION.md` documentation file
+  - Deleted unused test files: `test.txt` and `testfile.txt`
+  - Removed legacy `.markdownlint.yaml` configuration
+  - Eliminated references to non-existent configuration wizard
+
+### Refactored 🛠️
+
+- **Test Suite**:
+
+  - Simplified test cases for better maintainability
+  - Streamlined test functions to focus on essential scenarios
+  - Improved test coverage for core modules
+  - Updated existing test files with more comprehensive test cases
+
+- **Configuration Handling**:
+  - Refactored configuration loading to use a more functional approach
+  - Improved error handling and configuration validation
+  - Removed complex configuration management logic
 
 ## [v0.7.0] - 2025-04-06
 
@@ -129,8 +201,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added 🌈
 
-- **Functional Programming**: Complete architectural redesign around functional programming
-  principles
+- **Functional Programming**: Complete architectural redesign around functional programming principles
 - **Pure Functions**: Refactored core modules to use pure functions with explicit dependencies
 - **Function Composition**: New pipeline approach for commit workflow
 - **Type Hints**: Comprehensive type annotations throughout the codebase

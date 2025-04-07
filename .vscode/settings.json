@@ -7,7 +7,7 @@
   "[markdown]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.wordWrap": "bounded",
-    "editor.wordWrapColumn": 100
+    "editor.wordWrapColumn": 120
   },
   "markdownlint.config": {
     "MD013": false,
@@ -38,14 +38,10 @@
   "python.formatting.blackArgs": ["--line-length", "120"],
 
   // flake8 settings
-  "flake8.args": [
-    "--exclude=.git,__pycache__,.venv,venv,build,dist",
-    "--ignore=W503,E203",
-    "--max-line-length=120"
-  ],
+  "flake8.args": ["--exclude=.git,__pycache__,.venv,venv,build,dist", "--ignore=W503,E203", "--max-line-length=120"],
 
   "eslint.options": {
-    "max-len": 100
+    "max-len": 120
   },
 
   "files.exclude": {

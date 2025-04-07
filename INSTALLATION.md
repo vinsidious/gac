@@ -2,9 +2,8 @@
 
 ## Overview
 
-Git Auto Commit (GAC) is a powerful CLI tool that uses AI to generate meaningful commit messages
-based on your staged changes. This guide will walk you through installation, configuration, and
-getting started.
+Git Auto Commit (GAC) is a powerful CLI tool that uses AI to generate meaningful commit messages based on your staged
+changes. This guide will walk you through installation, configuration, and getting started.
 
 ## Prerequisites
 
@@ -132,6 +131,77 @@ export GAC_MAX_OUTPUT_TOKENS=512
 export GAC_WARNING_LIMIT_INPUT_TOKENS=16000
 export GAC_TEMPERATURE=0.7
 ```
+
+## Configuration File Precedence
+
+GAC uses a multi-level configuration system with a clear hierarchy of configuration sources. The configuration is loaded
+in the following order of precedence (from highest to lowest):
+
+1. **Command-line Arguments** (Highest Priority)
+
+   - Directly passed arguments override all other configuration sources
+   - Example: `gac -m anthropic:claude-3-5-haiku-latest`
+
+2. **Project-level Configuration** (`.gac.env`)
+
+   - Located in the current project's root directory
+   - Applies only to the specific project
+   - Overrides user-level and package-level configurations
+
+3. **User-level Configuration** (`~/.gac.env`)
+
+   - Located in the user's home directory
+   - Applies to all projects for the current user
+   - Overrides package-level configurations
+
+4. **Package-level Configuration** (`config.env`)
+
+   - Included with the GAC package installation
+   - Provides default fallback configurations
+   - Lowest priority configuration source
+
+5. **Built-in Default Values** (Lowest Priority)
+   - Hardcoded default settings within the application
+   - Used only if no other configuration is specified
+
+### Configuration Resolution Example
+
+```bash
+# Command-line argument takes highest priority
+gac -m anthropic:claude-3-5-haiku-latest
+
+# Project .gac.env (highest priority after CLI)
+# /path/to/project/.gac.env
+GAC_MODEL=openai:gpt-4
+GAC_TEMPERATURE=0.7
+
+# User-level ~/.gac.env
+GAC_MODEL=groq:llama-3
+GAC_API_KEY=user_api_key
+
+# Package-level config.env
+GAC_MODEL=anthropic:claude-3-5-haiku-latest
+```
+
+In this example:
+
+- The CLI argument `anthropic:claude-3-5-haiku-latest` would be used
+- If no CLI model is specified, the project's `openai:gpt-4` would be used
+- Without a project config, the user-level `groq:llama-3` would be used
+- If no other configuration is found, the package-level default is used
+
+### Best Practices
+
+- Use project-level `.gac.env` for project-specific configurations
+- Use user-level `~/.gac.env` for personal default settings
+- Keep sensitive information like API keys out of version control
+- Use environment variables for dynamic or sensitive configurations
+
+### Troubleshooting
+
+- Use `gac --verbose` to see detailed configuration loading information
+- Check that configuration files have correct permissions
+- Ensure configuration files are valid and follow the correct format
 
 ## Advanced Usage
 
