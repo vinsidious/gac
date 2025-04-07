@@ -1,6 +1,8 @@
 """Tests for ai module."""
 
-from gac.ai import extract_text_content
+import tiktoken
+
+from gac.ai import extract_text_content, get_encoding
 
 
 class TestAiUtils:
@@ -21,3 +23,19 @@ class TestAiUtils:
 
         # Test empty input
         assert extract_text_content({}) == ""
+
+    def test_get_encoding_known_model(self):
+        """Test getting encoding for known models without mocking."""
+        # Test with a well-known OpenAI model that should map to cl100k_base
+        encoding = get_encoding("openai:gpt-4")
+        assert isinstance(encoding, tiktoken.Encoding)
+        assert encoding.name == "cl100k_base"
+
+        # Verify encoding behavior
+        tokens = encoding.encode("Hello world")
+        assert len(tokens) > 0
+        assert isinstance(tokens[0], int)
+
+        # Decode should round-trip correctly
+        decoded = encoding.decode(tokens)
+        assert decoded == "Hello world"

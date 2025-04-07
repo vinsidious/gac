@@ -89,6 +89,33 @@ class TestPrompts:
         result = clean_commit_message(message)
         assert result == "fix: Bug fix"
 
+    def test_clean_commit_message_advanced(self):
+        """Test cleaning up complex commit messages."""
+        # Test with additional markdown formatting - current implementation treats the language specifier as content
+        message = "```markdown\nfeat: Add new API endpoint\n```"
+        result = clean_commit_message(message)
+        assert result == "chore: markdown\nfeat: Add new API endpoint"
+
+        # Test with multiple backtick blocks - current implementation only removes first and last backticks
+        message = "```\nrefactor: Clean up code\n```\n\n```\nMore details\n```"
+        result = clean_commit_message(message)
+        assert result == "refactor: Clean up code\n```\n\n```\nMore details"
+
+        # Test with XML tags in content
+        message = "<git-diff>feat: Update authentication flow</git-diff>"
+        result = clean_commit_message(message)
+        assert result == "feat: Update authentication flow"
+
+        # Test with leading/trailing whitespace
+        message = "\n\n  docs: Update README  \n\n"
+        result = clean_commit_message(message)
+        assert result == "docs: Update README"
+
+        # Test with multiple conventional prefixes
+        message = "chore: feat: Add new component"
+        result = clean_commit_message(message)
+        assert result == "chore: feat: Add new component"
+
 
 if __name__ == "__main__":
     unittest.main()

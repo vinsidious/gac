@@ -3,15 +3,7 @@
 import unittest
 from unittest.mock import patch
 
-from gac.errors import (
-    AIError,
-    ConfigError,
-    FormattingError,
-    GACError,
-    GitError,
-    format_error_for_user,
-    handle_error,
-)
+from gac.errors import AIError, ConfigError, FormattingError, GACError, GitError, format_error_for_user, handle_error
 
 
 class TestErrors(unittest.TestCase):
@@ -49,6 +41,38 @@ class TestErrors(unittest.TestCase):
         # Verify the behavior: exit code can be overridden in constructor
         error = GACError("Test message", exit_code=42)
         self.assertEqual(error.exit_code, 42)
+
+    def test_ai_error_factory_methods(self):
+        """Test AIError factory methods create the correct error types."""
+        # Test authentication error
+        auth_error = AIError.authentication_error("Invalid API key")
+        self.assertEqual(auth_error.message, "Invalid API key")
+        self.assertEqual(auth_error.error_type, "authentication")
+        self.assertEqual(auth_error.error_code, 401)
+
+        # Test connection error
+        conn_error = AIError.connection_error("Network issue")
+        self.assertEqual(conn_error.message, "Network issue")
+        self.assertEqual(conn_error.error_type, "connection")
+        self.assertEqual(conn_error.error_code, 503)
+
+        # Test rate limit error
+        rate_error = AIError.rate_limit_error("Too many requests")
+        self.assertEqual(rate_error.message, "Too many requests")
+        self.assertEqual(rate_error.error_type, "rate_limit")
+        self.assertEqual(rate_error.error_code, 429)
+
+        # Test timeout error
+        timeout_error = AIError.timeout_error("Request timed out")
+        self.assertEqual(timeout_error.message, "Request timed out")
+        self.assertEqual(timeout_error.error_type, "timeout")
+        self.assertEqual(timeout_error.error_code, 408)
+
+        # Test model error
+        model_error = AIError.model_error("Model not found")
+        self.assertEqual(model_error.message, "Model not found")
+        self.assertEqual(model_error.error_type, "model")
+        self.assertEqual(model_error.error_code, 400)
 
     @patch("sys.exit")
     @patch("gac.errors.logger")
