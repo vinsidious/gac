@@ -20,6 +20,7 @@ principles, GAC simplifies your Git workflow by automatically crafting descripti
 - 🌐 Local Model Integration (Ollama)
 - 🔧 Automatic Code Formatting
 - 🚀 Functional Programming Design
+- 🔄 Fallback Model Support
 
 ## 🔌 Development Status
 
@@ -41,13 +42,13 @@ pip install -e .
 To install directly from GitHub:
 
 ```bash
-pipx install git+https://github.com/yourusername/git-auto-commit.git
+pipx install git+https://github.com/cellwebb/gac.git
 ```
 
 For a specific version or branch:
 
 ```bash
-pipx install git+https://github.com/yourusername/git-auto-commit.git@branch-or-tag
+pipx install git+https://github.com/cellwebb/gac.git@branch-or-tag
 ```
 
 ## 🎬 Usage
@@ -69,11 +70,21 @@ gac
 ### AI Provider Setup
 
 1. Get an API key from your preferred provider
-2. Set the environment variables:
+2. Set the environment variables in your `.gac.env` file:
 
 ```bash
-export GAC_MODEL=anthropic:claude-3-5-haiku-latest
-export ANTHROPIC_API_KEY=your_key_here
+# Primary model configuration
+GAC_MODEL=groq:meta-llama/llama-4-scout-17b-16e-instruct
+GROQ_API_KEY=your_key_here
+
+# Backup model configuration
+GAC_BACKUP_MODEL=anthropic:claude-3-5-haiku-latest
+ANTHROPIC_API_KEY=your_key_here
+
+# Or use local models with Ollama
+# GAC_MODEL=ollama:llama4
+
+# Aditional providers: Mistral, OpenAI
 ```
 
 ### Interactive Configuration
@@ -120,12 +131,14 @@ gac -p
 # Generate one-line commit message
 gac -o
 
+# Dry run mode (format and generate message without staging or committing)
+gac --dry-run
+
 # Provide context hint
-gac -h "Fix authentication bug"
+gac -h \"Fix authentication bug\"
 
 # All together now
-gac -afpo -h "Fixing JIRA ticket #420"
-
+gac -afpo -h \"Fixing JIRA ticket #420\"
 ```
 
 ## 🔌 Supported Providers
@@ -139,12 +152,12 @@ gac -afpo -h "Fixing JIRA ticket #420"
 ## 📚 Documentation
 
 - [Installation Guide](INSTALLATION.md)
-- [Development Guide](DEVELOPMENT.md)
 - [Changelog](CHANGELOG.md)
+- [Roadmap](ROADMAP.md)
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please see [DEVELOPMENT.md](DEVELOPMENT.md) for guidelines.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📝 License
 
@@ -158,43 +171,3 @@ MIT License. See [LICENSE.txt](LICENSE.txt) for details.
 ## 💡 Roadmap
 
 Check out our [ROADMAP.md](ROADMAP.md) to see planned features and improvements.
-
-## 🙌 Acknowledgements
-
-- Powered by functional programming principles
-- Inspired by the need for smarter commit workflows
-
-## Configuration Wizard
-
-When you run the configuration wizard with `gac --config`, you will:
-
-1. **Select AI Provider:** Choose from the list of supported AI providers (`anthropic`, `openai`,
-   `groq`, `mistral`).
-2. **Enter Model Name:** Manually input the model name you wish to use.
-3. **Formatting Preference:** Choose whether to enable automatic Python file formatting.
-4. **Save Location:** Select where to save your configuration:
-   - Package config (for all users, requires appropriate permissions)
-   - User config (recommended, saved to `~/.gac.env`)
-   - Project config (only for current repository, saved to `.gac.env` in project directory)
-5. **Confirm Settings:** Review and confirm your configuration choices.
-
-### Example
-
-```bash
-$ gac --config
-🚀 Git Auto Commit (GAC) Configuration Wizard
--------------------------------------------
-? Select your preferred AI provider: anthropic
-? Enter the anthropic model name: claude-3-5-haiku-latest
-? Would you like to automatically format Python files? Yes
-
-📋 Configuration Summary:
-Provider: anthropic
-Model: claude-3-5-haiku-latest
-Auto-formatting: Enabled
-
-? Where would you like to save these settings? User config (recommended)
-? Do you want to save these settings? Yes
-✅ Configuration validated successfully!
-📝 Configuration saved to /Users/username/.gac.env
-```
