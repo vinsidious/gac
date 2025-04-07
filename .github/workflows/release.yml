@@ -38,8 +38,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: "$(python -c "import re; content = open('src/gac/__about__.py').read(); print(re.search('__version__ = \"(.+)\"', content).group(1))")"
+          tag_name: ${{ github.ref_name }}
           body: |
-            Automated release of version $(python -c "import re; content = open('src/gac/__about__.py').read(); print(re.search('__version__ = \"(.+)\"', content).group(1))")
+            Automated release of version ${{ github.ref_name }}
 
-            $(cat CHANGELOG.md)
+            ${{ github.event.head_commit.message }}

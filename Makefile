@@ -27,12 +27,14 @@ lint:
 	uv run -- black src/ tests/
 	uv run -- isort src/ tests/
 	npx prettier --write "**/*.{md,yaml,yml,json}"
+	npx markdownlint-cli2 --config .markdownlint-cli2.yaml "**/*.md"
 	uv run -- flake8 --max-line-length=120 --ignore=E203,W503 src/ tests/
 
 format:
 	uv run -- black src/ tests/
 	uv run -- isort src/ tests/
 	npx prettier --write "**/*.{md,yaml,yml,json}"
+	npx markdownlint-cli2 --fix --config .markdownlint-cli2.yaml "**/*.md"
 
 # Clean build artifacts
 clean:
