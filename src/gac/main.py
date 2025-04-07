@@ -28,15 +28,15 @@ logger = logging.getLogger(__name__)
 package_config = Path(__file__).parent / "config.env"
 if package_config.exists():
     load_dotenv(package_config)
-# (user-level) User-specific configuration
+# User-specific configuration
 user_config = Path.home() / ".gac.env"
 if user_config.exists():
     load_dotenv(user_config)
-# (project-level) ./.env
+# Project-level ./.env
 env_config = Path(".env")
 if env_config.exists():
     load_dotenv(env_config)
-# (project-level, highest priority) ./.gac.env
+# (highest priority) Project-level .gac.env
 project_config = Path(".gac.env")
 if project_config.exists():
     load_dotenv(project_config)
