@@ -23,15 +23,19 @@ from gac.utils import print_message, setup_logging
 
 logger = logging.getLogger(__name__)
 
-# Load configuration in order of precedence (from lowest to highest)
-# 3. Package-level config.env (lowest priority)
+# Load configuration in order of precedence
+# (lowest priority) Package-level config.env
 package_config = Path(__file__).parent / "config.env"
 if package_config.exists():
     load_dotenv(package_config)
-# 2. ~/.gac.env in home directory (user-level)
-load_dotenv(os.path.expanduser("~/.gac.env"))
-# 1. .gac.env in current directory (project-level, highest priority)
-load_dotenv(".gac.env")
+# (user-level) User-specific configuration
+user_config = Path.home() / ".gac.env"
+if user_config.exists():
+    load_dotenv(user_config)
+# (project-level, highest priority) .gac.env
+project_config = Path(".gac.env")
+if project_config.exists():
+    load_dotenv(project_config)
 
 
 @click.command()
