@@ -29,7 +29,7 @@ jobs:
       # Bump version and create tag
       - name: Bump version and create tag
         run: |
-          bump-my-version patch
+          bump-my-version bump minor
           git push --follow-tags
 
       # Create a release
@@ -38,10 +38,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name:
-            v$(python -c "import json;
-            print(json.load(open('pyproject.toml'))['tool']['poetry']['version'])")
+          tag_name: "$(python -c "import re; content = open('src/gac/__about__.py').read(); print(re.search('__version__ = \"(.+)\"', content).group(1))")"
           body: |
-            Automated release of version $(python -c "import json; print(json.load(open('pyproject.toml'))['tool']['poetry']['version'])")
+            Automated release of version $(python -c "import re; content = open('src/gac/__about__.py').read(); print(re.search('__version__ = \"(.+)\"', content).group(1))")
 
             $(cat CHANGELOG.md)
