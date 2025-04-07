@@ -1,6 +1,6 @@
 """Git Auto Commit (GAC) - Generate commit messages using AI."""
 
-from gac.__about__ import __version__
+from gac.__version__ import __version__
 from gac.ai import generate_commit_message
 from gac.constants import (
     DEFAULT_ENCODING,

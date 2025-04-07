@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 
-from gac import __about__
+from gac import __version__
 from gac.ai import generate_commit_message
 from gac.constants import DEFAULT_LOG_LEVEL, LOGGING_LEVELS, MAX_OUTPUT_TOKENS, MAX_RETRIES, TEMPERATURE
 from gac.errors import AIError, GitError, handle_error
@@ -23,15 +23,15 @@ from gac.utils import print_message, setup_logging
 
 logger = logging.getLogger(__name__)
 
-# Load configuration in order of precedence
-# 1. .gac.env in current directory (project-level)
-load_dotenv(".gac.env")
-# 2. ~/.gac.env in home directory (user-level)
-load_dotenv(os.path.expanduser("~/.gac.env"))
-# 3. Package-level config.env (fallback)
+# Load configuration in order of precedence (from lowest to highest)
+# 3. Package-level config.env (lowest priority)
 package_config = Path(__file__).parent / "config.env"
 if package_config.exists():
     load_dotenv(package_config)
+# 2. ~/.gac.env in home directory (user-level)
+load_dotenv(os.path.expanduser("~/.gac.env"))
+# 1. .gac.env in current directory (project-level, highest priority)
+load_dotenv(".gac.env")
 
 
 @click.command()
@@ -68,7 +68,7 @@ def cli(
 ):
     """Git Auto Commit - Generate commit messages with AI."""
     if version:
-        print(f"Git Auto Commit (GAC) version: {__about__.__version__}")
+        print(f"Git Auto Commit (GAC) version: {__version__.__version__}")
         sys.exit(0)
 
     numeric_log_level = getattr(logging, log_level.upper(), logging.WARNING)
