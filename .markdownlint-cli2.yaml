@@ -11,6 +11,8 @@ config:
     code_blocks: false
     headings: false
 
+  MD024: false
+
   # Ordered list item prefix (allow any style)
   MD029: false
 
