@@ -32,7 +32,11 @@ if package_config.exists():
 user_config = Path.home() / ".gac.env"
 if user_config.exists():
     load_dotenv(user_config)
-# (project-level, highest priority) .gac.env
+# (project-level) ./.env
+env_config = Path(".env")
+if env_config.exists():
+    load_dotenv(env_config)
+# (project-level, highest priority) ./.gac.env
 project_config = Path(".gac.env")
 if project_config.exists():
     load_dotenv(project_config)
