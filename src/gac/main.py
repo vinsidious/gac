@@ -4,6 +4,7 @@
 import logging
 import os
 import sys
+from pathlib import Path
 from typing import Optional
 
 import click
@@ -22,7 +23,15 @@ from gac.utils import print_message, setup_logging
 
 logger = logging.getLogger(__name__)
 
+# Load configuration in order of precedence
+# 1. .gac.env in current directory (project-level)
 load_dotenv(".gac.env")
+# 2. ~/.gac.env in home directory (user-level)
+load_dotenv(os.path.expanduser("~/.gac.env"))
+# 3. Package-level config.env (fallback)
+package_config = Path(__file__).parent / "config.env"
+if package_config.exists():
+    load_dotenv(package_config)
 
 
 @click.command()
@@ -42,11 +51,9 @@ load_dotenv(".gac.env")
 @click.option("--hint", "-h", default="", help="Additional context to include in the prompt")
 @click.option("--model", "-m", help="Override the default model (format: 'provider:model_name')")
 @click.option("--version", is_flag=True, help="Show the version of the Git Auto Commit (GAC) tool")
-@click.option("--config", is_flag=True, help="Run the interactive configuration wizard and save settings to ~/.gac.env")
 @click.option("--dry-run", is_flag=True, help="Dry run the commit workflow")
 def cli(
     add_all: bool = False,
-    config: bool = False,
     log_level: str = DEFAULT_LOG_LEVEL,
     no_format: bool = False,
     one_liner: bool = False,
@@ -57,21 +64,12 @@ def cli(
     hint: str = "",
     model: str = None,
     version: bool = False,
-    template: str = None,
     dry_run: bool = False,
 ):
     """Git Auto Commit - Generate commit messages with AI."""
     if version:
         print(f"Git Auto Commit (GAC) version: {__about__.__version__}")
         sys.exit(0)
-
-    if config:
-        from gac.config import run_config_wizard
-
-        result = run_config_wizard()
-        if result:
-            print_message("Configuration saved successfully!", "notification")
-        return
 
     numeric_log_level = getattr(logging, log_level.upper(), logging.WARNING)
     setup_logging(numeric_log_level, quiet=quiet, force=True)

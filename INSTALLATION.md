@@ -99,24 +99,24 @@ This multi-level approach allows:
 - Personal preferences in your home directory
 - Project-specific overrides in each repository
 
-### Configuration Wizard
+### Manual Configuration
 
-The easiest way to set up GAC is using the configuration wizard:
+To configure GAC, create a `.gac.env` file in one of these locations:
 
 ```bash
-# Run configuration wizard
-gac --config-wizard
+# Create in your home directory (recommended)
+echo 'GAC_MODEL=anthropic:claude-3-5-haiku-latest' > ~/.gac.env
+
+# Or in your project directory
+echo 'GAC_MODEL=anthropic:claude-3-5-haiku-latest' > .gac.env
 ```
 
-The wizard will guide you through selecting:
+You can also add your API key and other settings:
 
-- Your preferred AI provider
-- Model name
-- Formatting preferences
-- Where to save your configuration:
-  - Package-level (all users, requires write permissions)
-  - User-level in your home directory (recommended)
-  - Project-level in your current directory
+```bash
+# Add to your existing .gac.env file
+echo 'ANTHROPIC_API_KEY=your_key_here' >> ~/.gac.env
+```
 
 ### Environment Variables
 
@@ -144,7 +144,7 @@ export GAC_TEMPERATURE=0.7
 ollama pull llama3
 ```
 
-1. Use with GAC:
+3. Use with GAC:
 
 ```bash
 gac -m ollama:llama3
