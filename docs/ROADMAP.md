@@ -53,7 +53,6 @@ main.py and ai.py modules. The codebase has been simplified by removing deprecat
 
    - [x] Replace custom spinner with Halo for better progress indication
    - [x] Progressive loading of AI responses
-   - [ ] Add interactive mode for refining generated messages
    - [x] Implement better error recovery for failed API calls
    - [ ] Create better visualization of diff context
 
@@ -66,13 +65,7 @@ main.py and ai.py modules. The codebase has been simplified by removing deprecat
 - [x] **Configuration Management**: Implement multi-level configuration loading
 - [x] **Dependency Management**: Update Makefile and dependency handling
 
-## Next Sprint (Q3 2024)
-
-- [ ] **Interactive Mode**:
-
-  - [ ] Create an interactive mode to review and refine generated messages
-  - [ ] Implement message editing capabilities
-  - [ ] Add workflow for AI-assisted message refinement
+## Next Sprint
 
 - [ ] **Advanced Configuration System** 🔧:
 
@@ -113,9 +106,19 @@ main.py and ai.py modules. The codebase has been simplified by removing deprecat
   - [ ] Add configurable token limit settings
 
 - [ ] **Testing and Quality**:
+
   - [ ] Increase test coverage for configuration and AI modules
   - [ ] Add more comprehensive error handling tests
   - [ ] Implement property-based testing for core functions
+
+- [ ] **Windows Compatibility**:
+
+  - [ ] Ensure cross-platform path handling using `pathlib.Path`
+  - [ ] Implement platform-specific shell command execution
+  - [ ] Handle Windows-specific environment variables
+  - [ ] Update documentation with Windows setup instructions
+  - [ ] Add Windows job to CI/CD pipeline
+  - [ ] Test and validate all functionality on Windows
 
 ## Long-term Vision
 
