@@ -14,10 +14,10 @@ class FileStatus(Enum):
     UNTRACKED = "?"
 
 
-# AI and Commit Message Generation Constants
-MAX_RETRIES = 3
-TEMPERATURE = 0.7
-MAX_OUTPUT_TOKENS = 256
+# Default values for environment variables
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_TEMPERATURE = 0.7
+DEFAULT_MAX_OUTPUT_TOKENS = 256
 
 # Logging Constants
 DEFAULT_LOG_LEVEL = "WARNING"

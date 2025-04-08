@@ -5,10 +5,10 @@ from gac.ai import generate_commit_message
 from gac.constants import (
     DEFAULT_ENCODING,
     DEFAULT_LOG_LEVEL,
+    DEFAULT_MAX_OUTPUT_TOKENS,
+    DEFAULT_MAX_RETRIES,
+    DEFAULT_TEMPERATURE,
     LOGGING_LEVELS,
-    MAX_OUTPUT_TOKENS,
-    MAX_RETRIES,
-    TEMPERATURE,
 )
 from gac.format import format_files
 from gac.git import get_staged_files, push_changes

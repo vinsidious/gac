@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional, Union
 
 import click
 from dotenv import load_dotenv
@@ -14,7 +14,13 @@ from rich.panel import Panel
 
 from gac import __version__
 from gac.ai import generate_commit_message
-from gac.constants import DEFAULT_LOG_LEVEL, LOGGING_LEVELS, MAX_OUTPUT_TOKENS, MAX_RETRIES, TEMPERATURE
+from gac.constants import (
+    DEFAULT_LOG_LEVEL,
+    DEFAULT_MAX_OUTPUT_TOKENS,
+    DEFAULT_MAX_RETRIES,
+    DEFAULT_TEMPERATURE,
+    LOGGING_LEVELS,
+)
 from gac.errors import AIError, GitError, handle_error
 from gac.format import format_files
 from gac.git import get_staged_files, run_git_command
@@ -23,32 +29,60 @@ from gac.utils import print_message, setup_logging
 
 logger = logging.getLogger(__name__)
 
-# Load configuration in order of precedence
-# (lowest priority) Package-level config.env
-package_config = Path(__file__).parent / "config.env"
-if package_config.exists():
-    load_dotenv(package_config)
-# User-specific configuration
-user_config = Path.home() / ".gac.env"
-if user_config.exists():
-    load_dotenv(user_config)
-# Project-level ./.env
-env_config = Path(".env")
-if env_config.exists():
-    load_dotenv(env_config)
-# (highest priority) Project-level .gac.env
-project_config = Path(".gac.env")
-if project_config.exists():
-    load_dotenv(project_config)
+
+def load_config() -> Dict[str, Union[str, int, float, bool]]:
+    """Load configuration from environment files with precedence.
+
+    Order of precedence (lowest to highest):
+    1. Package-level _config.env
+    2. User-specific ~/.gac.env
+    3. Project-level ./.env
+    4. Project-level ./.gac.env
+    5. Environment variables (highest priority)
+
+    Returns:
+        Dict with configuration values.
+    """
+    # (lowest priority) Package-level _config.env
+    package_config = Path(__file__).parent / "_config.env"
+    if package_config.exists():
+        load_dotenv(package_config)
+    # User-specific configuration
+    user_config = Path.home() / ".gac.env"
+    if user_config.exists():
+        load_dotenv(user_config)
+    # Project-level ./.env
+    env_config = Path(".env")
+    if env_config.exists():
+        load_dotenv(env_config)
+    # (highest priority) Project-level .gac.env
+    project_config = Path(".gac.env")
+    if project_config.exists():
+        load_dotenv(project_config)
+
+    # Return config with defaults from constants
+    return {
+        "model": os.getenv("GAC_MODEL"),
+        "backup_model": os.getenv("GAC_BACKUP_MODEL"),
+        "format_files": os.getenv("GAC_FORMAT_FILES", "true").lower() == "true",
+        "temperature": float(os.getenv("GAC_TEMPERATURE", DEFAULT_TEMPERATURE)),
+        "max_output_tokens": int(os.getenv("GAC_MAX_OUTPUT_TOKENS", DEFAULT_MAX_OUTPUT_TOKENS)),
+        "max_retries": int(os.getenv("GAC_RETRIES", DEFAULT_MAX_RETRIES)),
+        "log_level": os.getenv("GAC_LOG_LEVEL", DEFAULT_LOG_LEVEL),
+    }
+
+
+# Load configuration
+config = load_config()
 
 
 @click.command()
 @click.option("--add-all", "-a", is_flag=True, help="Stage all changes before committing")
 @click.option(
     "--log-level",
-    default=DEFAULT_LOG_LEVEL,
+    default=config["log_level"],
     type=click.Choice(LOGGING_LEVELS, case_sensitive=False),
-    help=f"Set log level (default: {DEFAULT_LOG_LEVEL})",
+    help=f"Set log level (default: {config['log_level']})",
 )
 @click.option("--no-format", "-nf", is_flag=True, help="Skip formatting of staged files")
 @click.option("--one-liner", "-o", is_flag=True, help="Generate a single-line commit message")
@@ -62,7 +96,7 @@ if project_config.exists():
 @click.option("--dry-run", is_flag=True, help="Dry run the commit workflow")
 def cli(
     add_all: bool = False,
-    log_level: str = DEFAULT_LOG_LEVEL,
+    log_level: str = config["log_level"],
     no_format: bool = False,
     one_liner: bool = False,
     push: bool = False,
@@ -76,7 +110,7 @@ def cli(
 ):
     """Git Auto Commit - Generate commit messages with AI."""
     if version:
-        print(f"Git Auto Commit (GAC) version: {__version__.__version__}")
+        print(f"Git Auto Commit (GAC) version: {__version__}")
         sys.exit(0)
 
     numeric_log_level = getattr(logging, log_level.upper(), logging.WARNING)
@@ -121,7 +155,7 @@ def main(
         return  # This line won't be reached due to exit_program=True, but it's good practice
 
     if model is None:
-        model = os.getenv("GAC_MODEL")
+        model = config["model"]
         if model is None:
             handle_error(
                 AIError.model_error(
@@ -131,10 +165,14 @@ def main(
             )
             return  # This line won't be reached due to exit_program=True
     if should_format_files is None:
-        format_files_env = os.getenv("GAC_FORMAT_FILES")
-        should_format_files = format_files_env.lower() == "true" if format_files_env else True
+        should_format_files = config["format_files"]
 
-    backup_model = os.getenv("GAC_BACKUP_MODEL", None)
+    backup_model = config["backup_model"]
+
+    # Get environment variables from loaded config
+    temperature = config["temperature"]
+    max_output_tokens = config["max_output_tokens"]
+    max_retries = config["max_retries"]
 
     if stage_all and (not dry_run):
         print_message("Staging all changes", "info")
@@ -172,9 +210,9 @@ def main(
         commit_message = generate_commit_message(
             model,
             prompt,
-            temperature=TEMPERATURE,
-            max_tokens=MAX_OUTPUT_TOKENS,
-            max_retries=MAX_RETRIES,
+            temperature=temperature,
+            max_tokens=max_output_tokens,
+            max_retries=max_retries,
             quiet=quiet,
         )
     except AIError as e:
@@ -188,9 +226,9 @@ def main(
             commit_message = generate_commit_message(
                 backup_model,
                 prompt,
-                temperature=TEMPERATURE,
-                max_tokens=MAX_OUTPUT_TOKENS,
-                max_retries=MAX_RETRIES,
+                temperature=temperature,
+                max_tokens=max_output_tokens,
+                max_retries=max_retries,
                 quiet=quiet,
             )
         except AIError as e:

@@ -13,7 +13,7 @@ import aisuite as ai
 import tiktoken
 from halo import Halo
 
-from gac.constants import DEFAULT_ENCODING, MAX_OUTPUT_TOKENS, MAX_RETRIES, TEMPERATURE
+from gac.constants import DEFAULT_ENCODING, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_MAX_RETRIES, DEFAULT_TEMPERATURE
 from gac.errors import AIError
 
 logger = logging.getLogger(__name__)
@@ -57,9 +57,9 @@ def get_encoding(model: str) -> tiktoken.Encoding:
 def generate_commit_message(
     model: str,
     prompt: str,
-    temperature: float = TEMPERATURE,
-    max_tokens: int = MAX_OUTPUT_TOKENS,
-    max_retries: int = MAX_RETRIES,
+    temperature: float = DEFAULT_TEMPERATURE,
+    max_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
+    max_retries: int = DEFAULT_MAX_RETRIES,
     quiet: bool = False,
 ) -> str:
     """Generate a commit message using aisuite."""
