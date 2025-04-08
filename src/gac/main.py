@@ -252,6 +252,15 @@ def main(
         )
         return  # This line won't be reached due to exit_program=True
 
+    # Verify that all changes were committed by checking for staged files
+    staged_files = get_staged_files()
+    if staged_files:
+        handle_error(
+            GitError("Commit failed: There are still staged changes after commit attempt"),
+            exit_program=True,
+        )
+        return  # This line won't be reached due to exit_program=True
+
     if push:
         try:
             from gac.git import push_changes
