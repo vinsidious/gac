@@ -1,6 +1,7 @@
 """Error handling module for GAC."""
 
 import logging
+import os
 import sys
 from typing import Callable, Optional, Type, TypeVar
 
@@ -131,6 +132,7 @@ def handle_error(error: Exception, quiet: bool = False, exit_program: bool = Tru
 
     # Exit if requested
     if exit_program:
+        # In tests, SystemExit should be caught by pytest and handled appropriately
         sys.exit(exit_code)
 
 

@@ -109,7 +109,7 @@ def add_repository_context(diff: str) -> str:
     for path in file_paths[:5]:  # Limit to 5 files to avoid token bloat
         if path.endswith(".py"):
             try:
-                # Get the file content from HEAD
+                # Get the file content from HEAD - don't raise if command fails
                 file_content = run_git_command(["show", f"HEAD:{path}"], silent=True)
                 if file_content:
                     # Extract file docstring (first triple-quoted string)

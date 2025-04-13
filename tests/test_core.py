@@ -1,28 +1,14 @@
 """Test module for gac.core functionality."""
 
-import os
+from unittest.mock import patch
 
 import pytest
 
 from gac.prompt import build_prompt
 
 
-# Use pytest fixture for setting up the test environment
-@pytest.fixture(autouse=True)
-def pytest_environment():
-    """Setup the PYTEST_CURRENT_TEST environment variable for all tests."""
-    # Set up environment for tests
-    old_value = os.environ.get("PYTEST_CURRENT_TEST")
-    os.environ["PYTEST_CURRENT_TEST"] = "True"
-    yield
-    # Clean up after tests
-    if old_value is not None:
-        os.environ["PYTEST_CURRENT_TEST"] = old_value
-    else:
-        os.environ.pop("PYTEST_CURRENT_TEST", None)
-
-
-def test_build_prompt():
+@patch("gac.prompt.add_repository_context", return_value="")
+def test_build_prompt(mock_add_repo_context):
     """Test build_prompt function produces expected output format."""
     # Set up test inputs
     status = "On branch main"
@@ -32,6 +18,9 @@ def test_build_prompt():
 
     # Call the function directly
     result = build_prompt(status, diff, one_liner=one_liner, hint=hint)
+
+    # Verify the mock was called with the diff
+    mock_add_repo_context.assert_called_once_with(diff)
 
     # Check expected behavior: prompt contains necessary information for the LLM
     assert isinstance(result, str)
@@ -48,7 +37,8 @@ def test_build_prompt():
         assert "single line" in result.lower()
 
 
-def test_build_prompt_without_hint():
+@patch("gac.prompt.add_repository_context", return_value="")
+def test_build_prompt_without_hint(mock_add_repo_context):
     """Test build_prompt works without hint."""
     # Set up test inputs
     status = "On branch main"
@@ -56,6 +46,9 @@ def test_build_prompt_without_hint():
 
     # Call without hint and with multi-line
     result = build_prompt(status, diff, one_liner=False)
+
+    # Verify the mock was called with the diff
+    mock_add_repo_context.assert_called_once_with(diff)
 
     # Check expected behavior
     assert isinstance(result, str)

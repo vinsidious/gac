@@ -60,15 +60,44 @@ def load_config() -> Dict[str, Union[str, int, float, bool]]:
     if project_config.exists():
         load_dotenv(project_config)
 
-    return {
+    # Define configuration with defaults
+    config = {
         "model": os.getenv("GAC_MODEL"),
         "backup_model": os.getenv("GAC_BACKUP_MODEL"),
-        "format_files": os.getenv("GAC_FORMAT_FILES", "true").lower() == "true",
-        "temperature": float(os.getenv("GAC_TEMPERATURE", DEFAULT_TEMPERATURE)),
-        "max_output_tokens": int(os.getenv("GAC_MAX_OUTPUT_TOKENS", DEFAULT_MAX_OUTPUT_TOKENS)),
-        "max_retries": int(os.getenv("GAC_RETRIES", DEFAULT_MAX_RETRIES)),
-        "log_level": os.getenv("GAC_LOG_LEVEL", DEFAULT_LOG_LEVEL),
+        "format_files": True,
+        "temperature": DEFAULT_TEMPERATURE,
+        "max_output_tokens": DEFAULT_MAX_OUTPUT_TOKENS,
+        "max_retries": DEFAULT_MAX_RETRIES,
+        "log_level": DEFAULT_LOG_LEVEL,
     }
+
+    # Parse boolean values
+    if format_files := os.getenv("GAC_FORMAT_FILES"):
+        config["format_files"] = format_files.lower() == "true"
+
+    # Parse numeric values
+    if temperature := os.getenv("GAC_TEMPERATURE"):
+        try:
+            config["temperature"] = float(temperature)
+        except ValueError:
+            pass
+
+    if max_tokens := os.getenv("GAC_MAX_OUTPUT_TOKENS"):
+        try:
+            config["max_output_tokens"] = int(max_tokens)
+        except ValueError:
+            pass
+
+    if retries := os.getenv("GAC_RETRIES"):
+        try:
+            config["max_retries"] = int(retries)
+        except ValueError:
+            pass
+
+    if log_level := os.getenv("GAC_LOG_LEVEL"):
+        config["log_level"] = log_level
+
+    return config
 
 
 config = load_config()

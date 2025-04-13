@@ -21,19 +21,35 @@ def run_git_command(args: List[str], silent: bool = False, timeout: int = 30) ->
 
 
 def get_staged_files(file_type: Optional[str] = None, existing_only: bool = False) -> List[str]:
-    """Get list of staged files with optional filtering."""
-    output = run_git_command(["diff", "--name-only", "--cached"])
-    if not output:
+    """Get list of staged files with optional filtering.
+
+    Args:
+        file_type: Optional file extension to filter by
+        existing_only: If True, only include files that exist on disk
+
+    Returns:
+        List of staged file paths
+    """
+    try:
+        output = run_git_command(["diff", "--name-only", "--cached"])
+        if not output:
+            return []
+
+        # Parse and filter the file list
+        files = [line.strip() for line in output.splitlines() if line.strip()]
+
+        if file_type:
+            files = [f for f in files if f.endswith(file_type)]
+
+        if existing_only:
+            files = [f for f in files if os.path.isfile(f)]
+
+        return files
+    except GitError:
+        # If git command fails, return empty list as a fallback
         return []
-    files = [line.strip() for line in output.splitlines() if line.strip()]
-    if file_type:
-        files = [f for f in files if f.endswith(file_type)]
-    if existing_only:
-        files = [f for f in files if os.path.isfile(f)]
-    return files
 
 
-@with_error_handling(GitError, "Failed to push changes")
 def push_changes() -> bool:
     """Push committed changes to the remote repository."""
     remote_exists = run_git_command(["remote"])
@@ -43,9 +59,10 @@ def push_changes() -> bool:
 
     try:
         run_git_command(["push"])
+        return True
     except GitError as e:
         if "fatal: No configured push destination" in str(e):
             logger.error("No configured push destination.")
-            return False
-
-    return True
+        else:
+            logger.error(f"Failed to push changes: {e}")
+        return False

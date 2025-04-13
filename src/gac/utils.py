@@ -17,17 +17,14 @@ def setup_logging(log_level: Union[int, str] = DEFAULT_LOG_LEVEL, quiet: bool = 
     if isinstance(log_level, str):
         log_level = getattr(logging, log_level.upper(), logging.WARNING)
 
+    # Environment variable overrides the passed parameter
     log_level_env = os.environ.get("GAC_LOG_LEVEL")
     if log_level_env:
-        log_level_env = log_level_env.upper()
-        if log_level_env == "DEBUG":
-            log_level = logging.DEBUG
-        elif log_level_env == "INFO":
-            log_level = logging.INFO
-        elif log_level_env == "WARNING":
-            log_level = logging.WARNING
-        elif log_level_env == "ERROR":
-            log_level = logging.ERROR
+        try:
+            log_level = getattr(logging, log_level_env.upper())
+        except AttributeError:
+            # Fallback if an invalid level is specified
+            pass
 
     if quiet:
         log_level = logging.ERROR
