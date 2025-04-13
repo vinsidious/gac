@@ -7,37 +7,33 @@ formatting, and integration with diff preprocessing.
 import logging
 import os
 import re
-from pathlib import Path
 from typing import Optional
 
-from gac.errors import ConfigError
+from gac.constants import DEFAULT_DIFF_TOKEN_LIMIT
 from gac.git import run_git_command
 from gac.preprocess import preprocess_diff
 
 logger = logging.getLogger(__name__)
 
-# Maximum number of tokens to allocate for the diff in the prompt
-DEFAULT_DIFF_TOKEN_LIMIT = 6000
-
-# Default template to use when the file is not found
+# Default template to use when no template file is found
 DEFAULT_TEMPLATE = """Write a concise and meaningful git commit message based on the staged changes shown below.
 
 <format_section>
   <one_liner>
-  Format it as a single line (50-72 characters if possible). 
-  If applicable, still use conventional commit prefixes like feat/fix/docs/etc., 
+  Format it as a single line (50-72 characters if possible).
+  If applicable, still use conventional commit prefixes like feat/fix/docs/etc.,
   but keep everything to a single line with no bullet points.
   </one_liner>
-  
+
   <multi_line>
-  Format it with a concise summary line (50-72 characters) followed by a 
-  more detailed explanation with multiple bullet points highlighting the 
+  Format it with a concise summary line (50-72 characters) followed by a
+  more detailed explanation with multiple bullet points highlighting the
   specific changes made. Order the bullet points from most important to least important.
   </multi_line>
 </format_section>
 
 <conventional_section>
-IMPORTANT: EVERY commit message MUST start with a conventional commit prefix. 
+IMPORTANT: EVERY commit message MUST start with a conventional commit prefix.
 This is a HARD REQUIREMENT. Choose from:
 - feat: A new feature
 - fix: A bug fix
@@ -50,8 +46,8 @@ This is a HARD REQUIREMENT. Choose from:
 - ci: Changes to CI configuration
 - chore: Other changes that don't modify src or test files
 
-YOU MUST choose the most appropriate type based on the changes. 
-If you CANNOT determine a type, use 'chore'. 
+YOU MUST choose the most appropriate type based on the changes.
+If you CANNOT determine a type, use 'chore'.
 THE PREFIX IS MANDATORY - NO EXCEPTIONS.
 </conventional_section>
 
@@ -74,31 +70,13 @@ Changes to be committed:
 """
 
 
-def get_default_template_path():
-    """Returns the path to the default template file packaged with GAC.
-
-    Returns:
-        Path to the default template file
-    """
-    return Path(__file__).parent / "templates" / "default.prompt"
-
-
-def load_prompt_template(template_path: Optional[str] = None) -> str:
-    """Load the prompt template from a file or use the default embedded template.
-
-    Args:
-        template_path: Optional path to a template file (not used, kept for API compatibility)
+def load_prompt_template() -> str:
+    """Load the prompt template from the embedded default template.
 
     Returns:
         Template content as string
     """
-    default_template_path = get_default_template_path()
-    if default_template_path.exists():
-        logger.debug(f"Loading default template from {default_template_path}")
-        with open(default_template_path, "r") as f:
-            return f.read()
-
-    logger.debug("Default template file not found, using embedded template")
+    logger.debug("Using default template")
     return DEFAULT_TEMPLATE
 
 
@@ -207,8 +185,8 @@ def build_prompt(
     diff: str,
     one_liner: bool = False,
     hint: str = "",
-    template_path: Optional[str] = None,  # Kept for backwards compatibility but not used
     model: str = "anthropic:claude-3-haiku-latest",
+    template_path: Optional[str] = None,  # Kept for API compatibility but unused
 ) -> str:
     """Build a prompt for the AI model using the provided template and git information.
 
@@ -217,13 +195,13 @@ def build_prompt(
         diff: Git diff output
         one_liner: Whether to request a one-line commit message
         hint: Optional hint to guide the AI
-        template_path: Optional path to a custom template file
         model: Model identifier for token counting
+        template_path: Unused parameter kept for API compatibility
 
     Returns:
         Formatted prompt string ready to be sent to an AI model
     """
-    template = load_prompt_template(template_path)
+    template = load_prompt_template()
 
     # Preprocess the diff with smart filtering and truncation
     logger.debug(f"Preprocessing diff ({len(diff)} characters)")
@@ -291,8 +269,8 @@ def clean_commit_message(message: str) -> str:
     # Remove code block markers (backticks)
     if message.startswith("```"):
         # Check if the first line contains a language identifier (e.g., ```python)
-        if "\n" in message:
-            first_line_end = message.find("\n")
+        first_line_end = message.find("\n")
+        if first_line_end > 0:
             first_line = message[:first_line_end]
             if first_line.count("```") == 1:
                 message = message[first_line_end + 1 :]
@@ -303,7 +281,7 @@ def clean_commit_message(message: str) -> str:
         message = message[:-3].rstrip()
 
     # Handle cases where message still has backticks
-    message = message.replace("```\n", "").replace("\n```", "")
+    message = re.sub(r"```$|^```|\n```|```\n", "", message).strip()
 
     # Remove any XML tags that might have leaked into the response
     for tag in ["<git-status>", "</git-status>", "<git-diff>", "</git-diff>"]:

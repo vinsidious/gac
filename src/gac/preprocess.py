@@ -12,109 +12,22 @@ import re
 from typing import List, Optional, Tuple
 
 from gac.ai import count_tokens
+from gac.constants import (
+    BINARY_FILE_PATTERNS,
+    BUILD_DIRECTORIES,
+    CODE_PATTERNS,
+    DEFAULT_DIFF_TOKEN_LIMIT,
+    MAX_WORKERS,
+    MINIFIED_FILE_EXTENSIONS,
+    SOURCE_CODE_EXTENSIONS,
+)
 
 logger = logging.getLogger(__name__)
 
-# File patterns to filter out
-BINARY_FILE_PATTERNS = [r"Binary files .* differ", r"GIT binary patch"]
 
-MINIFIED_FILE_EXTENSIONS = [
-    ".min.js",
-    ".min.css",
-    ".bundle.js",
-    ".bundle.css",
-    ".compressed.js",
-    ".compressed.css",
-    ".opt.js",
-    ".opt.css",
-]
-
-BUILD_DIRECTORIES = [
-    "/dist/",
-    "/build/",
-    "/vendor/",
-    "/node_modules/",
-    "/assets/vendor/",
-    "/public/build/",
-    "/static/dist/",
-]
-
-# Important file extensions and patterns
-SOURCE_CODE_EXTENSIONS = {
-    # Programming languages
-    ".py": 5.0,  # Python
-    ".js": 4.5,  # JavaScript
-    ".ts": 4.5,  # TypeScript
-    ".jsx": 4.8,  # React JS
-    ".tsx": 4.8,  # React TS
-    ".go": 4.5,  # Go
-    ".rs": 4.5,  # Rust
-    ".java": 4.2,  # Java
-    ".c": 4.2,  # C
-    ".h": 4.2,  # C/C++ header
-    ".cpp": 4.2,  # C++
-    ".rb": 4.2,  # Ruby
-    ".php": 4.0,  # PHP
-    ".scala": 4.0,  # Scala
-    ".swift": 4.0,  # Swift
-    ".kt": 4.0,  # Kotlin
-    # Configuration
-    ".json": 3.5,  # JSON config
-    ".yaml": 3.8,  # YAML config
-    ".yml": 3.8,  # YAML config
-    ".toml": 3.8,  # TOML config
-    ".ini": 3.5,  # INI config
-    ".env": 3.5,  # Environment variables
-    # Documentation
-    ".md": 4.0,  # Markdown
-    ".rst": 3.8,  # reStructuredText
-    # Web
-    ".html": 3.5,  # HTML
-    ".css": 3.5,  # CSS
-    ".scss": 3.5,  # SCSS
-    ".svg": 2.5,  # SVG graphics
-    # Build & CI
-    "Dockerfile": 4.0,  # Docker
-    ".github/workflows": 4.0,  # GitHub Actions
-    "CMakeLists.txt": 3.8,  # CMake
-    "Makefile": 3.8,  # Make
-    "package.json": 4.2,  # NPM package
-    "pyproject.toml": 4.2,  # Python project
-    "requirements.txt": 4.0,  # Python requirements
-}
-
-# Important code patterns with their importance multipliers
-CODE_PATTERNS = {
-    # Structure changes
-    r"\+\s*(class|interface|enum)\s+\w+": 1.8,  # Class/interface/enum definitions
-    r"\+\s*(def|function|func)\s+\w+\s*\(": 1.5,  # Function definitions
-    r"\+\s*(import|from .* import)": 1.3,  # Imports
-    r"\+\s*(public|private|protected)\s+\w+": 1.2,  # Access modifiers
-    # Configuration changes
-    r"\+\s*\"(dependencies|devDependencies)\"": 1.4,  # Package dependencies
-    r"\+\s*version[\"\s:=]+[0-9.]+": 1.3,  # Version changes
-    # Logic changes
-    r"\+\s*(if|else|elif|switch|case|for|while)[\s(]": 1.2,  # Control structures
-    r"\+\s*(try|catch|except|finally)[\s:]": 1.2,  # Exception handling
-    r"\+\s*return\s+": 1.1,  # Return statements
-    r"\+\s*await\s+": 1.1,  # Async/await
-    # Comments & docs
-    r"\+\s*(//|#|/\*|\*\*)\s*TODO": 1.2,  # TODOs
-    r"\+\s*(//|#|/\*|\*\*)\s*FIX": 1.3,  # FIXes
-    r"\+\s*(\"\"\"|\'\'\')": 1.1,  # Docstrings
-    # Test code
-    r"\+\s*(test|describe|it|should)\s*\(": 1.1,  # Test definitions
-    r"\+\s*(assert|expect)": 1.0,  # Assertions
-}
-
-# Default token limit for diffs to keep them within model context
-DEFAULT_TOKEN_LIMIT = 6000
-
-# Max workers for parallel processing
-MAX_WORKERS = 4
-
-
-def preprocess_diff(diff: str, token_limit: int = DEFAULT_TOKEN_LIMIT, model: str = "anthropic:claude-3-haiku") -> str:
+def preprocess_diff(
+    diff: str, token_limit: int = DEFAULT_DIFF_TOKEN_LIMIT, model: str = "anthropic:claude-3-haiku-latest"
+) -> str:
     """Preprocess a git diff to make it more suitable for AI analysis.
 
     This function processes a git diff by:
@@ -134,25 +47,15 @@ def preprocess_diff(diff: str, token_limit: int = DEFAULT_TOKEN_LIMIT, model: st
     if not diff:
         return diff
 
-    # Quick check to see if we need optimization
     initial_tokens = count_tokens(diff, model)
-    if initial_tokens <= token_limit * 0.8:  # If using less than 80% of limit
-        # Still filter binary and minified files
+    if initial_tokens <= token_limit * 0.8:
         return filter_binary_and_minified(diff)
 
-    # For large diffs, use smart processing
     logger.info(f"Processing large diff ({initial_tokens} tokens, limit {token_limit})")
 
-    # Get individual file sections
     sections = split_diff_into_sections(diff)
-
-    # Process sections in parallel
     processed_sections = process_sections_parallel(sections)
-
-    # Score and prioritize sections
     scored_sections = score_sections(processed_sections)
-
-    # Smart truncation to fit token limit
     truncated_diff = smart_truncate_diff(scored_sections, token_limit, model)
 
     return truncated_diff
@@ -170,11 +73,8 @@ def split_diff_into_sections(diff: str) -> List[str]:
     if not diff:
         return []
 
-    # Split the diff into file sections
-    # Git diff format starts each file with "diff --git"
     file_sections = re.split(r"(diff --git )", diff)
 
-    # Recombine the split sections with their headers
     if file_sections[0] == "":
         file_sections.pop(0)
 
@@ -206,13 +106,10 @@ def process_sections_parallel(sections: List[str]) -> List[str]:
 
     filtered_sections = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        # Submit all sections for processing
         future_to_section = {executor.submit(process_section, section): section for section in sections}
-
-        # Collect results as they complete
         for future in concurrent.futures.as_completed(future_to_section):
             result = future.result()
-            if result:  # Only add if not filtered out
+            if result:
                 filtered_sections.append(result)
 
     return filtered_sections
@@ -241,35 +138,28 @@ def should_filter_section(section: str) -> bool:
     Returns:
         True if the section should be filtered out, False otherwise
     """
-    # Skip binary files
     if any(re.search(pattern, section) for pattern in BINARY_FILE_PATTERNS):
         file_match = re.search(r"diff --git a/(.*) b/", section)
         if file_match:
             filename = file_match.group(1)
             logger.info(f"Filtered out binary file: {filename}")
         return True
-
-    # Check for minified file extensions
     file_match = re.search(r"diff --git a/(.*) b/", section)
     if file_match:
         filename = file_match.group(1)
 
-        # Skip files with minified extensions
         if any(filename.endswith(ext) for ext in MINIFIED_FILE_EXTENSIONS):
             logger.info(f"Filtered out minified file by extension: {filename}")
             return True
 
-        # Skip files in build directories
         if any(directory in filename for directory in BUILD_DIRECTORIES):
             logger.info(f"Filtered out file in build directory: {filename}")
             return True
 
-        # Skip lockfiles and large generated files
         if is_lockfile_or_generated(filename):
             logger.info(f"Filtered out lockfile or generated file: {filename}")
             return True
 
-        # Check file content for minification
         if is_minified_content(section):
             logger.info(f"Filtered out likely minified file by content: {filename}")
             return True
@@ -326,23 +216,17 @@ def is_minified_content(content: str) -> bool:
     if not lines:
         return False
 
-    # If file has few lines but is large, it's likely minified
     if len(lines) < 10 and len(content) > 1000:
         return True
 
-    # For single-line content, use a different threshold
     if len(lines) == 1 and len(lines[0]) > 200:
         return True
 
-    # Test for extremely long lines without spacing (typical minified pattern)
-    # This pattern catches things like long JS/CSS function chains
     if any(len(line.strip()) > 300 and line.count(" ") < len(line) / 20 for line in lines):
         return True
 
-    # Check for very long lines (typical in minified files)
     long_lines_count = sum(1 for line in lines if len(line) > 500)
 
-    # If more than 20% of lines are very long, consider it minified
     if long_lines_count > 0 and (long_lines_count / len(lines)) > 0.2:
         return True
 
@@ -364,7 +248,6 @@ def score_sections(sections: List[str]) -> List[Tuple[str, float]]:
         importance = calculate_section_importance(section)
         scored_sections.append((section, importance))
 
-    # Sort by importance (highest first)
     return sorted(scored_sections, key=lambda x: x[1], reverse=True)
 
 
@@ -385,35 +268,28 @@ def calculate_section_importance(section: str) -> float:
     """
     importance = 1.0  # Base importance
 
-    # Extract filename
     file_match = re.search(r"diff --git a/(.*) b/", section)
     if not file_match:
         return importance
 
     filename = file_match.group(1)
 
-    # Score based on file extension
     extension_score = get_extension_score(filename)
     importance *= extension_score
 
-    # Score based on change type
     if re.search(r"new file mode", section):
-        importance *= 1.2  # New files are important
+        importance *= 1.2
     elif re.search(r"deleted file mode", section):
-        importance *= 1.1  # Deleted files are somewhat important
+        importance *= 1.1
 
-    # Count changes
     additions = len(re.findall(r"^\+[^+]", section, re.MULTILINE))
     deletions = len(re.findall(r"^-[^-]", section, re.MULTILINE))
     total_changes = additions + deletions
 
-    # Small changes to important files are more significant than large changes to less important files
     if total_changes > 0:
-        # Logarithmic scaling to avoid huge files dominating
         change_factor = 1.0 + min(1.0, 0.1 * (total_changes / 5))
         importance *= change_factor
 
-    # Analysis of code patterns in added lines
     pattern_score = analyze_code_patterns(section)
     importance *= pattern_score
 
@@ -429,15 +305,11 @@ def get_extension_score(filename: str) -> float:
     Returns:
         Importance multiplier based on file extension
     """
-    # Default score for unknown extensions
     default_score = 1.0
-
-    # Check exact filename matches first
     for pattern, score in SOURCE_CODE_EXTENSIONS.items():
         if not pattern.startswith(".") and pattern in filename:
             return score
 
-    # Then check extensions
     _, ext = os.path.splitext(filename)
     if ext:
         return SOURCE_CODE_EXTENSIONS.get(ext, default_score)
@@ -462,7 +334,6 @@ def analyze_code_patterns(section: str) -> float:
             pattern_score *= multiplier
             pattern_found = True
 
-    # If no patterns found, slightly reduce importance
     if not pattern_found:
         pattern_score *= 0.9
 
@@ -484,10 +355,7 @@ def filter_binary_and_minified(diff: str) -> str:
     if not diff:
         return diff
 
-    # Split the diff into file sections
     sections = split_diff_into_sections(diff)
-
-    # Filter out binary files and minified files
     filtered_sections = []
     for section in sections:
         if not should_filter_section(section):
@@ -519,7 +387,7 @@ def smart_truncate_diff(scored_sections: List[Tuple[str, float]], token_limit: i
     included_count = 0
     total_count = len(scored_sections)
     skipped_sections = []
-    processed_files = set()  # Track files we've processed to avoid duplicates
+    processed_files = set()
 
     # First pass: Include high-priority sections
     for section, score in scored_sections:
@@ -529,31 +397,28 @@ def smart_truncate_diff(scored_sections: List[Tuple[str, float]], token_limit: i
 
         filename = file_match.group(1)
 
-        # Skip if we've already processed this file
         if filename in processed_files:
             continue
 
         processed_files.add(filename)
 
-        # Calculate tokens in this section
         section_tokens = count_tokens(section, model)
-        section_tokens = max(section_tokens, 1)  # Ensure at least 1 token
+        section_tokens = max(section_tokens, 1)
 
         # If including this section would exceed the limit
         if current_tokens + section_tokens > token_limit:
             skipped_sections.append((section, score, filename))
             continue
 
-        # Add this section to the result
         result_sections.append(section)
         current_tokens += section_tokens
         included_count += 1
 
-    # Add summary of skipped files if we have any
     if skipped_sections and current_tokens + 200 <= token_limit:
         skipped_summary = "\n\n[Skipped files due to token limits:"
 
-        for _, _, filename in skipped_sections[:5]:  # Show up to 5 skipped files
+        for _, _, filename in skipped_sections[:5]:
+
             file_entry = f" {filename},"
             if current_tokens + len(skipped_summary) + len(file_entry) < token_limit:
                 skipped_summary += file_entry
@@ -565,8 +430,7 @@ def smart_truncate_diff(scored_sections: List[Tuple[str, float]], token_limit: i
 
         result_sections.append(skipped_summary)
 
-    # Add overall summary if we have room
-    if current_tokens + 100 <= token_limit:
+        # Add overall summary if we have room    if current_tokens + 100 <= token_limit:
         summary = (
             f"\n\n[Summary: Showing {included_count} of {total_count} changed files"
             f" ({current_tokens}/{token_limit} tokens used), "
