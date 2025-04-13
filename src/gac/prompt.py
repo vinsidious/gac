@@ -8,7 +8,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional, Tuple
 
 from gac.errors import ConfigError
 from gac.git import run_git_command
@@ -19,11 +19,31 @@ logger = logging.getLogger(__name__)
 # Maximum number of tokens to allocate for the diff in the prompt
 DEFAULT_DIFF_TOKEN_LIMIT = 6000
 
+# Default template to use when no template file is found
+DEFAULT_TEMPLATE = """Write a concise and meaningful git commit message based on the staged changes shown below.
 
-def find_template_file() -> Optional[str]:
-    """Find a prompt template file in standard locations.
+<one_liner>
+Format it as a single line.
+</one_liner>
 
-    Searches for template files in the following order:
+<multi_line>
+Format it with a concise summary line followed by details using bullet points.
+</multi_line>
+
+<hint_section>
+Please consider this context from the user: {hint}
+</hint_section>
+
+Git status:
+{status}
+
+Changes to be committed:
+{diff}
+"""
+
+
+def find_template_file():
+    """Searches for template files in the following order:
     1. Environment variable GAC_TEMPLATE_PATH
     2. Current directory: ./prompt.template
     3. User config directory: ~/.config/gac/prompt.template
@@ -82,8 +102,8 @@ def load_prompt_template(template_path: Optional[str] = None) -> str:
         with open(template_file, "r") as f:
             return f.read()
 
-    logger.error("No template file found and no default template defined.")
-    raise ConfigError("No template file found and no default template defined.")
+    logger.debug("No template file found, using default template")
+    return DEFAULT_TEMPLATE
 
 
 def add_repository_context(diff: str) -> str:
@@ -192,17 +212,17 @@ def build_prompt(
     one_liner: bool = False,
     hint: str = "",
     template_path: Optional[str] = None,
-    model: str = "anthropic:claude-3-haiku",
+    model: str = "anthropic:claude-3-haiku-latest",
 ) -> str:
-    """Build a prompt using a template file with XML-style tags.
+    """Build a prompt for the AI model using the provided template and git information.
 
     Args:
         status: Git status output
         diff: Git diff output
-        one_liner: Whether to generate a single-line commit message
-        hint: Additional context for the prompt
-        template_path: Optional path to a template file
-        model: Model identifier for token counting during preprocessing
+        one_liner: Whether to request a one-line commit message
+        hint: Optional hint to guide the AI
+        template_path: Optional path to a custom template file
+        model: Model identifier for token counting
 
     Returns:
         Formatted prompt string ready to be sent to an AI model
@@ -220,12 +240,13 @@ def build_prompt(
 
     # Replace placeholders with actual content
     template = template.replace("<status></status>", status)
+
+    # Add repository context before the diff if present
+    if repo_context:
+        processed_diff = f"{repo_context}\n\n{processed_diff}"
+
     template = template.replace("<diff></diff>", processed_diff)
     template = template.replace("<hint></hint>", hint)
-
-    # Add repository context before the diff section
-    if repo_context:
-        template = template.replace("<git-diff>", f"\n{repo_context}\n\n<git-diff>")
 
     # Process format options (one-liner vs multi-line)
     if one_liner:
@@ -240,6 +261,13 @@ def build_prompt(
         template = re.sub(r"<hint_section>.*?</hint_section>", "", template, flags=re.DOTALL)
     else:
         template = re.sub(r"<hint_section>(.*?)</hint_section>", r"\1", template, flags=re.DOTALL)
+
+    # Process format section if present
+    template = re.sub(r"<format_section>(.*?)</format_section>", r"\1", template, flags=re.DOTALL)
+
+    # Remove git-status and git-diff tags
+    template = re.sub(r"<git-status>(.*?)</git-status>", r"\1", template, flags=re.DOTALL)
+    template = re.sub(r"<git-diff>(.*?)</git-diff>", r"\1", template, flags=re.DOTALL)
 
     # Remove any remaining XML tags and clean up whitespace
     template = re.sub(r"<[^>]*>", "", template)
@@ -299,6 +327,7 @@ def clean_commit_message(message: str) -> str:
         "chore:",
     ]
 
+    # If the message doesn't start with a conventional prefix, add one
     if not any(message.startswith(prefix) for prefix in conventional_prefixes):
         message = f"chore: {message}"
 
