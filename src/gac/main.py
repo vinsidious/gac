@@ -129,7 +129,6 @@ def cli(
         )
     except Exception as e:
         handle_error(e, exit_program=True)
-        raise Exception("Failed to exit program after error")
 
 
 def main(
@@ -152,7 +151,6 @@ def main(
     except Exception as e:
         logger.error(f"Error checking git repository: {e}")
         handle_error(GitError("Not in a git repository"), exit_program=True)
-        raise Exception("Failed to exit program after git repository check failure")
 
     if model is None:
         model = config["model"]
@@ -163,7 +161,6 @@ def main(
                 ),
                 exit_program=True,
             )
-            raise Exception("Failed to exit program after model error")
     if should_format_files is None:
         should_format_files = config["format_files"]
 
@@ -182,7 +179,6 @@ def main(
             GitError("No staged changes found. Stage your changes with git add first or use --add-all"),
             exit_program=True,
         )
-        raise Exception("Failed to exit program after no staged changes found")
 
     if should_format_files:
         # TODO: Add logic for files that have both staged and unstaged changes
@@ -237,7 +233,6 @@ def main(
             GitError(f"Error committing changes: {e}"),
             exit_program=True,
         )
-        raise Exception("Failed to exit program after commit failure")
 
     # Verify that all changes were committed by checking for staged files
     staged_files = get_staged_files()
@@ -246,15 +241,6 @@ def main(
             GitError("Commit failed: There are still staged changes after commit attempt"),
             exit_program=True,
         )
-        raise Exception("Failed to exit program after commit failure")
-
-    staged_files = get_staged_files()
-    if staged_files:
-        handle_error(
-            GitError("Commit failed: There are still staged changes after commit attempt"),
-            exit_program=True,
-        )
-        raise Exception("Failed to exit program after commit failure")
 
     if push:
         try:
@@ -263,13 +249,11 @@ def main(
                     GitError("Failed to push changes. Check your remote configuration."),
                     exit_program=True,
                 )
-                raise Exception("Failed to exit program after push failure")
         except Exception as e:
             handle_error(
                 GitError(f"Error pushing changes: {e}"),
                 exit_program=True,
             )
-            raise Exception("Failed to exit program after push failure")
 
     if not quiet:
         print_message("Successfully committed changes with message:", "notification")
