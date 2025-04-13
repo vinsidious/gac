@@ -17,9 +17,9 @@ from gac.preprocess import preprocess_diff
 logger = logging.getLogger(__name__)
 
 # Default template to use when no template file is found
-DEFAULT_TEMPLATE = """<s>
+DEFAULT_TEMPLATE = """<role>
 You are an expert git commit message generator. Your task is to analyze code changes and create a concise, meaningful git commit message. You will receive git status and diff information. Your entire response will be used directly as a git commit message.
-</s>
+</role>
 
 <format>
   <one_liner>
@@ -27,7 +27,6 @@ You are an expert git commit message generator. Your task is to analyze code cha
   Your message should be clear, concise, and descriptive of the core change.
   Use present tense ("Add feature" not "Added feature").
   </one_liner>
-
   <multi_line>
   Create a commit message with:
   - First line: A concise summary (50-72 characters) that could stand alone
