@@ -16,9 +16,11 @@ from gac.preprocess import preprocess_diff
 logger = logging.getLogger(__name__)
 
 # Default template to use when no template file is found
-DEFAULT_TEMPLATE = """You are an expert git commit message generator. Your task is to analyze code changes and create a git commit message.
+DEFAULT_TEMPLATE = """<system>
+You are an expert git commit message generator. Your task is to analyze code changes and create a concise, meaningful git commit message. You will receive git status and diff information. Your entire response will be used directly as a git commit message.
+</system>
 
-<format_section>
+<format>
   <one_liner>
   Create a single-line commit message (50-72 characters if possible).
   Your message should be clear, concise, and descriptive of the core change.
@@ -33,9 +35,9 @@ DEFAULT_TEMPLATE = """You are an expert git commit message generator. Your task 
   - Focus on WHY changes were made, not just WHAT was changed
   - Order points from most important to least important
   </multi_line>
-</format_section>
+</format>
 
-<conventional_section>
+<conventions>
 You MUST start your commit message with the most appropriate conventional commit prefix:
 - feat: A new feature or functionality addition
 - fix: A bug fix or error correction
@@ -51,26 +53,26 @@ You MUST start your commit message with the most appropriate conventional commit
 Select the prefix that best matches the primary purpose of the changes.
 If multiple prefixes apply, choose the one that represents the most significant change.
 If you cannot confidently determine a type, use 'chore'.
-</conventional_section>
+</conventions>
 
-<hint_section>
-Additional context provided by the user: <hint></hint>
-</hint_section>
+<hint>
+Additional context provided by the user: <context></context>
+</hint>
 
-Git status:
-<git-status>
+<git_status>
 <status></status>
-</git-status>
+</git_status>
 
-Repository context:
-<git-diff>
+<repository_context>
 <diff></diff>
-</git-diff>
+</repository_context>
 
+<instructions>
 IMMEDIATELY AFTER ANALYZING THE CHANGES, RESPOND WITH ONLY THE COMMIT MESSAGE.
 DO NOT include any preamble, reasoning, explanations or anything other than the commit message itself.
 DO NOT use markdown formatting, headers, or code blocks.
 The entire response will be passed directly to 'git commit -m'.
+</instructions>
 """
 
 
@@ -224,7 +226,7 @@ def build_prompt(
         processed_diff = f"{repo_context}\n\n{processed_diff}"
 
     template = template.replace("<diff></diff>", processed_diff)
-    template = template.replace("<hint></hint>", hint)
+    template = template.replace("<context></context>", hint)
 
     # Process format options (one-liner vs multi-line)
     if one_liner:
@@ -236,19 +238,13 @@ def build_prompt(
 
     # Process hint section
     if not hint:
-        template = re.sub(r"<hint_section>.*?</hint_section>", "", template, flags=re.DOTALL)
-    else:
-        template = re.sub(r"<hint_section>(.*?)</hint_section>", r"\1", template, flags=re.DOTALL)
+        template = re.sub(r"<hint>.*?</hint>", "", template, flags=re.DOTALL)
 
-    # Process format section if present
-    template = re.sub(r"<format_section>(.*?)</format_section>", r"\1", template, flags=re.DOTALL)
-
-    # Remove git-status and git-diff tags
-    template = re.sub(r"<git-status>(.*?)</git-status>", r"\1", template, flags=re.DOTALL)
-    template = re.sub(r"<git-diff>(.*?)</git-diff>", r"\1", template, flags=re.DOTALL)
+    # Remove format section if present
+    template = re.sub(r"<format>(.*?)</format>", r"\1", template, flags=re.DOTALL)
 
     # Remove any remaining XML tags and clean up whitespace
-    template = re.sub(r"<[^>]*>", "", template)
+    template = re.sub(r"<[^>]*>|</[^>]*>", "", template)
     template = re.sub(r"\n{3,}", "\n\n", template)
 
     return template.strip()

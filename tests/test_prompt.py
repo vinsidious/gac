@@ -8,9 +8,11 @@ from gac.prompt import add_repository_context, build_prompt, clean_commit_messag
 # fmt: off
 # flake8: noqa: E501
 # Sample template content for testing
-TEST_TEMPLATE = """You are an expert git commit message generator. Your task is to analyze code changes.
+TEST_TEMPLATE = """<s>
+You are an expert git commit message generator.
+</s>
 
-<format_section>
+<format>
   <one_liner>
   Format it as a single line.
   </one_liner>
@@ -18,27 +20,23 @@ TEST_TEMPLATE = """You are an expert git commit message generator. Your task is 
   <multi_line>
   Format it with a concise summary line followed by details.
   </multi_line>
-</format_section>
+</format>
 
-<hint_section>
-Additional context provided by the user: <hint></hint>
-</hint_section>
+<hint>
+Additional context provided by the user: <context></context>
+</hint>
 
-# Reasoning process:
-1. First, analyze the git diff
-2. Identify the primary type of change
-
-Git status:
-<git-status>
+<git_status>
 <status></status>
-</git-status>
+</git_status>
 
-Repository context:
-<git-diff>
+<repository_context>
 <diff></diff>
-</git-diff>
+</repository_context>
 
-# Your commit message:"""
+<instructions>
+Respond with the commit message.
+</instructions>"""
 # fmt: on
 
 
@@ -71,7 +69,7 @@ class TestPrompts:
         result = build_prompt("status text", "diff text", one_liner=False, hint="")
         assert "status text" in result
         assert "diff text" in result
-        assert "Please consider this context from the user" not in result
+        assert "Additional context provided by the user:" not in result
 
     def test_clean_commit_message(self):
         """Test cleaning up generated commit messages."""
