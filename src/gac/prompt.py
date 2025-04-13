@@ -231,20 +231,14 @@ def build_prompt(
     # Process format options (one-liner vs multi-line)
     if one_liner:
         template = re.sub(r"<multi_line>.*?</multi_line>", "", template, flags=re.DOTALL)
-        template = re.sub(r"<one_liner>(.*?)</one_liner>", r"\1", template, flags=re.DOTALL)
     else:
         template = re.sub(r"<one_liner>.*?</one_liner>", "", template, flags=re.DOTALL)
-        template = re.sub(r"<multi_line>(.*?)</multi_line>", r"\1", template, flags=re.DOTALL)
 
-    # Process hint section
+    # Process hint section - remove it entirely if no hint is provided
     if not hint:
         template = re.sub(r"<hint>.*?</hint>", "", template, flags=re.DOTALL)
 
-    # Remove format section if present
-    template = re.sub(r"<format>(.*?)</format>", r"\1", template, flags=re.DOTALL)
-
-    # Remove any remaining XML tags and clean up whitespace
-    template = re.sub(r"<[^>]*>|</[^>]*>", "", template)
+    # Clean up extra whitespace
     template = re.sub(r"\n{3,}", "\n\n", template)
 
     return template.strip()

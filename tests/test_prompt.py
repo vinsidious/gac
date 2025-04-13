@@ -69,7 +69,7 @@ class TestPrompts:
         result = build_prompt("status text", "diff text", one_liner=False, hint="")
         assert "status text" in result
         assert "diff text" in result
-        assert "Additional context provided by the user:" not in result
+        assert "<hint>" not in result
 
     def test_clean_commit_message(self):
         """Test cleaning up generated commit messages."""

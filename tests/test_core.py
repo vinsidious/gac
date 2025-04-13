@@ -34,7 +34,11 @@ def test_build_prompt(mock_add_repo_context):
 
     # Verify one_liner flag affects the prompt content appropriately
     if one_liner:
-        assert any(phrase in result.lower() for phrase in ["single line", "single-line"])
+        assert "<one_liner>" in result
+        assert "<multi_line>" not in result
+    else:
+        assert "<one_liner>" not in result
+        assert "<multi_line>" in result
 
 
 @patch("gac.prompt.add_repository_context", return_value="")
@@ -55,4 +59,5 @@ def test_build_prompt_without_hint(mock_add_repo_context):
     assert status in result
     assert diff in result
     # Check content relevant to multi-line format
-    assert any(phrase in result.lower() for phrase in ["bullet points", "detailed body", "multiple bullet"])
+    assert "<multi_line>" in result
+    assert "<one_liner>" not in result
