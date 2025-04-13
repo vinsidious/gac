@@ -1,3 +1,4 @@
+# flake8: noqa: E501
 """Prompt creation for GAC.
 
 This module handles the creation of prompts for AI models, including template loading,

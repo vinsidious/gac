@@ -2,8 +2,6 @@
 
 from unittest.mock import patch
 
-import pytest
-
 from gac.prompt import build_prompt
 
 

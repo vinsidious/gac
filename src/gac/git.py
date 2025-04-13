@@ -8,7 +8,7 @@ import logging
 import os
 from typing import List, Optional
 
-from gac.errors import GitError, with_error_handling
+from gac.errors import GitError
 from gac.utils import run_subprocess
 
 logger = logging.getLogger(__name__)

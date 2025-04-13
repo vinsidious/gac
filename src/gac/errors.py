@@ -1,7 +1,6 @@
 """Error handling module for GAC."""
 
 import logging
-import os
 import sys
 from typing import Callable, Optional, Type, TypeVar
 
