@@ -13,7 +13,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from gac import __version__
-from gac.ai import generate_commit_message
+from gac.ai import generate_with_fallback
 from gac.constants import (
     DEFAULT_LOG_LEVEL,
     DEFAULT_MAX_OUTPUT_TOKENS,
@@ -23,8 +23,8 @@ from gac.constants import (
 )
 from gac.errors import AIError, GitError, handle_error
 from gac.format import format_files
-from gac.git import get_staged_files, run_git_command
-from gac.prompt import build_prompt
+from gac.git import get_staged_files, push_changes, run_git_command
+from gac.prompt import build_prompt, clean_commit_message
 from gac.utils import print_message, setup_logging
 
 logger = logging.getLogger(__name__)
@@ -152,7 +152,7 @@ def main(
     except Exception as e:
         logger.error(f"Error checking git repository: {e}")
         handle_error(GitError("Not in a git repository"), exit_program=True)
-        return  # This line won't be reached due to exit_program=True, but it's good practice
+        raise Exception("Failed to exit program after git repository check failure")
 
     if model is None:
         model = config["model"]
@@ -163,13 +163,12 @@ def main(
                 ),
                 exit_program=True,
             )
-            return  # This line won't be reached due to exit_program=True
+            raise Exception("Failed to exit program after model error")
     if should_format_files is None:
         should_format_files = config["format_files"]
 
     backup_model = config["backup_model"]
 
-    # Get environment variables from loaded config
     temperature = config["temperature"]
     max_output_tokens = config["max_output_tokens"]
     max_retries = config["max_retries"]
@@ -183,7 +182,7 @@ def main(
             GitError("No staged changes found. Stage your changes with git add first or use --add-all"),
             exit_program=True,
         )
-        return  # This line won't be reached due to exit_program=True
+        raise Exception("Failed to exit program after no staged changes found")
 
     if should_format_files:
         # TODO: Add logic for files that have both staged and unstaged changes
@@ -192,9 +191,11 @@ def main(
         if formatted_files and not dry_run:
             run_git_command(["add"] + formatted_files)
 
-    prompt = build_prompt(
-        status=run_git_command(["status"]), diff=run_git_command(["diff", "--staged"]), one_liner=one_liner, hint=hint
-    )
+    status = run_git_command(["status"])
+    diff = run_git_command(["diff", "--staged"])
+
+    # Build prompt with smart preprocessing
+    prompt = build_prompt(status=status, diff=diff, one_liner=one_liner, hint=hint, model=model or config["model"])
 
     if show_prompt:
         console = Console()
@@ -207,9 +208,11 @@ def main(
         )
 
     try:
-        commit_message = generate_commit_message(
-            model,
-            prompt,
+        # Use the new generate_with_fallback function from the ai module
+        commit_message = generate_with_fallback(
+            primary_model=model,
+            prompt=prompt,
+            backup_model=backup_model,
             temperature=temperature,
             max_tokens=max_output_tokens,
             max_retries=max_retries,
@@ -217,24 +220,10 @@ def main(
         )
     except AIError as e:
         print_message(str(e), level="error")
-        if not backup_model:
-            print_message("No backup model specified in environment variables. Exiting...", level="error")
-            sys.exit(1)
+        print_message("All available models failed. Exiting...", level="error")
+        sys.exit(1)
 
-        print_message("Trying backup model...", level="info")
-        try:
-            commit_message = generate_commit_message(
-                backup_model,
-                prompt,
-                temperature=temperature,
-                max_tokens=max_output_tokens,
-                max_retries=max_retries,
-                quiet=quiet,
-            )
-        except AIError as e:
-            print_message(str(e), level="error")
-            print_message("Backup model unsuccessful. Exiting...", level="error")
-            sys.exit(1)
+    commit_message = clean_commit_message(commit_message)
 
     if dry_run:
         print_message("Dry run: would commit with message:", "notification")
@@ -250,7 +239,7 @@ def main(
             GitError(f"Error committing changes: {e}"),
             exit_program=True,
         )
-        return  # This line won't be reached due to exit_program=True
+        raise Exception("Failed to exit program after commit failure")
 
     # Verify that all changes were committed by checking for staged files
     staged_files = get_staged_files()
@@ -259,24 +248,22 @@ def main(
             GitError("Commit failed: There are still staged changes after commit attempt"),
             exit_program=True,
         )
-        return  # This line won't be reached due to exit_program=True
+        raise Exception("Failed to exit program after commit failure")
 
     if push:
         try:
-            from gac.git import push_changes
-
             if not push_changes():
                 handle_error(
                     GitError("Failed to push changes. Check your remote configuration."),
                     exit_program=True,
                 )
-                return  # This line won't be reached due to exit_program=True
+                raise Exception("Failed to exit program after push failure")
         except Exception as e:
             handle_error(
                 GitError(f"Error pushing changes: {e}"),
                 exit_program=True,
             )
-            return  # This line won't be reached due to exit_program=True
+            raise Exception("Failed to exit program after push failure")
 
     if not quiet:
         print_message("Successfully committed changes with message:", "notification")

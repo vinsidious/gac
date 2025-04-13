@@ -7,7 +7,7 @@ name = "gac"
 dynamic = ["version"]
 description = 'git auto commit'
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 license = "MIT"
 keywords = []
 authors = [
@@ -16,9 +16,6 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
@@ -34,26 +31,19 @@ dependencies = [
     "tiktoken",
     
     # Core functionality
-    "pydantic>=2.11.1",
-    "python-dotenv>=1.1.0",
-    
-    # Git integration
-    "unidiff>=0.7.5",  # Git diff parsing library
+    "pydantic",
+    "python-dotenv",
+    "docstring_parser",  # needed by aisuite but not in their deps
     
     # CLI and formatting
-    "click>=8.1.8",
-    "colorama>=0.4.6",
-    "halo>=0.0.31",
-    "questionary>=2.1.0",
-    "rich>=14.0.0",
+    "click",
+    "halo",
+    "questionary",
+    "rich",
     
     # Code formatting
-    "black>=25.1.0",
-    "isort>=6.0.1",
-    
-    # Utilities
-    "docstring_parser>=0.16",
-    "python-dotenv>=1.1.0",
+    "black",
+    "isort",
 ]
 
 [project.scripts]
@@ -62,16 +52,16 @@ gac = "gac.main:cli"
 [project.optional-dependencies]
 dev = [
     # Version management
-    "bump-my-version>=0.31.1",
+    "bump-my-version",
     
     # Testing
-    "pytest>=8.3.5",
-    "pytest-cov>=6.1.0",
-    "codecov>=2.1.13",
+    "pytest",
+    "pytest-cov",
+    "codecov",
     
     # Linting
-    "flake8>=7.2.0",
-    "flake8-pyproject>=1.2.3",
+    "flake8",
+    "flake8-pyproject",
 ]
 
 [project.urls]
@@ -174,26 +164,25 @@ dependencies = [
     "mistralai",
   
     # Core functionality
-    "pydantic>=2.11.1",
+    "pydantic",
     
     # CLI and formatting
-    "colorama>=0.4.6",
-    "halo>=0.0.31",
+    "halo",
     
     # Code formatting
-    "black>=25.1.0",
-    "isort>=6.0.1",
+    "black",
+    "isort",
     
     # Testing
-    "pytest>=8.3.5",
-    "pytest-cov>=6.1.0",
-    "codecov>=2.1.13",
+    "pytest",
+    "pytest-cov",
+    "codecov",
     
     # Linting
-    "flake8>=7.2.0",
+    "flake8",
     
     # Version management
-    "bump-my-version>=0.31.1",
+    "bump-my-version",
 ]
 
 [tool.hatch.envs.default.scripts]
