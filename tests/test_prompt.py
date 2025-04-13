@@ -8,7 +8,7 @@ from gac.prompt import add_repository_context, build_prompt, clean_commit_messag
 # fmt: off
 # flake8: noqa: E501
 # Sample template content for testing
-TEST_TEMPLATE = """Write a concise and meaningful git commit message based on the staged changes shown below.
+TEST_TEMPLATE = """You are an expert git commit message generator. Your task is to analyze code changes.
 
 <format_section>
   <one_liner>
@@ -21,18 +21,24 @@ TEST_TEMPLATE = """Write a concise and meaningful git commit message based on th
 </format_section>
 
 <hint_section>
-Please consider this context from the user: <hint></hint>
+Additional context provided by the user: <hint></hint>
 </hint_section>
+
+# Reasoning process:
+1. First, analyze the git diff
+2. Identify the primary type of change
 
 Git status:
 <git-status>
 <status></status>
 </git-status>
 
-Changes to be committed:
+Repository context:
 <git-diff>
 <diff></diff>
-</git-diff>"""
+</git-diff>
+
+# Your commit message:"""
 # fmt: on
 
 
@@ -115,6 +121,30 @@ class TestPrompts:
         message = "chore: feat: Add new component"
         result = clean_commit_message(message)
         assert result == "chore: feat: Add new component"
+
+    def test_clean_commit_message_with_reasoning(self):
+        """Test cleaning messages that include reasoning section."""
+        # Test with reasoning and commit message marker
+        message = "Let me analyze the changes.\n\n1. First change: Modified the API\n2. Second change: Added tests\n\n# Your commit message:\nfeat: Update API and add tests"
+        result = clean_commit_message(message)
+        assert result == "feat: Update API and add tests"
+
+        # Test with different commit indicator
+        message = "The changes modify the authentication flow.\n\nThe commit message is:\nfix: Resolve authentication bug in login flow"
+        result = clean_commit_message(message)
+        assert result == "fix: Resolve authentication bug in login flow"
+
+        # Test with headers and reasoning steps
+        message = "# Analysis\n\n1. This change adds a new feature\n2. It also includes tests\n\n# Commit Message\n\nfeat: Add user profile export feature"
+        result = clean_commit_message(message)
+        assert result == "feat: Add user profile export feature"
+
+        # Test with CoT thinking but no indicator
+        message = (
+            "I'm analyzing the changes.\nThese changes refactor the code.\nrefactor: Simplify authentication logic"
+        )
+        result = clean_commit_message(message)
+        assert result == "refactor: Simplify authentication logic"
 
     @patch("gac.prompt.run_git_command")
     def test_add_repository_context(self, mock_run_git_command):
