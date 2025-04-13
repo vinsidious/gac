@@ -31,8 +31,11 @@ Additional context provided by the user: <context></context>
 </git_status>
 
 <repository_context>
-<diff></diff>
 </repository_context>
+
+<git_diff>
+<diff></diff>
+</git_diff>
 
 <instructions>
 Respond with the commit message.

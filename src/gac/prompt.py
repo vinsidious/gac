@@ -16,9 +16,9 @@ from gac.preprocess import preprocess_diff
 logger = logging.getLogger(__name__)
 
 # Default template to use when no template file is found
-DEFAULT_TEMPLATE = """<system>
+DEFAULT_TEMPLATE = """<s>
 You are an expert git commit message generator. Your task is to analyze code changes and create a concise, meaningful git commit message. You will receive git status and diff information. Your entire response will be used directly as a git commit message.
-</system>
+</s>
 
 <format>
   <one_liner>
@@ -64,8 +64,11 @@ Additional context provided by the user: <context></context>
 </git_status>
 
 <repository_context>
-<diff></diff>
 </repository_context>
+
+<git_diff>
+<diff></diff>
+</git_diff>
 
 <instructions>
 IMMEDIATELY AFTER ANALYZING THE CHANGES, RESPOND WITH ONLY THE COMMIT MESSAGE.
@@ -220,12 +223,14 @@ def build_prompt(
 
     # Replace placeholders with actual content
     template = template.replace("<status></status>", status)
-
-    # Add repository context before the diff if present
-    if repo_context:
-        processed_diff = f"{repo_context}\n\n{processed_diff}"
-
     template = template.replace("<diff></diff>", processed_diff)
+
+    # Add repository context if present
+    if repo_context:
+        template = template.replace(
+            "<repository_context></repository_context>", f"<repository_context>\n{repo_context}\n</repository_context>"
+        )
+
     template = template.replace("<context></context>", hint)
 
     # Process format options (one-liner vs multi-line)
@@ -293,7 +298,24 @@ def clean_commit_message(message: str) -> str:
             break
 
     # Remove any XML tags that might have leaked into the response
-    for tag in ["<git-status>", "</git-status>", "<git-diff>", "</git-diff>"]:
+    for tag in [
+        "<git-status>",
+        "</git-status>",
+        "<git_status>",
+        "</git_status>",
+        "<git-diff>",
+        "</git-diff>",
+        "<git_diff>",
+        "</git_diff>",
+        "<repository_context>",
+        "</repository_context>",
+        "<instructions>",
+        "</instructions>",
+        "<format>",
+        "</format>",
+        "<conventions>",
+        "</conventions>",
+    ]:
         message = message.replace(tag, "")
 
     # Ensure message starts with a conventional commit prefix
