@@ -75,16 +75,28 @@ target-version = ["py313"]
 
 [tool.coverage.run]
 source_pkgs = ["gac"]
+branch = true
 parallel = true
 omit = [
   "src/gac/__version__.py",
 ]
 
 [tool.coverage.paths]
-source = ["src"]
+gac = ["src/gac", "*/gac/src/gac"]
+tests = ["tests", "*/gac/tests"]
 
 [tool.coverage.report]
-show_missing = true
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+  "pragma: no cover",
+  "def __repr__",
+  "raise NotImplementedError",
+  "pass",
+  "raise ImportError",
+  "except ImportError"
+]
 
 [tool.flake8]
 max-line-length = 120
