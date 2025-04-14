@@ -73,57 +73,18 @@ Source = "https://github.com/cellwebb/gac"
 line-length = 120
 target-version = ["py313"]
 
-[tool.bump-my-version]
-current_version = "v0.7.3"
-parse = "v(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
-serialize = ["v{major}.{minor}.{patch}"]
-search = "{current_version}"
-replace = "{new_version}"
-regex = false
-ignore_missing_version = false
-tag = true
-sign_tags = false
-tag_name = "{new_version}"
-tag_message = "Bump version: {current_version} → {new_version}"
-allow_dirty = false
-commit = true
-message = "Bump version: {current_version} → {new_version}"
-commit_args = ""
-
-[[tool.bump-my-version.files]]
-filename = "src/gac/__version__.py"
-search = '__version__ = "{current_version}"'
-replace = '__version__ = "{new_version}"'
-
-[[tool.bump-my-version.files]]
-filename = "pyproject.toml"
-search = 'current_version = "{current_version}"'
-replace = 'current_version = "{new_version}"'
-
 [tool.coverage.run]
 source_pkgs = ["gac"]
-branch = true
 parallel = true
 omit = [
   "src/gac/__version__.py",
 ]
 
 [tool.coverage.paths]
-gac = ["src/gac", "*/gac/src/gac"]
-tests = ["tests", "*/gac/tests"]
+source = ["src"]
 
 [tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-  "pragma: no cover",
-  "def __repr__",
-  "raise NotImplementedError",
-  "pass",
-  "raise ImportError",
-  "except ImportError"
-]
+show_missing = true
 
 [tool.flake8]
 max-line-length = 120
