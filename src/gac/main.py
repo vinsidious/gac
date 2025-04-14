@@ -241,21 +241,35 @@ def main(
             max_retries=max_retries,
             quiet=quiet,
         )
+
         logger.info("Generated commit message:")
         logger.info(commit_message)
 
+        console = Console()
+        console.print("[bold green]Generated commit message:[/bold green]")
+        console.print(Panel(commit_message, title="Commit Message", border_style="cyan"))
+
+        if require_confirmation:
+            confirmed = click.confirm("Proceed with commit above?", default=True)
+            if not confirmed:
+                console.print("[yellow]Prompt not accepted. Exiting...[/yellow]")
+                sys.exit(0)
+
         if dry_run:
-            logger.info("Dry run: Commit message generated but not applied")
-            logger.info("Would commit with message:")
-            logger.info(commit_message)
+            console.print("[yellow]Dry run: Commit message generated but not applied[/yellow]")
+            console.print("Would commit with message:")
+            console.print(Panel(commit_message, title="Commit Message", border_style="cyan"))
+            staged_files = get_staged_files(existing_only=False)
+            console.print(f"Would commit {len(staged_files)} files")
             staged_files = get_staged_files(existing_only=False)
             logger.info(f"Would commit {len(staged_files)} files")
         else:
             run_git_command(["commit", "-m", commit_message])
             logger.info("Commit created successfully")
+            console.print("[green]Commit created successfully[/green]")
     except AIError as e:
         logger.error(str(e))
-        logger.error("All available models failed. Exiting...")
+        console.print("[red]All available models failed. Exiting...[/red]")
         sys.exit(1)
 
     commit_message = clean_commit_message(commit_message)
