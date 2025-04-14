@@ -3,6 +3,7 @@
 import logging
 import os
 import subprocess
+import sys
 from typing import Dict, List
 
 logger = logging.getLogger(__name__)
@@ -161,20 +162,22 @@ def format_files(files: List[str], dry_run: bool = False) -> List[str]:
     return formatted_files
 
 
-if __name__ == "__main__":
-    # Simple command-line interface for manual testing
-    import sys
-
+def main():
+    """Main entry point for the formatter."""
     if len(sys.argv) < 2:
-        print("Usage: python -m gac.format file1 file2 ...")
+        logger.error("Usage: python -m gac.format file1 file2 ...")
         sys.exit(1)
 
-    files_to_format = sys.argv[1:]
-    result = format_files(files_to_format)
+    files = sys.argv[1:]
+    result = format_files(files)
 
     if result:
-        print(f"Formatted {len(result)} files:")
+        logger.info(f"Formatted {len(result)} files:")
         for file in result:
-            print(f"  - {file}")
+            logger.info(f"  - {file}")
     else:
-        print("No files were formatted.")
+        logger.info("No files were formatted.")
+
+
+if __name__ == "__main__":
+    main()

@@ -105,34 +105,25 @@ AI_ERROR_CODES = {
 }
 
 
-def handle_error(error: Exception, quiet: bool = False, exit_program: bool = True) -> None:
-    """
-    Handle an exception in a standardized way.
+def handle_error(error: Exception, exit_program: bool = False) -> None:
+    """Handle an error with proper logging and user feedback.
 
     Args:
-        error: The exception to handle
-        quiet: If True, suppress non-error output
-        exit_program: If True, exit the program with the appropriate exit code
+        error: The error to handle
+        exit_program: If True, exit the program after handling the error
     """
-    # Determine the error type
-    if isinstance(error, GACError):
-        exit_code = error.exit_code
-        message = str(error)
+    logger.error(f"Error: {str(error)}")
+
+    if isinstance(error, GitError):
+        logger.error("Git operation failed. Please check your repository status.")
+    elif isinstance(error, AIError):
+        logger.error("AI operation failed. Please check your configuration and API keys.")
     else:
-        exit_code = 1
-        message = f"Unexpected error: {str(error)}"
+        logger.error("An unexpected error occurred.")
 
-    # Log the error
-    logger.error(message)
-
-    # Print the error unless quiet mode is enabled
-    if not quiet:
-        console.print(f"❌ {message}", style="bold red")
-
-    # Exit if requested
     if exit_program:
-        # In tests, SystemExit should be caught by pytest and handled appropriately
-        sys.exit(exit_code)
+        logger.error("Exiting program due to error.")
+        sys.exit(1)
 
 
 def format_error_for_user(error: Exception) -> str:

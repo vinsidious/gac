@@ -1,7 +1,6 @@
 """Utility functions for gac."""
 
 import logging
-import os
 import subprocess
 from typing import List, Union
 
@@ -13,36 +12,33 @@ from gac.errors import GACError
 
 
 def setup_logging(log_level: Union[int, str] = DEFAULT_LOG_LEVEL, quiet: bool = False, force: bool = False) -> None:
-    """Configure logging for the application."""
+    """Configure logging for the application.
+
+    Args:
+        log_level: Log level to use (DEBUG, INFO, WARNING, ERROR)
+        quiet: If True, suppress all output except errors
+        force: If True, force reconfiguration of logging
+    """
     if isinstance(log_level, str):
         log_level = getattr(logging, log_level.upper(), logging.WARNING)
-
-    # Environment variable overrides the passed parameter
-    log_level_env = os.environ.get("GAC_LOG_LEVEL")
-    if log_level_env:
-        try:
-            log_level = getattr(logging, log_level_env.upper())
-        except AttributeError:
-            # Fallback if an invalid level is specified
-            pass
 
     if quiet:
         log_level = logging.ERROR
 
     kwargs = {"force": force} if force else {}
 
-    if log_level == logging.DEBUG:
-        logging.basicConfig(
-            level=log_level,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-            **kwargs,
-        )
-    else:
-        logging.basicConfig(level=log_level, format="%(levelname)s: %(message)s", **kwargs)
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        **kwargs,
+    )
 
-    logging.getLogger("requests").setLevel(logging.WARNING)
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    # Suppress noisy third-party libraries
+    for noisy_logger in ["requests", "urllib3"]:
+        logging.getLogger(noisy_logger).setLevel(logging.WARNING)
+
+    logger.info(f"Logging initialized with level: {logging.getLevelName(log_level)}")
 
 
 theme = Theme(

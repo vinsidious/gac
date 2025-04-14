@@ -25,7 +25,7 @@ from gac.errors import AIError, GitError, handle_error
 from gac.format import format_files
 from gac.git import get_staged_files, push_changes, run_git_command
 from gac.prompt import build_prompt, clean_commit_message
-from gac.utils import print_message, setup_logging
+from gac.utils import setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +137,7 @@ def cli(
 ):
     """Git Auto Commit - Generate commit messages with AI."""
     if version:
-        print(f"Git Auto Commit (GAC) version: {__version__}")
+        logger.info(f"Git Auto Commit (GAC) version: {__version__}")
         sys.exit(0)
 
     setup_logging(log_level)
@@ -200,7 +200,7 @@ def main(
     max_retries = config["max_retries"]
 
     if stage_all and (not dry_run):
-        print_message("Staging all changes", "info")
+        logger.info("Staging all changes")
         run_git_command(["add", "--all"])
 
     if not get_staged_files(existing_only=False):
@@ -241,38 +241,35 @@ def main(
             max_retries=max_retries,
             quiet=quiet,
         )
+        logger.info("Generated commit message:")
+        logger.info(commit_message)
+
+        if dry_run:
+            logger.info("Dry run: Commit message generated but not applied")
+            logger.info("Would commit with message:")
+            logger.info(commit_message)
+            staged_files = get_staged_files(existing_only=False)
+            logger.info(f"Would commit {len(staged_files)} files")
+        else:
+            run_git_command(["commit", "-m", commit_message])
+            logger.info("Commit created successfully")
     except AIError as e:
-        print_message(str(e), level="error")
-        print_message("All available models failed. Exiting...", level="error")
+        logger.error(str(e))
+        logger.error("All available models failed. Exiting...")
         sys.exit(1)
 
     commit_message = clean_commit_message(commit_message)
 
-    if dry_run:
-        print_message("Dry run: would commit with message:", "notification")
-        print(commit_message)
-        staged_files = get_staged_files(existing_only=False)
-        print_message(f"Dry run: would commit {len(staged_files)} files", "info")
-        sys.exit(0)
-
-    try:
-        run_git_command(["commit", "-m", commit_message])
-    except Exception as e:
-        handle_error(
-            GitError(f"Error committing changes: {e}"),
-            exit_program=True,
-        )
-
-    # Verify that all changes were committed by checking for staged files
-    staged_files = get_staged_files()
-    if staged_files:
-        handle_error(
-            GitError("Commit failed: There are still staged changes after commit attempt"),
-            exit_program=True,
-        )
-
     if push:
         try:
+            if dry_run:
+                logger.info("Dry run: Would push changes")
+                logger.info("Would push with message:")
+                logger.info(commit_message)
+                staged_files = get_staged_files(existing_only=False)
+                logger.info(f"Would push {len(staged_files)} files")
+                sys.exit(0)
+
             if not push_changes():
                 handle_error(
                     GitError("Failed to push changes. Check your remote configuration."),
@@ -285,10 +282,10 @@ def main(
             )
 
     if not quiet:
-        print_message("Successfully committed changes with message:", "notification")
-        print(commit_message)
+        logger.info("Successfully committed changes with message:")
+        logger.info(commit_message)
         if push:
-            print_message("Changes pushed to remote.", "notification")
+            logger.info("Changes pushed to remote.")
     sys.exit(0)
 
 

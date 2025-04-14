@@ -83,12 +83,13 @@ class TestErrors(unittest.TestCase):
         error = ConfigError("Configuration error")
         handle_error(error, exit_program=True)
 
-        # Verify the behavior: error is logged and displayed to the user
-        mock_logger.error.assert_called_with("Configuration error")
-        mock_print.assert_called_with("❌ Configuration error", style="bold red")
+        # Verify the error is logged with the correct messages
+        mock_logger.error.assert_any_call("Error: Configuration error")
+        mock_logger.error.assert_any_call("An unexpected error occurred.")
+        mock_logger.error.assert_any_call("Exiting program due to error.")
 
-        # Verify the behavior: program exits with the appropriate exit code
-        mock_exit.assert_called_with(2)
+        # Verify sys.exit was called with 1
+        mock_exit.assert_called_once_with(1)
 
         # Reset mocks for next test
         mock_logger.reset_mock()
@@ -99,24 +100,13 @@ class TestErrors(unittest.TestCase):
         error = ValueError("Invalid value")
         handle_error(error, exit_program=True)
 
-        # Verify the behavior: unexpected errors are handled appropriately
-        mock_logger.error.assert_called_with("Unexpected error: Invalid value")
-        mock_print.assert_called_with("❌ Unexpected error: Invalid value", style="bold red")
-        mock_exit.assert_called_with(1)
+        # Verify the error is logged with the correct messages
+        mock_logger.error.assert_any_call("Error: Invalid value")
+        mock_logger.error.assert_any_call("An unexpected error occurred.")
+        mock_logger.error.assert_any_call("Exiting program due to error.")
 
-        # Reset mocks for next test
-        mock_logger.reset_mock()
-        mock_print.reset_mock()
-        mock_exit.reset_mock()
-
-        # Test with quiet mode
-        error = ConfigError("Configuration error")
-        handle_error(error, quiet=True, exit_program=True)
-
-        # Verify the behavior: in quiet mode, errors are logged but not displayed
-        mock_logger.error.assert_called_with("Configuration error")
-        mock_print.assert_not_called()
-        mock_exit.assert_called_with(2)
+        # Verify sys.exit was called with 1
+        mock_exit.assert_called_once_with(1)
 
         # Reset mocks for next test
         mock_logger.reset_mock()
@@ -127,9 +117,11 @@ class TestErrors(unittest.TestCase):
         error = ConfigError("Configuration error")
         handle_error(error, exit_program=False)
 
-        # Verify the behavior: when exit_program is False, sys.exit is not called
-        mock_logger.error.assert_called_with("Configuration error")
-        mock_print.assert_called_with("❌ Configuration error", style="bold red")
+        # Verify the error is logged with the correct messages
+        mock_logger.error.assert_any_call("Error: Configuration error")
+        mock_logger.error.assert_any_call("An unexpected error occurred.")
+
+        # Verify sys.exit was not called
         mock_exit.assert_not_called()
 
     def test_format_error_for_user(self):
