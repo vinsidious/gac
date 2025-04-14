@@ -91,21 +91,21 @@ message = "Bump version: {current_version} → {new_version}"
 commit_args = ""
 
 [[tool.bump-my-version.files]]
-filename = "src/gac/__about__.py"
+filename = "src/gac/__version__.py"
 search = '__version__ = "{current_version}"'
 replace = '__version__ = "{new_version}"'
 
 [[tool.bump-my-version.files]]
 filename = "pyproject.toml"
-search = 'version = "{current_version}"'
-replace = 'version = "{new_version}"'
+search = 'current_version = "{current_version}"'
+replace = 'current_version = "{new_version}"'
 
 [tool.coverage.run]
 source_pkgs = ["gac"]
 branch = true
 parallel = true
 omit = [
-  "src/gac/__about__.py",
+  "src/gac/__version__.py",
 ]
 
 [tool.coverage.paths]
