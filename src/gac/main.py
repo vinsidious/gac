@@ -203,6 +203,20 @@ def main(
         logger.info("Staging all changes")
         run_git_command(["add", "--all"])
 
+    # Check for staged and unstaged files
+    staged_files = get_staged_files(existing_only=False)
+    unstaged_files = get_staged_files(existing_only=True)
+    if not staged_files and not unstaged_files:
+        console = Console()
+        console.print("[yellow]No changes (staged or unstaged) found. Nothing to commit.[/yellow]")
+        sys.exit(0)
+    elif not staged_files:
+        console = Console()
+        console.print(
+            "[yellow]No staged changes found. Stage your changes with git add first or use --add-all.[/yellow]"
+        )
+        sys.exit(0)
+
     if not get_staged_files(existing_only=False):
         handle_error(
             GitError("No staged changes found. Stage your changes with git add first or use --add-all"),
