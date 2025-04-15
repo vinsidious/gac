@@ -14,13 +14,7 @@ from rich.panel import Panel
 
 from gac import __version__
 from gac.ai import generate_with_fallback
-from gac.constants import (
-    DEFAULT_LOG_LEVEL,
-    DEFAULT_MAX_OUTPUT_TOKENS,
-    DEFAULT_MAX_RETRIES,
-    DEFAULT_TEMPERATURE,
-    LOGGING_LEVELS,
-)
+from gac.constants import EnvDefaults, Logging
 from gac.errors import AIError, GitError, handle_error
 from gac.format import format_files
 from gac.git import get_staged_files, push_changes, run_git_command
@@ -65,10 +59,10 @@ def load_config() -> Dict[str, Union[str, int, float, bool]]:
         "model": os.getenv("GAC_MODEL"),
         "backup_model": os.getenv("GAC_BACKUP_MODEL"),
         "format_files": True,
-        "temperature": DEFAULT_TEMPERATURE,
-        "max_output_tokens": DEFAULT_MAX_OUTPUT_TOKENS,
-        "max_retries": DEFAULT_MAX_RETRIES,
-        "log_level": DEFAULT_LOG_LEVEL,
+        "temperature": EnvDefaults.TEMPERATURE,
+        "max_output_tokens": EnvDefaults.MAX_OUTPUT_TOKENS,
+        "max_retries": EnvDefaults.MAX_RETRIES,
+        "log_level": Logging.DEFAULT_LEVEL,
     }
 
     # Parse boolean values
@@ -108,7 +102,7 @@ config = load_config()
 @click.option(
     "--log-level",
     default=config["log_level"],
-    type=click.Choice(LOGGING_LEVELS, case_sensitive=False),
+    type=click.Choice(Logging.LEVELS, case_sensitive=False),
     help=f"Set log level (default: {config['log_level']})",
 )
 @click.option("--no-format", "-nf", is_flag=True, help="Skip formatting of staged files")
@@ -121,6 +115,7 @@ config = load_config()
 @click.option("--model", "-m", help="Override the default model (format: 'provider:model_name')")
 @click.option("--version", is_flag=True, help="Show the version of the Git Auto Commit (GAC) tool")
 @click.option("--dry-run", is_flag=True, help="Dry run the commit workflow")
+@click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity to INFO")
 def cli(
     add_all: bool = False,
     log_level: str = config["log_level"],
@@ -134,13 +129,23 @@ def cli(
     model: str = None,
     version: bool = False,
     dry_run: bool = False,
+    verbose: bool = False,
 ):
     """Git Auto Commit - Generate commit messages with AI."""
     if version:
         logger.info(f"Git Auto Commit (GAC) version: {__version__}")
         sys.exit(0)
 
-    setup_logging(log_level)
+    # Determine effective log level
+    effective_log_level = log_level
+    if verbose and not quiet:
+        # Only raise to INFO if not already more verbose
+        if log_level.upper() not in ("DEBUG", "INFO"):
+            effective_log_level = "INFO"
+    if quiet:
+        effective_log_level = "ERROR"
+
+    setup_logging(effective_log_level)
     logger.info("Starting GAC")
 
     try:
@@ -291,14 +296,23 @@ def main(
     if push:
         try:
             if dry_run:
+                staged_files = get_staged_files(existing_only=False)
+
                 logger.info("Dry run: Would push changes")
                 logger.info("Would push with message:")
                 logger.info(commit_message)
-                staged_files = get_staged_files(existing_only=False)
                 logger.info(f"Would push {len(staged_files)} files")
+
+                console.print("[yellow]Dry run: Would push changes[/yellow]")
+                console.print("Would push with message:")
+                console.print(Panel(commit_message, title="Commit Message", border_style="cyan"))
+                console.print(f"Would push {len(staged_files)} files")
                 sys.exit(0)
 
-            if not push_changes():
+            if push_changes():
+                logger.info("Changes pushed successfully")
+                console.print("[green]Changes pushed successfully[/green]")
+            else:
                 handle_error(
                     GitError("Failed to push changes. Check your remote configuration."),
                     exit_program=True,

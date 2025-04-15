@@ -20,68 +20,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Quick start guide: Add a quick start guide for new users.
 - Document configuration precedence and best practices.
 - Document real-world usage patterns and best practices.
+- Choose a commit to git diff against
+- Add recent git commit messages as context? If so, probably need to add a flag to control the number of commits to
+  include
 
-## [Unreleased]
+## [v0.8.0] - 2025-04-14
 
 ### Added
 
-- **Repository Context Enrichment**:
-
-  - Intelligent repository context extraction
-  - File purpose extraction from docstrings
-  - Recent commit history for modified files
-  - Repository structure and branch info
-  - Example script in `examples/repo_context_example.py`
-  - Comprehensive unit tests
-
-- **Configuration Management**:
-  - Package-level `config.env` with default model
-  - Multi-level config loading:
-    1. Project-level `.gac.env`
-    2. User-level `~/.gac.env`
-    3. Package-level `config.env`
-  - New test files for constants and utils
+- Git utility functions for repository root, current branch, and commit hash
+- Code formatting functions with Black integration
+- New test cases for git utilities and code formatting
+- Coverage configuration to exclude main.py
+- CONTRIBUTING.md with guidelines for project contributions
+- LICENSE file with MIT license
+- Verbose logging option to CLI
 
 ### Changed
 
-- **AI Model Integration**:
-
-  - Robust fallback mechanism for AI model generation
-  - Multi-model support with intelligent selection
-  - Improved token counting and diff preprocessing
-
-- **Error Handling**:
-
-  - Simplified error paths and recovery mechanisms
-  - Enhanced error message display
-
-- **CI/Build**:
-
-  - Updated nightly workflow to 5am Los Angeles
-  - Refined workflow triggers
-  - Python 3.13 support
-  - Improved release and tagging
-
-- **Performance**:
-  - Optimized git diff preprocessing
-  - Enhanced token counting efficiency
-
-### Removed
-
-- Unnecessary type annotations
-- Complex error handling patterns
-- Simplified imports
+- Improved test parameterization in test_format.py
+- Updated import statements for better organization
+- Enhanced code formatting validation logic
+- Improved push change handling with enhanced logging and user feedback
+- Updated installation documentation for clearer configuration instructions
+- Updated README with project badges and contributing information
+- Refined linting commands to use check mode for black, isort, and prettier
+- Updated VSCode settings to exclude more files from file explorer
 
 ### Documentation
 
-- Comprehensive docstrings
-- Repository context enrichment example
-- Updated project roadmap
+- Enhanced dry run logging for push changes
+- Improved installation and configuration guide clarity
+- Updated project documentation with more precise instructions
+- Added comprehensive troubleshooting guide
 
-### Security
+### CI/Build
 
-- Enhanced error handling
-- Improved input validation
+- Improved lint and format commands with silent logging and check modes
 
 ## [0.7.2] - 2025-04-13
 

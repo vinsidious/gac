@@ -1,5 +1,6 @@
 """Constants for the Git Auto Commit (GAC) project."""
 
+import os
 from enum import Enum
 from typing import Dict, List, Pattern
 
@@ -36,17 +37,19 @@ class Utility:
     DEFAULT_ENCODING: str = "cl100k_base"  # llm encoding
     DEFAULT_TOKEN_LIMIT: int = 8000  # Maximum tokens for processing
     DEFAULT_DIFF_TOKEN_LIMIT: int = 6000  # Maximum tokens for diff processing
-    MAX_WORKERS: int = 4  # Maximum number of parallel workers
+    MAX_WORKERS: int = os.cpu_count() or 4  # Maximum number of parallel workers
 
 
 class FilePatterns:
     """Patterns for identifying special file types."""
 
+    # Regex patterns to detect binary file changes in git diffs (e.g., images or other non-text files)
     BINARY: List[Pattern[str]] = [
         r"Binary files .* differ",
         r"GIT binary patch",
     ]
 
+    # Regex patterns to detect minified files in git diffs (e.g., JavaScript or CSS files)
     MINIFIED_EXTENSIONS: List[str] = [
         ".min.js",
         ".min.css",
@@ -58,6 +61,7 @@ class FilePatterns:
         ".opt.css",
     ]
 
+    # Regex patterns to detect build directories in git diffs (e.g., dist, build, vendor, etc.)
     BUILD_DIRECTORIES: List[str] = [
         "/dist/",
         "/build/",
@@ -119,6 +123,8 @@ class FileTypeImportance:
 class CodePatternImportance:
     """Importance multipliers for different code patterns."""
 
+    # Regex patterns to detect code structure changes in git diffs (e.g., class, function, import)
+    # Note: The patterns are prefixed with "+" to match only added and modified lines
     PATTERNS: Dict[Pattern[str], float] = {
         # Structure changes
         r"\+\s*(class|interface|enum)\s+\w+": 1.8,  # Class/interface/enum definitions
@@ -141,21 +147,3 @@ class CodePatternImportance:
         r"\+\s*(test|describe|it|should)\s*\(": 1.1,  # Test definitions
         r"\+\s*(assert|expect)": 1.0,  # Assertions
     }
-
-
-# Add aliases for top-level constants to maintain compatibility
-DEFAULT_ENCODING = Utility.DEFAULT_ENCODING
-DEFAULT_LOG_LEVEL = Logging.DEFAULT_LEVEL
-LOGGING_LEVELS = Logging.LEVELS
-DEFAULT_DIFF_TOKEN_LIMIT = Utility.DEFAULT_DIFF_TOKEN_LIMIT
-MAX_WORKERS = Utility.MAX_WORKERS
-DEFAULT_MAX_RETRIES = EnvDefaults.MAX_RETRIES
-DEFAULT_TEMPERATURE = EnvDefaults.TEMPERATURE
-DEFAULT_MAX_OUTPUT_TOKENS = EnvDefaults.MAX_OUTPUT_TOKENS
-
-# Add aliases for file pattern constants
-BINARY_FILE_PATTERNS = FilePatterns.BINARY
-MINIFIED_FILE_EXTENSIONS = FilePatterns.MINIFIED_EXTENSIONS
-BUILD_DIRECTORIES = FilePatterns.BUILD_DIRECTORIES
-SOURCE_CODE_EXTENSIONS = FileTypeImportance.EXTENSIONS
-CODE_PATTERNS = CodePatternImportance.PATTERNS
