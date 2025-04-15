@@ -21,7 +21,7 @@
 
 2. **Configure**
 
-   Create a `.gac.env` file in your project or home directory:
+   Create a `.gac.env` file in your project or $HOME directory (~ on Mac/Linux):
 
    ```sh
    GAC_MODEL=groq:meta-llama/llama-4-scout-17b-16e-instruct
