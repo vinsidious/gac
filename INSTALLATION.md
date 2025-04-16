@@ -11,7 +11,7 @@ changes. This guide will walk you through installation, configuration, and getti
 
 ## Prerequisites
 
-- Python 3.10+
+- Python 3.13+
 - pip or pipx
 - Git 2.x
 - An API key from a supported AI provider (optional)
@@ -34,7 +34,7 @@ pipx install git+https://github.com/cellwebb/gac.git@<TAG_OR_COMMIT>
 
 Replace `<TAG_OR_COMMIT>` with your desired release tag (e.g. `v1.2.3`) or commit hash.
 
-If you don't have pipx, install it with:
+If you don't have pipx, you can install it with:
 
 ```sh
 python3 -m pip install --user pipx
@@ -77,9 +77,9 @@ git add .
 gac
 ```
 
-- Generate a one-line commit message: gac -o
-- Add a hint for the AI: gac -h "Fix the authentication bug"
-- Add all, auto-confirm commit and push with a one-liner with a hint: gac -aypo -h "update for release"
+- Generate a one-line commit message: `gac -o`
+- Add a hint for the AI: `gac -h "Fix the authentication bug"`
+- Add all, auto-confirm commit and push with a one-liner with a hint: `gac -aypo -h "update for release"`
 
 For a full list of CLI flags and advanced usage, see [USAGE.md](USAGE.md).
 
