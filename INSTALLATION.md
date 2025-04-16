@@ -77,6 +77,10 @@ git add .
 gac
 ```
 
+- Generate a one-line commit message: gac -o
+- Add a hint for the AI: gac -h "Fix the authentication bug"
+- Add all, auto-confirm commit and push with a one-liner with a hint: gac -aypo -h "update for release"
+
 For a full list of CLI flags and advanced usage, see [USAGE.md](USAGE.md).
 
 ## Configuration
