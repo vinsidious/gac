@@ -24,6 +24,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add recent git commit messages as context? If so, probably need to add a flag to control the number of commits to
   include
 
+## [v0.9.1] - 2025-04-17
+
+### Changed
+
+- Relocated CLI entry point from `src/gac/main.py` to `src/gac/cli.py` to improve modularity and separation of concerns
+- Updated `pyproject.toml` to point at the new CLI entry location
+- Simplified `main.py` to focus solely on business logic by removing CLI wiring
+- Improved overall code organization and maintainability by isolating CLI-specific code
+
 ## [v0.9.0] - 2025-04-17
 
 ### Added
