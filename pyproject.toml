@@ -157,9 +157,6 @@ dependencies = [
     
     # Linting
     "flake8",
-    
-    # Version management
-    "bump-my-version",
 ]
 
 [tool.hatch.envs.default.scripts]
