@@ -51,6 +51,46 @@ def get_staged_files(file_type: Optional[str] = None, existing_only: bool = Fals
         return []
 
 
+def get_diff(
+    staged: bool = True, color: bool = True, commit1: Optional[str] = None, commit2: Optional[str] = None
+) -> str:
+    """Get the diff between commits or working tree.
+
+    Args:
+        staged: If True, show staged changes. If False, show unstaged changes.
+            This is ignored if commit1 and commit2 are provided.
+        color: If True, include ANSI color codes in the output.
+        commit1: First commit hash, branch name, or reference to compare from.
+        commit2: Second commit hash, branch name, or reference to compare to.
+            If only commit1 is provided, compares working tree to commit1.
+
+    Returns:
+        String containing the diff output
+
+    Raises:
+        GitError: If the git command fails
+    """
+    try:
+        args = ["diff"]
+
+        if color:
+            args.append("--color")
+
+        # If specific commits are provided, use them for comparison
+        if commit1 and commit2:
+            args.extend([commit1, commit2])
+        elif commit1:
+            args.append(commit1)
+        elif staged:
+            args.append("--cached")
+
+        output = run_git_command(args)
+        return output
+    except Exception as e:
+        logger.error(f"Failed to get diff: {str(e)}")
+        raise GitError(f"Failed to get diff: {str(e)}")
+
+
 def get_repo_root() -> str:
     """Get absolute path of repository root."""
     result = subprocess.check_output(["git", "rev-parse", "--show-toplevel"])
