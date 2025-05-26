@@ -4,8 +4,8 @@
 [![Python](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12%20|%203.13-blue.svg)](https://www.python.org/downloads/)
 [![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](docs/CONTRIBUTING.md)
 [![Code Style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Build Status](https://github.com/cellwebb/gac/actions/workflows/ci.yml/badge.svg)](https://github.com/cellwebb/gac/actions)
-[![codecov](https://codecov.io/gh/cellwebb/gac/branch/main/graph/badge.svg)](https://app.codecov.io/gh/cellwebb/gac)
+[![Build Status](https://github.com/criteria-dev/gac/actions/workflows/ci.yml/badge.svg)](https://github.com/criteria-dev/gac/actions)
+[![codecov](https://codecov.io/gh/criteria-dev/gac/branch/main/graph/badge.svg)](https://app.codecov.io/gh/criteria-dev/gac)
 
 ## Features
 
@@ -56,7 +56,7 @@ See [docs/USAGE.md](docs/USAGE.md) for a full list of CLI flags and advanced usa
    python3 -m pipx ensurepath
 
    # Install gac
-   pipx install git+https://github.com/cellwebb/gac.git
+   pipx install git+https://github.com/criteria-dev/gac.git
    ```
 
    Verify installation:

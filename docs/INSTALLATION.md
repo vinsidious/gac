@@ -24,13 +24,13 @@ changes. This guide will walk you through installation, configuration, and getti
 Install the latest release system-wide using pipx from the GitHub repository:
 
 ```sh
-pipx install git+https://github.com/cellwebb/gac.git
+pipx install git+https://github.com/criteria-dev/gac.git
 ```
 
 To install a specific version (tag, branch, or commit), use:
 
 ```sh
-pipx install git+https://github.com/cellwebb/gac.git@<TAG_OR_COMMIT>
+pipx install git+https://github.com/criteria-dev/gac.git@<TAG_OR_COMMIT>
 ```
 
 Replace `<TAG_OR_COMMIT>` with your desired release tag (e.g. `v0.9.1`) or commit hash.
@@ -47,7 +47,7 @@ python3 -m pipx ensurepath
 Clone the repository and install in editable mode with development dependencies:
 
 ```sh
-git clone https://github.com/cellwebb/gac.git
+git clone https://github.com/criteria-dev/gac.git
 cd gac
 uv pip install -e ".[dev]"
 ```
