@@ -7,6 +7,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.13.0] - 2025-05-25
+
+### Added
+
+- Implemented `--scope` / `-s` command-line flag to allow specifying a scope for commit messages.
+  - Supports providing a specific scope.
+  - Supports requesting AI to determine the scope.
+  - Supports omitting scope.
+- Enhanced `gac diff` command:
+  - Displays diffs for staged or unstaged changes.
+  - Allows comparison between specific commits.
+- Added extensive tests for new scope and diff functionalities, and increased overall test coverage.
+
+### Changed
+
+- Refactored `diff_cli.py` for improved command handling and new display options.
+- Improved overall CLI command structure in `gac/cli.py` and `gac/main.py`.
+- Enhanced repository context extraction mechanism in `gac/prompt.py`.
+- Improved diff preprocessing logic for more accurate and relevant diffs.
+- Updated `README.md` extensively with detailed usage for `--scope` and `gac diff`, new examples, screenshots, and a new
+  usage image.
+- Updated `CONTRIBUTING.md` with more information on testing.
+
 ## [v0.12.0] - 2025-05-07
 
 ### Added
