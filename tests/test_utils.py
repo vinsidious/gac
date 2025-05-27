@@ -1,8 +1,10 @@
 """Tests for gac.utils module."""
 
+from unittest import mock
+
 import pytest
 
-from gac.errors import GACError
+from gac.errors import GacError
 from gac.utils import file_matches_pattern, print_message, run_subprocess, setup_logging
 
 
@@ -75,21 +77,12 @@ def test_run_subprocess_nonzero(monkeypatch):
 
 
 def test_run_subprocess_timeout(monkeypatch):
-    class Timeout(Exception):
-        pass
-
-    class TimeoutExpired(Timeout):
-        pass
-
     import subprocess as sp
 
-    monkeypatch.setattr(
-        "subprocess.run", lambda *a, **kw: (_ for _ in ()).throw(sp.TimeoutExpired(cmd="cmd", timeout=1))
-    )
-    import pytest
-
-    with pytest.raises(GACError):
-        run_subprocess(["timeout"])  # Should raise GACError
+    # Mock subprocess.run to simulate a timeout
+    with mock.patch("subprocess.run", side_effect=sp.TimeoutExpired(cmd="timeout", timeout=0.1)):
+        with pytest.raises(GacError):
+            run_subprocess(["timeout"])  # Should raise GacError
 
 
 def test_run_subprocess_calledprocesserror(monkeypatch):

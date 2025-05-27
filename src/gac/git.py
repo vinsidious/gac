@@ -1,4 +1,4 @@
-"""Git operations for GAC.
+"""Git operations for gac.
 
 This module provides a simplified interface to Git commands.
 It focuses on the core operations needed for commit generation.

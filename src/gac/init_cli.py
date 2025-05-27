@@ -1,4 +1,4 @@
-"""CLI for initializing GAC configuration interactively."""
+"""CLI for initializing gac configuration interactively."""
 
 from pathlib import Path
 
@@ -11,8 +11,8 @@ GAC_ENV_PATH = Path.home() / ".gac.env"
 
 @click.command()
 def init() -> None:
-    """Interactively set up $HOME/.gac.env for GAC."""
-    click.echo("Welcome to GAC initialization!\n")
+    """Interactively set up $HOME/.gac.env for gac."""
+    click.echo("Welcome to gac initialization!\n")
     if GAC_ENV_PATH.exists():
         click.echo(f"$HOME/.gac.env already exists at {GAC_ENV_PATH}. Values will be updated.")
     else:
@@ -43,4 +43,4 @@ def init() -> None:
         set_key(str(GAC_ENV_PATH), f"{provider_key.upper()}_API_KEY", api_key)
         click.echo(f"Set {provider_key.upper()}_API_KEY (hidden)")
 
-    click.echo(f"\nGAC environment setup complete. You can edit {GAC_ENV_PATH} to update values later.")
+    click.echo(f"\ngac environment setup complete. You can edit {GAC_ENV_PATH} to update values later.")

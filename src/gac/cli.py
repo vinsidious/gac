@@ -1,6 +1,6 @@
 # flake8: noqa: E304
 
-"""CLI entry point for GAC.
+"""CLI entry point for gac.
 
 Defines the Click-based command-line interface and delegates execution to the main workflow.
 """
@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
 )
 
 # Other options
-@click.option("--version", is_flag=True, help="Show the version of the Git Auto Commit (GAC) tool")
+@click.option("--version", is_flag=True, help="Show the version of the Git Auto Commit (gac) tool")
 @click.pass_context
 def cli(
     ctx: click.Context,
@@ -79,7 +79,7 @@ def cli(
     """Git Auto Commit - Generate commit messages with AI."""
     if ctx.invoked_subcommand is None:
         if version:
-            print(f"Git Auto Commit (GAC) version: {__version__}")
+            print(f"Git Auto Commit (gac) version: {__version__}")
             sys.exit(0)
         effective_log_level = log_level
         if verbose and log_level not in ("DEBUG", "INFO"):
@@ -87,7 +87,7 @@ def cli(
         if quiet:
             effective_log_level = "ERROR"
         setup_logging(effective_log_level)
-        logger.info("Starting GAC")
+        logger.info("Starting gac")
         try:
             main(
                 stage_all=add_all,

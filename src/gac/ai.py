@@ -1,4 +1,4 @@
-"""AI provider integration for GAC.
+"""AI provider integration for gac.
 
 This module provides core functionality for AI provider interaction.
 It consolidates all AI-related functionality including token counting and commit message generation.

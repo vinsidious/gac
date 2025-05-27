@@ -8,7 +8,7 @@ from rich.console import Console
 from rich.theme import Theme
 
 from gac.constants import Logging
-from gac.errors import GACError
+from gac.errors import GacError
 
 
 def setup_logging(
@@ -88,7 +88,7 @@ def run_subprocess(
         Command output as string
 
     Raises:
-        GACError: If the command times out
+        GacError: If the command times out
         subprocess.CalledProcessError: If the command fails and raise_on_error is True
     """
     if not silent:
@@ -118,7 +118,7 @@ def run_subprocess(
         return output
     except subprocess.TimeoutExpired as e:
         logger.error(f"Command timed out after {timeout} seconds: {' '.join(command)}")
-        raise GACError(f"Command timed out: {' '.join(command)}") from e
+        raise GacError(f"Command timed out: {' '.join(command)}") from e
     except subprocess.CalledProcessError as e:
         if not silent:
             logger.error(f"Command failed: {e.stderr.strip() if hasattr(e, 'stderr') else str(e)}")

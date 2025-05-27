@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Business logic for GAC: orchestrates the commit workflow, including git state, formatting,
+"""Business logic for gac: orchestrates the commit workflow, including git state, formatting,
 prompt building, AI generation, and commit/push operations. This module contains no CLI wiring.
 """
 
@@ -34,7 +34,7 @@ def main(
     quiet: bool = False,
     dry_run: bool = False,
 ) -> None:
-    """Main application logic for GAC."""
+    """Main application logic for gac."""
     try:
         git_dir = run_git_command(["rev-parse", "--show-toplevel"])
         if not git_dir:

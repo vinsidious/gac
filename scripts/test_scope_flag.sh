@@ -3,7 +3,7 @@
 
 set -e
 
-echo "=== Testing GAC --scope flag ==="
+echo "=== Testing gac --scope flag ==="
 echo
 
 # Create a temporary test directory
@@ -65,7 +65,7 @@ echo "4. Testing without --scope flag"
 echo "   Adding a README file..."
 cat > README.md << 'EOF'
 # Test Project
-This is a test project for GAC scope testing.
+This is a test project for gac scope testing.
 EOF
 git add README.md
 

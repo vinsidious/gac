@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import patch
 
-from gac.errors import AIError, ConfigError, FormattingError, GACError, GitError, format_error_for_user, handle_error
+from gac.errors import AIError, ConfigError, FormattingError, GacError, GitError, format_error_for_user, handle_error
 
 
 class TestErrors(unittest.TestCase):
@@ -12,17 +12,17 @@ class TestErrors(unittest.TestCase):
     def test_error_inheritance(self):
         """Test error classes follow the expected inheritance hierarchy."""
         # Verify the behavior: error classes have the expected inheritance structure
-        self.assertTrue(issubclass(GACError, Exception))
-        self.assertTrue(issubclass(ConfigError, GACError))
-        self.assertTrue(issubclass(GitError, GACError))
-        self.assertTrue(issubclass(AIError, GACError))
-        self.assertTrue(issubclass(FormattingError, GACError))
+        self.assertTrue(issubclass(GacError, Exception))
+        self.assertTrue(issubclass(ConfigError, GacError))
+        self.assertTrue(issubclass(GitError, GacError))
+        self.assertTrue(issubclass(AIError, GacError))
+        self.assertTrue(issubclass(FormattingError, GacError))
 
     def test_error_exit_codes(self):
         """Test error classes provide appropriate exit codes."""
         # Define expected exit codes for each error type
         exit_codes = {
-            GACError: 1,
+            GacError: 1,
             ConfigError: 2,
             GitError: 3,
             AIError: 4,
@@ -39,7 +39,7 @@ class TestErrors(unittest.TestCase):
             self.assertEqual(error.exit_code, expected_code)
 
         # Verify the behavior: exit code can be overridden in constructor
-        error = GACError("Test message", exit_code=42)
+        error = GacError("Test message", exit_code=42)
         self.assertEqual(error.exit_code, 42)
 
     def test_ai_error_factory_methods(self):
@@ -88,8 +88,8 @@ class TestErrors(unittest.TestCase):
         mock_logger.error.assert_any_call("An unexpected error occurred.")
         mock_logger.error.assert_any_call("Exiting program due to error.")
 
-        # Verify sys.exit was called with 1
-        mock_exit.assert_called_once_with(1)
+        # Verify sys.exit was called with 2 (ConfigError.exit_code)
+        mock_exit.assert_called_once_with(2)
 
         # Reset mocks for next test
         mock_logger.reset_mock()
@@ -105,7 +105,7 @@ class TestErrors(unittest.TestCase):
         mock_logger.error.assert_any_call("An unexpected error occurred.")
         mock_logger.error.assert_any_call("Exiting program due to error.")
 
-        # Verify sys.exit was called with 1
+        # Verify sys.exit was called with 1 (default for non-GacError)
         mock_exit.assert_called_once_with(1)
 
         # Reset mocks for next test

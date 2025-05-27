@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-# Test script for GAC diff functionality
+# Test script for gac diff functionality
 TEST_DIR="$HOME/.gac_diff_testing"
 
 # Activate virtual environment if it exists
@@ -9,7 +9,7 @@ if [ -f ".venv/bin/activate" ]; then
     source .venv/bin/activate
 fi
 
-echo "===== Starting GAC Diff Tests ====="
+echo "===== Starting gac Diff Tests ====="
 
 # 1. Create the folder if it doesn't exist
 mkdir -p "$TEST_DIR"
@@ -26,7 +26,7 @@ rm -rf .git
 git init
 
 # 4. Configure Git
-git config user.name "GAC Test User"
+git config user.name "gac Test User"
 git config user.email "test@gac.local"
 
 echo "== Creating test repository =="
@@ -35,7 +35,7 @@ echo "== Creating test repository =="
 cat > README.md << 'EOF'
 # Test Project
 
-This is a test project for GAC.
+This is a test project for gac.
 EOF
 
 cat > main.py << 'EOF'
@@ -59,7 +59,7 @@ echo "Initial commit: $INITIAL_COMMIT"
 # Make some changes
 cat > main.py << 'EOF'
 def hello():
-    print('Hello, GAC!')
+    print('Hello, gac!')
 
 def goodbye():
     print('Goodbye!')
@@ -102,7 +102,7 @@ echo "Second commit: $SECOND_COMMIT"
 # Make more changes
 cat > main.py << 'EOF'
 def hello():
-    name = 'GAC'
+    name = 'gac'
     print(f'Hello, {name}!')
 
 def goodbye():
@@ -120,7 +120,7 @@ echo "== Testing diff with no-filter flag =="
 # Need to have unstaged changes for this test
 cat > main.py << 'EOF'
 def hello():
-    name = 'GAC'
+    name = 'gac'
     print(f'Hello, {name}!')
 
 def goodbye():
@@ -169,7 +169,7 @@ cat > config.py << 'EOF'
 # Configuration file
 DEBUG = False
 VERSION = '1.0.1'
-AUTHOR = 'GAC Test'
+AUTHOR = 'gac Test'
 EOF
 
 cat > style.css << 'EOF'
@@ -181,7 +181,7 @@ body {
 EOF
 
 cat > package.json << 'EOF'
-{"name": "test", "version": "1.0.1", "author": "GAC"}
+{"name": "test", "version": "1.0.1", "author": "gac"}
 EOF
 
 # Test diff with multiple complex changes
@@ -291,4 +291,4 @@ git commit -m "Commit all changes" > /dev/null 2>&1
 gac diff || echo "Test passed: No changes detected"
 
 echo
-echo "===== Finished GAC Diff Tests ====="
+echo "===== Finished gac Diff Tests ====="

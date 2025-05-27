@@ -1,4 +1,4 @@
-"""CLI for managing GAC configuration in $HOME/.gac.env."""
+"""CLI for managing gac configuration in $HOME/.gac.env."""
 
 import os
 from pathlib import Path
@@ -11,7 +11,7 @@ GAC_ENV_PATH = Path.home() / ".gac.env"
 
 @click.group()
 def config():
-    """Manage GAC configuration."""
+    """Manage gac configuration."""
     pass
 
 

@@ -1,6 +1,6 @@
 # flake8: noqa: E304
 
-"""Git diff display command for GAC.
+"""Git diff display command for gac.
 
 This module implements the 'gac diff' subcommand which displays git diffs with various
 filtering and formatting options. It provides a convenient way to view staged or unstaged
@@ -12,7 +12,7 @@ Key features:
 - Filter out binary files, minified files, and lockfiles
 - Smart truncation of large diffs based on token limits
 - Colored output support for better readability
-- Integration with GAC's preprocessing logic for cleaner diffs
+- Integration with gac's preprocessing logic for cleaner diffs
 
 The diff command is particularly useful for:
 - Previewing what changes will be included in the commit message

@@ -1,10 +1,10 @@
-# GAC Command-Line Usage
+# gac Command-Line Usage
 
 This document describes all available flags and options for the `gac` CLI tool.
 
 ## Table of Contents
 
-- [GAC Command-Line Usage](#gac-command-line-usage)
+- [gac Command-Line Usage](#gac-command-line-usage)
   - [Table of Contents](#table-of-contents)
   - [Basic Usage](#basic-usage)
   - [Core Workflow Flags](#core-workflow-flags)
@@ -40,11 +40,12 @@ Generates an AI-powered commit message for staged changes and opens an editor fo
 
 ## Message Customization
 
-| Flag / Option     | Short | Description                              |
-| ----------------- | ----- | ---------------------------------------- |
-| `--one-liner`     | `-o`  | Generate a single-line commit message    |
-| `--hint <text>`   | `-h`  | Add a hint to guide the AI               |
-| `--model <model>` | `-m`  | Specify the model to use for this commit |
+| Flag / Option     | Short | Description                                 |
+| ----------------- | ----- | ------------------------------------------- |
+| `--one-liner`     | `-o`  | Generate a single-line commit message       |
+| `--hint <text>`   | `-h`  | Add a hint to guide the AI                  |
+| `--model <model>` | `-m`  | Specify the model to use for this commit    |
+| `--scope <scope>` | `-s`  | Specify the scope of changes for the commit |
 
 ## Output and Verbosity
 
@@ -59,7 +60,7 @@ Generates an AI-powered commit message for staged changes and opens an editor fo
 
 | Flag / Option | Short | Description                |
 | ------------- | ----- | -------------------------- |
-| `--version`   |       | Show GAC version and exit  |
+| `--version`   |       | Show gac version and exit  |
 | `--help`      |       | Show help message and exit |
 
 ---
@@ -90,6 +91,12 @@ Generates an AI-powered commit message for staged changes and opens an editor fo
   gac -h "Refactor authentication logic"
   ```
 
+- **Specify the scope of changes:**
+
+  ```sh
+  gac -s "auth"
+  ```
+
 - **Use a specific model just for this commit:**
 
   ```sh
@@ -110,8 +117,8 @@ Generates an AI-powered commit message for staged changes and opens an editor fo
 
 ## Configuration Notes
 
-- The recommended way to set up GAC is to run `gac init` and follow the interactive prompts.
-- GAC loads configuration in the following order of precedence:
+- The recommended way to set up gac is to run `gac init` and follow the interactive prompts.
+- gac loads configuration in the following order of precedence:
   1. CLI flags
   2. Environment variables
   3. Project-level `.gac.env`

@@ -1,10 +1,10 @@
-# Troubleshooting GAC
+# Troubleshooting gac
 
-This guide covers common issues and solutions for installing, configuring, and running GAC.
+This guide covers common issues and solutions for installing, configuring, and running gac.
 
 ## Table of Contents
 
-- [Troubleshooting GAC](#troubleshooting-gac)
+- [Troubleshooting gac](#troubleshooting-gac)
   - [Table of Contents](#table-of-contents)
   - [1. Installation Problems](#1-installation-problems)
   - [2. Configuration Issues](#2-configuration-issues)
@@ -28,7 +28,7 @@ This guide covers common issues and solutions for installing, configuring, and r
 
 ## 2. Configuration Issues
 
-**Problem:** GAC can't find your API key or model
+**Problem:** gac can't find your API key or model
 
 - If you are new, run `gac init` to interactively set up your provider, model, and API keys
 - Make sure your `.gac.env` or environment variables are set correctly
@@ -77,7 +77,7 @@ This guide covers common issues and solutions for installing, configuring, and r
 ## Still Stuck?
 
 - Search existing issues or open a new one on the [GitHub repository](https://github.com/criteria-dev/gac)
-- Include details about your OS, Python version, GAC version, provider, and error output
+- Include details about your OS, Python version, gac version, provider, and error output
 - The more detail you provide, the faster your issue can be resolved
 
 ## Where to Get Further Help

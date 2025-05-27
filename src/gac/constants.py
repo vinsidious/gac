@@ -1,4 +1,4 @@
-"""Constants for the Git Auto Commit (GAC) project."""
+"""Constants for the Git Auto Commit (gac) project."""
 
 import os
 from enum import Enum

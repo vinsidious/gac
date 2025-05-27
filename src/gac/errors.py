@@ -1,4 +1,4 @@
-"""Error handling module for GAC."""
+"""Error handling module for gac."""
 
 import logging
 import sys
@@ -11,38 +11,48 @@ console = Console()
 T = TypeVar("T")
 
 
-class GACError(Exception):
-    """Base exception class for all GAC errors."""
+class GacError(Exception):
+    """Base exception class for all gac errors."""
 
     exit_code = 1  # Default exit code
 
-    def __init__(self, message: str, exit_code: Optional[int] = None):
+    def __init__(
+        self,
+        message: str,
+        details: Optional[str] = None,
+        suggestion: Optional[str] = None,
+        exit_code: Optional[int] = None,
+    ):
         """
-        Initialize a new GACError.
+        Initialize a new GacError.
 
         Args:
             message: The error message
-            exit_code: Optional exit code to use when exiting the program
+            details: Optional details about the error
+            suggestion: Optional suggestion for the user
+            exit_code: Optional exit code to override the class default
         """
         super().__init__(message)
         self.message = message
+        self.details = details
+        self.suggestion = suggestion
         if exit_code is not None:
             self.exit_code = exit_code
 
 
-class ConfigError(GACError):
+class ConfigError(GacError):
     """Error related to configuration issues."""
 
     exit_code = 2
 
 
-class GitError(GACError):
+class GitError(GacError):
     """Error related to Git operations."""
 
     exit_code = 3
 
 
-class AIError(GACError):
+class AIError(GacError):
     """Error related to AI provider or models."""
 
     exit_code = 4
@@ -55,7 +65,7 @@ class AIError(GACError):
             error_type: The type of AI error (from AI_ERROR_CODES keys)
             exit_code: Optional exit code to override the default
         """
-        super().__init__(message, exit_code)
+        super().__init__(message, exit_code=exit_code)
         self.error_type = error_type
         self.error_code = AI_ERROR_CODES.get(error_type, AI_ERROR_CODES["unknown"])
 
@@ -85,7 +95,7 @@ class AIError(GACError):
         return cls(message, error_type="model")
 
 
-class FormattingError(GACError):
+class FormattingError(GacError):
     """Error related to code formatting."""
 
     exit_code = 5
@@ -124,7 +134,7 @@ def handle_error(error: Exception, exit_program: bool = False, quiet: bool = Fal
 
     if exit_program:
         logger.error("Exiting program due to error.")
-        sys.exit(1)
+        sys.exit(error.exit_code if hasattr(error, "exit_code") else 1)
 
 
 def format_error_for_user(error: Exception) -> str:
@@ -175,7 +185,7 @@ def format_error_for_user(error: Exception) -> str:
 
 
 def with_error_handling(
-    error_type: Type[GACError], error_message: str, quiet: bool = False, exit_on_error: bool = True
+    error_type: Type[GacError], error_message: str, quiet: bool = False, exit_on_error: bool = True
 ) -> Callable[[Callable[..., T]], Callable[..., Optional[T]]]:
     """
     A decorator that wraps a function with standardized error handling.

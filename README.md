@@ -13,11 +13,11 @@
 - Generates clear, context-aware commit messages using AI
 - Enriches commit messages with repository structure and recent history
 - Simple CLI workflow, drop-in replacement for `git commit`
-- Easily manage configuration with `gac config` subcommands
+- Customize your use with hella flags
 
 ## How It Works
 
-GAC analyzes your staged changes, repository structure, and recent commit history to generate high-quality commit
+gac analyzes your staged changes, repository structure, and recent commit history to generate high-quality commit
 messages with the help of leading AI models.
 
 ## How to Use
@@ -27,13 +27,17 @@ git add .
 gac
 ```
 
-![Simple GAC Usage](assets/gac-simple-usage.png)
+![Simple gac Usage](assets/gac-simple-usage.png)
 
 ### Basic Commands
 
 - Generate a commit message: `gac`
+- Auto-accept the commit message: `gac -y`
+- Stage all changes and generate a commit message: `gac -a`
 - Generate a one-line commit message: `gac -o`
 - Add a hint for the AI: `gac -h "Fix the authentication bug"`
+- Add a scope to the commit message: `gac -s "auth"`
+- Push the commit (requires accepting the commit message): `gac -p`
 - Advanced usage: Add all, auto-confirm, push a one-liner with a hint: `gac -aypo -h "update for release"`
 
 ### Configuration Commands
@@ -99,7 +103,7 @@ See [docs/USAGE.md](docs/USAGE.md) for a full list of CLI flags and advanced usa
 
 3. **Verify**
 
-   Test that GAC is working properly:
+   Test that gac is working properly:
 
    ```sh
    # Make a change to a file
@@ -110,7 +114,7 @@ See [docs/USAGE.md](docs/USAGE.md) for a full list of CLI flags and advanced usa
 
 ## Best Practices
 
-- GAC loads configuration from two locations (in order of precedence):
+- gac loads configuration from two locations (in order of precedence):
   1. User-level `$HOME/.gac.env` (applies to all projects for the user)
   2. Project-level `.env` (in the project root, overrides user config if present) Environment variables always take
      final precedence over both files.
@@ -129,3 +133,5 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ## Community & Support
 
 For questions, suggestions, or support, please open an issue or discussion on GitHub.
+
+_Brought to you by [Criteria](https://criteria.dev)_

@@ -1,9 +1,9 @@
-# Installation Guide for Git Auto Commit (GAC)
+# Installation Guide for gac (Git Auto Commit)
 
 ## Overview
 
-Git Auto Commit (GAC) is a powerful CLI tool that uses AI to generate meaningful commit messages based on your staged
-changes. This guide will walk you through installation, configuration, and getting started.
+gac is a powerful CLI tool that uses AI to generate meaningful commit messages based on your staged changes. This guide
+will walk you through installation, configuration, and getting started.
 
 ## Supported Platforms
 
@@ -57,7 +57,7 @@ This setup is recommended if you want to contribute or run tests locally. For Wi
 
 ## Verifying Installation
 
-After installation, verify that GAC is available:
+After installation, verify that gac is available:
 
 ```sh
 gac --version
@@ -110,7 +110,7 @@ You may also set these as environment variables if preferred.
 
 ### Manual Provider Setup (Advanced)
 
-GAC supports multiple AI providers. Register for API access at the following links:
+gac supports multiple AI providers. Register for API access at the following links:
 
 - **Groq:** [console.groq.com](https://console.groq.com/) — Set `GAC_MODEL` and `GROQ_API_KEY`
 - **Anthropic:** [console.anthropic.com](https://console.anthropic.com/) — Set `GAC_MODEL` and `ANTHROPIC_API_KEY`

@@ -1,4 +1,4 @@
-"""Configuration loading for GAC.
+"""Configuration loading for gac.
 
 Handles environment variable and .env file precedence for application settings.
 """
