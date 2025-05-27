@@ -13,7 +13,6 @@ This document describes all available flags and options for the `gac` CLI tool.
   - [Help and Version](#help-and-version)
   - [Example Workflows](#example-workflows)
   - [Advanced](#advanced)
-    - [gac preview](#gac-preview)
   - [Configuration Notes](#configuration-notes)
     - [Configuration Subcommands](#configuration-subcommands)
   - [Getting Help](#getting-help)
@@ -38,7 +37,6 @@ Generates an AI-powered commit message for staged changes and opens an editor fo
 | `--push`      | `-p`  | Push changes to remote after committing           |
 | `--yes`       | `-y`  | Automatically confirm commit without prompting    |
 | `--dry-run`   |       | Show what would happen without making any changes |
-| `--no-format` | `-nf` | Skip formatting of staged files before commit     |
 
 ## Message Customization
 
@@ -109,14 +107,6 @@ Generates an AI-powered commit message for staged changes and opens an editor fo
 - Combine flags for more powerful workflows (e.g., `gac -ayp` to stage, auto-confirm, and push)
 - Use `--show-prompt` to debug or review the prompt sent to the AI
 - Adjust verbosity with `--log-level` or `--quiet`
-
-### gac preview
-
-Generate a commit message preview based on a diff between two commits or the working tree without committing:
-
-```sh
-gac preview <first_hash> [second_hash]
-```
 
 ## Configuration Notes
 

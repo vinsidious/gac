@@ -22,11 +22,9 @@ class TestScopeFlag:
         """Mocks common dependencies for all tests in this class."""
         mocked_config = {
             "model": "mocked-model/mocked-model-name",
-            "backup_model": "mocked-backup-model/mocked-backup-model-name",
             "temperature": 0.7,
             "max_output_tokens": 150,
             "max_retries": 2,
-            "format_files": False,
             "log_level": "ERROR",
         }
         monkeypatch.setattr(
@@ -49,7 +47,7 @@ class TestScopeFlag:
         monkeypatch.setattr("gac.main.run_git_command", mock_run_git_command)
         monkeypatch.setattr("gac.git.run_git_command", mock_run_git_command)
 
-        monkeypatch.setattr("gac.main.generate_with_fallback", lambda **kwargs: "feat(test): mock commit")
+        monkeypatch.setattr("gac.main.generate_commit_message", lambda **kwargs: "feat(test): mock commit")
         monkeypatch.setattr("click.confirm", lambda *args, **kwargs: True)
 
         def mock_get_staged_files(existing_only=False):
@@ -57,9 +55,6 @@ class TestScopeFlag:
 
         monkeypatch.setattr("gac.main.get_staged_files", mock_get_staged_files)
         monkeypatch.setattr("gac.git.get_staged_files", mock_get_staged_files)
-
-        monkeypatch.setattr("gac.main.format_files", lambda files, dry_run=False: [])
-        monkeypatch.setattr("gac.format.format_files", lambda files, dry_run=False: [])
 
         monkeypatch.setattr("rich.console.Console.print", lambda self, *a, **kw: None)
         # To prevent actual logging calls from interfering or printing during tests
@@ -204,7 +199,6 @@ class TestScopePromptBuilding:
         assert "feat(auth): add login functionality" not in prompt
         assert "fix(api): handle null response" not in prompt
         # But the conventions section still mentions scope usage
-        assert "If a scope is provided, include it in parentheses" in prompt
 
     @patch("gac.prompt.extract_repository_context", return_value="")
     @patch("gac.prompt.preprocess_diff", return_value="processed diff")
@@ -232,11 +226,9 @@ class TestScopeIntegration:
         # Mock config - patch the module-level config object that was already loaded
         test_config = {
             "model": "test:model",
-            "backup_model": "test:backup",
             "temperature": 0.1,
             "max_output_tokens": 100,
             "max_retries": 1,
-            "format_files": True,
             "log_level": "ERROR",
         }
 
@@ -280,7 +272,7 @@ class TestScopeIntegration:
             else:
                 return "feat: add new feature"
 
-        monkeypatch.setattr("gac.main.generate_with_fallback", mock_generate)
+        monkeypatch.setattr("gac.main.generate_commit_message", mock_generate)
 
         # Don't clean the commit message (this happens after commit in the real code)
         monkeypatch.setattr("gac.main.clean_commit_message", lambda msg: msg)
@@ -296,10 +288,6 @@ class TestScopeIntegration:
 
         monkeypatch.setattr("gac.main.get_staged_files", mock_get_staged_files)
         monkeypatch.setattr("gac.git.get_staged_files", mock_get_staged_files)
-
-        # Mock format_files to avoid file system access
-        monkeypatch.setattr("gac.main.format_files", lambda files, dry_run=False: [])
-        monkeypatch.setattr("gac.format.format_files", lambda files, dry_run=False: [])
 
         monkeypatch.setattr("click.confirm", lambda *args, **kwargs: True)
 

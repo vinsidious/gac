@@ -18,7 +18,6 @@ from gac.diff_cli import diff as diff_cli
 from gac.errors import handle_error
 from gac.init_cli import init as init_cli
 from gac.main import main
-from gac.preview_cli import preview as preview_cli
 from gac.utils import setup_logging
 
 config = load_config()
@@ -28,7 +27,6 @@ logger = logging.getLogger(__name__)
 @click.group(invoke_without_command=True, context_settings=dict(ignore_unknown_options=True))
 # Git workflow options
 @click.option("--add-all", "-a", is_flag=True, help="Stage all changes before committing")
-@click.option("--no-format", "-nf", is_flag=True, help="Skip formatting of staged files")
 @click.option("--push", "-p", is_flag=True, help="Push changes to remote after committing")
 @click.option("--dry-run", is_flag=True, help="Dry run the commit workflow")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt")
@@ -66,7 +64,6 @@ def cli(
     ctx: click.Context,
     add_all: bool = False,
     log_level: str = config["log_level"],
-    no_format: bool = False,
     one_liner: bool = False,
     push: bool = False,
     show_prompt: bool = False,
@@ -94,7 +91,6 @@ def cli(
         try:
             main(
                 stage_all=add_all,
-                should_format_files=not no_format,
                 model=model,
                 hint=hint,
                 one_liner=one_liner,
@@ -111,7 +107,6 @@ def cli(
         ctx.obj = {
             "add_all": add_all,
             "log_level": log_level,
-            "no_format": no_format,
             "one_liner": one_liner,
             "push": push,
             "show_prompt": show_prompt,
@@ -128,7 +123,6 @@ def cli(
 
 cli.add_command(config_cli)
 cli.add_command(init_cli)
-cli.add_command(preview_cli)
 cli.add_command(diff_cli)
 
 if __name__ == "__main__":
