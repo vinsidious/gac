@@ -1,5 +1,10 @@
 {
   "cla-assistant-version": "2.0",
-  "contributorWhitelist": ["dependabot[bot]", "github-actions[bot]", "cellwebb", "nosferatuboi"],
+  "contributorWhitelist": [
+    "dependabot[bot]",
+    "github-actions[bot]",
+    "cellwebb",
+    "nosferatuboi"
+  ],
   "contributors": []
 }

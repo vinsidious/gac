@@ -38,29 +38,27 @@
   "black-formatter.args": ["--line-length", "120"],
 
   // flake8 settings
-  "flake8.args": ["--exclude=.git,__pycache__,.venv,venv,build,dist", "--ignore=W503,E203", "--max-line-length=120"],
+  "flake8.args": [
+    "--exclude=.git,__pycache__,.venv,venv,build,dist",
+    "--ignore=W503,E203",
+    "--max-line-length=120"
+  ],
 
   "eslint.options": {
     "max-len": 120
   },
 
   "files.exclude": {
-    ".prettierignore": true,
-    ".prettierrc": true,
-    ".markdownlint-cli2.yaml": true,
     ".git/": true,
     ".coverage": true,
     ".ruff_cache": true,
     ".pytest_cache": true,
     "dist/": true,
     "LICENSE.txt": true,
-    "package.json": true,
-    "package-lock.json": true,
     "uv.lock": true,
     "**/__pycache__": true
   },
   "search.exclude": {
-    "**/node_modules": true,
     "**/.venv": false,
     "**/.pytest_cache": true,
     "**/__pycache__": true,
