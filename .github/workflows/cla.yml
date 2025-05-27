@@ -27,13 +27,13 @@ jobs:
           # PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         with:
           path-to-signatures: ".github/cla.json"
-          path-to-document: "https://github.com/criteria-dev/gac/blob/main/.github/CLA.md"
+          path-to-document: "https://gist.github.com/cellwebb/1542fa5c0f6c59be6d1cb64ae985732e"
           branch: "main"
           # Allow contributors to sign by commenting "I have read the CLA Document and I hereby sign the CLA"
           custom-notsigned-prcomment:
             'Thank you for your contribution! Before we can merge your PR, please read and sign our [Contributor License
-            Agreement](https://github.com/criteria-dev/gac/blob/main/.github/CLA.md) by commenting below with:\n\n```\nI
-            have read the CLA Document and I hereby sign the CLA\n```'
+            Agreement](https://gist.github.com/cellwebb/1542fa5c0f6c59be6d1cb64ae985732e) by commenting below
+            with:\n\n```\nI have read the CLA Document and I hereby sign the CLA\n```'
           custom-pr-sign-comment: "I have read the CLA Document and I hereby sign the CLA"
           custom-allsigned-prcomment: "All contributors have signed the CLA ✅"
           lock-pullrequest-aftermerge: false
