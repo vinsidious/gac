@@ -38,7 +38,7 @@ gac
 Install system-wide using pipx from the GitHub repository:
 
 ```sh
-# Install pipx if you don't already have it
+# Install pipx if you don't have it
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 
@@ -46,15 +46,7 @@ python3 -m pipx ensurepath
 pipx install git+https://github.com/criteria-dev/gac.git
 ```
 
-To install a specific version (tag, branch, or commit), use:
-
-```sh
-pipx install git+https://github.com/criteria-dev/gac.git@<TAG_OR_COMMIT>
-```
-
-Replace `<TAG_OR_COMMIT>` with your desired release tag (e.g. `v0.9.1`) or commit hash.
-
-#### Verify Installation
+Verify installation:
 
 ```sh
 gac --version
@@ -125,7 +117,7 @@ Once installed and configured, using `gac` is straightforward:
 - Auto-accept the commit message: `gac -y`
 - Stage all changes and generate a commit message: `gac -a`
 - Generate a one-line commit message: `gac -o`
-- Add a hint for the AI: `gac -h "Fix the authentication bug"`
+- Add a hint for the AI: `gac -h "Fixed the authentication bug"`
 - Push the commit (requires accepting the commit message): `gac -p`
 - Advanced usage: Add all, auto-confirm, push a one-liner with a hint: `gac -aypo -h "update for release"`
 

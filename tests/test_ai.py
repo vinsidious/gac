@@ -1,12 +1,8 @@
 """Tests for ai module."""
 
-from unittest.mock import patch
-
-import pytest
 import tiktoken
 
 from gac.ai import extract_text_content, get_encoding
-from gac.errors import AIError
 
 
 class TestAiUtils:
