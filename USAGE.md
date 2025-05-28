@@ -135,8 +135,7 @@ The following subcommands manage configuration of your `$HOME/.gac.env` file:
 
 ## Getting Help
 
-- For troubleshooting and advanced tips, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-- For installation and configuration, see [INSTALLATION.md](INSTALLATION.md)
-- For Windows setup, see [docs/WINDOWS_COMPATIBILITY_PLAN.md](docs/WINDOWS_COMPATIBILITY_PLAN.md)
-- To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md)
+- For troubleshooting and advanced tips, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+- For installation and configuration, see [README.md#installation-and-configuration](README.md#installation-and-configuration)
+- To contribute, see [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)
 - License information: [LICENSE](LICENSE)

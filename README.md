@@ -1,24 +1,26 @@
+<!-- markdownlint-disable MD013 -->
+
 # gac (Git Auto Commit)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12%20|%203.13-blue.svg)](https://www.python.org/downloads/)
-[![CLA assistant](https://cla-assistant.io/readme/badge/criteria-dev/gac)](https://cla-assistant.io/criteria-dev/gac)
 [![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](docs/CONTRIBUTING.md)
 [![Code Style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Build Status](https://github.com/criteria-dev/gac/actions/workflows/ci.yml/badge.svg)](https://github.com/criteria-dev/gac/actions)
 [![codecov](https://codecov.io/gh/criteria-dev/gac/branch/main/graph/badge.svg)](https://app.codecov.io/gh/criteria-dev/gac)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## Features
 
-- Generates clear, context-aware commit messages using AI
-- Enriches commit messages with repository structure and recent history
-- Simple CLI workflow, drop-in replacement for `git commit`
-- Customize your use with hella flags
+- **AI-Powered Commit Messages:** Automatically generates clear, concise, and context-aware commit messages using state-of-the-art AI models.
+- **Deep Contextual Analysis:** Understands your code by analyzing staged changes, repository structure, and recent commit history to provide highly relevant suggestions.
+- **Multi-Provider & Model Support:** Flexibly works with various leading AI providers (like Anthropic, Groq, OpenAI) and models, easily configured through an interactive setup or environment variables.
+- **Seamless Git Workflow:** Integrates smoothly into your existing Git routine as a simple drop-in replacement for `git commit`.
+- **Extensive Customization:** Tailor commit messages to your needs with a rich set of flags, including one-liners (`-o`), AI hints (`-h`), commit scope (`-s`), and specific model selection (`-m`).
+- **Streamlined Workflow Commands:** Boost your productivity with convenient options to stage all changes (`-a`), auto-confirm commits (`-y`), and push to your remote repository (`-p`) in a single step.
 
 ## How It Works
 
-gac analyzes your staged changes, repository structure, and recent commit history to generate high-quality commit
-messages with the help of leading AI models.
+gac analyzes your staged changes, repository structure, and recent commit history to generate high-quality commit messages with the help of large language models.
 
 ## How to Use
 
@@ -29,98 +31,113 @@ gac
 
 ![Simple gac Usage](assets/gac-simple-usage.png)
 
-### Basic Commands
+## Installation and Configuration
+
+### 1. Installation
+
+Install system-wide using pipx from the GitHub repository:
+
+```sh
+# Install pipx if you don't already have it
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+
+# Install gac
+pipx install git+https://github.com/criteria-dev/gac.git
+```
+
+To install a specific version (tag, branch, or commit), use:
+
+```sh
+pipx install git+https://github.com/criteria-dev/gac.git@<TAG_OR_COMMIT>
+```
+
+Replace `<TAG_OR_COMMIT>` with your desired release tag (e.g. `v0.9.1`) or commit hash.
+
+#### Verify Installation
+
+```sh
+gac --version
+```
+
+### 2. Configuration
+
+The recommended way to configure `gac` is using the interactive setup:
+
+```sh
+gac init
+```
+
+This command will guide you through selecting an AI provider, model, and securely entering your API keys. It will create or update a user-level configuration file at `$HOME/.gac.env`.
+
+Example `$HOME/.gac.env` output:
+
+```env
+GAC_MODEL=anthropic:claude-3-5-haiku-latest
+ANTHROPIC_API_KEY=your_anthropic_key_here
+```
+
+Alternatively, you can configure `gac` using environment variables or by manually creating/editing the configuration file.
+
+#### Managing Configuration with `gac config`
+
+You can manage settings in your `$HOME/.gac.env` file using `gac config` commands:
+
+- Show config: `gac config show`
+- Set a value: `gac config set GAC_MODEL groq:meta-llama/llama-4-scout-17b-16e-instruct`
+- Get a value: `gac config get GAC_MODEL`
+- Unset a value: `gac config unset GAC_MODEL`
+
+### 3. Verify Setup
+
+Test that `gac` is working properly with your configuration:
+
+```sh
+# Make a change to a file
+echo "# Test change" >> README.md
+git add README.md
+gac -o # Generate a one-line commit message
+```
+
+You should see an AI-generated commit message.
+
+## Basic Usage
+
+Once installed and configured, using `gac` is straightforward:
+
+1. Stage your changes:
+
+   ```sh
+   git add .
+   ```
+
+2. Run `gac`:
+
+   ```sh
+   gac
+   ```
+
+   This will generate a commit message and open it in your editor for review.
+
+### Common Commands
 
 - Generate a commit message: `gac`
 - Auto-accept the commit message: `gac -y`
 - Stage all changes and generate a commit message: `gac -a`
 - Generate a one-line commit message: `gac -o`
 - Add a hint for the AI: `gac -h "Fix the authentication bug"`
-- Add a scope to the commit message: `gac -s "auth"`
 - Push the commit (requires accepting the commit message): `gac -p`
 - Advanced usage: Add all, auto-confirm, push a one-liner with a hint: `gac -aypo -h "update for release"`
 
-### Configuration Commands
-
-- **Initialize interactively**: `gac init` (recommended for new users)
-- **Manage configuration**: Use `gac config` commands to view, set, or unset config values:
-  - Show config: `gac config show`
-  - Set a value: `gac config set GAC_MODEL groq:meta-llama/llama-4-scout-17b-16e-instruct`
-  - Get a value: `gac config get GAC_MODEL`
-  - Unset a value: `gac config unset GAC_MODEL`
-
-See [docs/USAGE.md](docs/USAGE.md) for a full list of CLI flags and advanced usage.
-
-## Quick Start
-
-1. **Install**
-
-   ```sh
-   # Install pipx if you don't have it
-   python3 -m pip install --user pipx
-   python3 -m pipx ensurepath
-
-   # Install gac
-   pipx install git+https://github.com/criteria-dev/gac.git
-   ```
-
-   Verify installation:
-
-   ```sh
-   gac --version
-   ```
-
-   Windows users: see the Windows setup section in
-   [docs/WINDOWS_COMPATIBILITY_PLAN.md](docs/WINDOWS_COMPATIBILITY_PLAN.md).
-
-   For more installation options, see [docs/INSTALLATION.md](docs/INSTALLATION.md).
-
-2. **Configure**
-
-   Create a `$HOME/.gac.env` file (user-level config) with the interactive setup command:
-
-   ```sh
-   gac init
-   ```
-
-   This will guide you to select a provider, model, and securely enter API keys.
-
-   Example `.gac.env` output:
-
-   ```env
-   GAC_MODEL=anthropic:claude-3-5-haiku-latest
-   ANTHROPIC_API_KEY=your_anthropic_key_here
-   ```
-
-   Or set as environment variables:
-
-   ```sh
-   export GAC_MODEL=groq:meta-llama/llama-4-scout-17b-16e-instruct
-   export GROQ_API_KEY=your_groq_key_here
-   ```
-
-   For more configuration options, see [docs/INSTALLATION.md](docs/INSTALLATION.md).
-
-3. **Verify**
-
-   Test that gac is working properly:
-
-   ```sh
-   # Make a change to a file
-   echo "# Test change" >> README.md
-   git add README.md
-   gac -o # Generate a one-line commit message
-   ```
+For a full list of CLI flags, advanced options, and example workflows, see [USAGE.md](USAGE.md).
 
 ## Best Practices
 
 - gac loads configuration from two locations (in order of precedence):
   1. User-level `$HOME/.gac.env` (applies to all projects for the user)
-  2. Project-level `.env` (in the project root, overrides user config if present) Environment variables always take
-     final precedence over both files.
+  2. Project-level `.env` (in the project root, overrides user config if present) Environment variables always take final precedence over both files.
 - Keep API keys out of version control
 - For troubleshooting and advanced tips, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
-- For Windows setup, see [docs/WINDOWS_COMPATIBILITY_PLAN.md](docs/WINDOWS_COMPATIBILITY_PLAN.md)
 
 ## Contributing
 
