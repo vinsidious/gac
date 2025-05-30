@@ -72,7 +72,8 @@ class TestPrompts:
     """Tests for the prompt module."""
 
     @patch("gac.prompt.load_prompt_template")
-    def test_build_prompt(self, mock_load_template):
+    @patch("gac.preprocess.count_tokens", return_value=42)
+    def test_build_prompt(self, mock_count_tokens, mock_load_template):
         """Test building a prompt from a template."""
         # Setup mock
         mock_load_template.return_value = TEST_TEMPLATE

@@ -11,12 +11,13 @@
 
 ## Features
 
-- **AI-Powered Commit Messages:** Automatically generates clear, concise, and context-aware commit messages using state-of-the-art AI models.
+- **AI-Powered Commit Messages:** Automatically generates clear, concise, and context-aware commit messages using large language models.
 - **Deep Contextual Analysis:** Understands your code by analyzing staged changes, repository structure, and recent commit history to provide highly relevant suggestions.
 - **Multi-Provider & Model Support:** Flexibly works with various leading AI providers (like Anthropic, Groq, OpenAI) and models, easily configured through an interactive setup or environment variables.
 - **Seamless Git Workflow:** Integrates smoothly into your existing Git routine as a simple drop-in replacement for `git commit`.
 - **Extensive Customization:** Tailor commit messages to your needs with a rich set of flags, including one-liners (`-o`), AI hints (`-h`), commit scope (`-s`), and specific model selection (`-m`).
 - **Streamlined Workflow Commands:** Boost your productivity with convenient options to stage all changes (`-a`), auto-confirm commits (`-y`), and push to your remote repository (`-p`) in a single step.
+- **Token Usage Tracking:** Display estimated token consumption statistics (prompt, completion, and total tokens) for all AI providers using tiktoken.
 
 ## How It Works
 
@@ -109,7 +110,7 @@ Once installed and configured, using `gac` is straightforward:
    gac
    ```
 
-   This will generate a commit message and open it in your editor for review.
+   This will generate a commit message for review. Confirm with `y` to accept the message.
 
 ### Common Commands
 
@@ -129,7 +130,7 @@ For a full list of CLI flags, advanced options, and example workflows, see [USAG
   1. User-level `$HOME/.gac.env` (applies to all projects for the user)
   2. Project-level `.env` (in the project root, overrides user config if present) Environment variables always take final precedence over both files.
 - Keep API keys out of version control
-- For troubleshooting and advanced tips, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
+- For troubleshooting, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 
 ## Contributing
 

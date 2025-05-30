@@ -48,6 +48,7 @@ class TestScopeFlag:
         monkeypatch.setattr("gac.git.run_git_command", mock_run_git_command)
 
         monkeypatch.setattr("gac.main.generate_commit_message", lambda **kwargs: "feat(test): mock commit")
+        monkeypatch.setattr("gac.main.count_tokens", lambda content, model: 10)
         monkeypatch.setattr("click.confirm", lambda *args, **kwargs: True)
 
         def mock_get_staged_files(existing_only=False):
@@ -254,6 +255,7 @@ class TestScopeIntegration:
                 return "feat: add new feature"
 
         monkeypatch.setattr("gac.main.generate_commit_message", mock_generate)
+        monkeypatch.setattr("gac.main.count_tokens", lambda content, model: 10)
 
         # Don't clean the commit message (this happens after commit in the real code)
         monkeypatch.setattr("gac.main.clean_commit_message", lambda msg: msg)
