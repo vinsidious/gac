@@ -95,6 +95,14 @@ gac -o # Generate a one-line commit message
 
 You should see an AI-generated commit message.
 
+### 4. Upgrade
+
+To upgrade `gac` to the latest version, run:
+
+```sh
+pipx upgrade gac
+```
+
 ## Basic Usage
 
 Once installed and configured, using `gac` is straightforward:
