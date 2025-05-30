@@ -7,6 +7,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.14.3] - 2025-05-30
+
+### Added
+
+- **Reroll Capability**: Added ability to regenerate commit messages by typing `r` or `reroll` at the confirmation prompt.
+- **Enhanced Scope Handling**: Completely revamped the scope handling system with dedicated templates for different scenarios.
+
+### Improved
+
+- **Message Cleaning**: Added detection and fixing of double type prefix issues in generated commit messages.
+- **Confirmation Flow**: Redesigned the confirmation prompt to clearly accept `y/n/r` inputs with improved user guidance.
+- **Temperature Setting**: Increased default temperature from 0.7 to 1.0 for more creative commit message generation.
+
+### Fixed
+
+- Fixed issue with scope handling in commit message generation.
+- Improved handling of commit message formatting and validation.
+
+### Documentation
+
+- Updated README and USAGE documentation to reflect the new reroll capability.
+- Expanded USAGE.md with clearer explanation of confirmation prompt options.
+
+## [v0.14.2] - 2025-05-29
+
+### Added
+
+- Token counting functionality for tracking token usage in commit message generation.
+- Detailed token usage reporting in the console output.
+
+### Improved
+
+- Enhanced analytics for token distribution in commit message generation.
+- Updated documentation with examples of token count reporting.
+
+### Technical
+
+- Integrated token counting logic into the core processing modules.
+- Added token count validation to ensure accurate reporting.
+- Updated test suite to include token counting verification.
+
+### Documentation
+
+- Added token counting details to the relevant documentation sections.
+- Included examples of token usage reports in the user guide.
+
 ## [v0.14.1] - 2025-05-27
 
 ### Changed
