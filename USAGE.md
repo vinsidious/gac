@@ -41,6 +41,7 @@ Generates an AI-powered commit message for staged changes and prompts for confir
 | `--push`      | `-p`  | Push changes to remote after committing           |
 | `--yes`       | `-y`  | Automatically confirm commit without prompting    |
 | `--dry-run`   |       | Show what would happen without making any changes |
+| `--no-verify` |       | Skip pre-commit hooks when committing             |
 
 ## Message Customization
 
