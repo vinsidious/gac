@@ -13,6 +13,7 @@ This document describes all available flags and options for the `gac` CLI tool.
   - [Help and Version](#help-and-version)
   - [Example Workflows](#example-workflows)
   - [Advanced](#advanced)
+    - [Skipping Pre-commit Hooks](#skipping-pre-commit-hooks)
   - [Configuration Notes](#configuration-notes)
     - [Configuration Subcommands](#configuration-subcommands)
   - [Getting Help](#getting-help)
