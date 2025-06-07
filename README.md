@@ -22,7 +22,7 @@
 
 ## How It Works
 
-gac analyzes your staged changes, repository structure, and recent commit history to generate high-quality commit messages with the help of large language models.
+gac analyzes your staged changes to generate high-quality commit messages with the help of large language models.
 
 ## How to Use
 

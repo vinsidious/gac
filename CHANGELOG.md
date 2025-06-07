@@ -564,12 +564,3 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Enhanced README
 
 ## [0.1.0] - Initial Release
-
-## [TODO]
-
-- Key redaction: Add key redaction to sensitive data in logs and error messages.
-- Large repo optimization: Optimize handling of large repositories with many files and directories.
-- Error handling enhancement: Improve error messages and classification logic.
-- Choose a commit to git diff against
-- Add recent git commit messages as context? If so, probably need to add a flag to control the number of commits to
-  include
