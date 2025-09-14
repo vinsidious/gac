@@ -7,7 +7,7 @@ It consolidates all AI-related functionality including token counting and commit
 import logging
 import time
 from functools import lru_cache
-from typing import Any, Dict, List, Union
+from typing import Any
 
 import aisuite as ai
 import tiktoken
@@ -19,7 +19,7 @@ from gac.errors import AIError
 logger = logging.getLogger(__name__)
 
 
-def count_tokens(content: Union[str, List[Dict[str, str]], Dict[str, Any]], model: str) -> int:
+def count_tokens(content: str | list[dict[str, str]] | dict[str, Any], model: str) -> int:
     """Count tokens in content using the model's tokenizer."""
     text = extract_text_content(content)
     if not text:
@@ -41,7 +41,7 @@ def count_tokens(content: Union[str, List[Dict[str, str]], Dict[str, Any]], mode
         return len(text) // 4
 
 
-def extract_text_content(content: Union[str, List[Dict[str, str]], Dict[str, Any]]) -> str:
+def extract_text_content(content: str | list[dict[str, str]] | dict[str, Any]) -> str:
     """Extract text content from various input formats."""
     if isinstance(content, str):
         return content
@@ -94,8 +94,10 @@ def generate_commit_message(
     """
     try:
         _, _ = model.split(":", 1)
-    except ValueError:
-        raise AIError.model_error(f"Invalid model format: {model}. Please use the format 'provider:model_name'.")
+    except ValueError as err:
+        raise AIError.model_error(
+            f"Invalid model format: {model}. Please use the format 'provider:model_name'."
+        ) from err
 
     client = ai.Client()
 
@@ -110,7 +112,7 @@ def generate_commit_message(
     retry_count = 0
     while retry_count < max_retries:
         try:
-            logger.debug(f"Trying with model {model} " f"(attempt {retry_count + 1}/{max_retries})")
+            logger.debug(f"Trying with model {model} (attempt {retry_count + 1}/{max_retries})")
             response = client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],

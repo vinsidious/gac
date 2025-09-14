@@ -7,10 +7,6 @@ formatting, and integration with diff preprocessing.
 
 import logging
 import re
-from typing import Optional
-
-from gac.constants import Utility
-from gac.preprocess import preprocess_diff
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +157,7 @@ def build_prompt(
     diff_stat: str = "",
     one_liner: bool = False,
     hint: str = "",
-    scope: Optional[str] = None,
+    scope: str | None = None,
 ) -> str:
     """Build a prompt for the AI model using the provided template and git information.
 

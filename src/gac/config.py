@@ -5,14 +5,13 @@ Handles environment variable and .env file precedence for application settings.
 
 import os
 from pathlib import Path
-from typing import Dict, Union
 
 from dotenv import load_dotenv
 
 from gac.constants import EnvDefaults, Logging
 
 
-def load_config() -> Dict[str, Union[str, int, float, bool]]:
+def load_config() -> dict[str, str | int | float | bool]:
     """Load configuration from $HOME/.gac.env, then ./.env, then environment variables."""
     user_config = Path.home() / ".gac.env"
     if user_config.exists():

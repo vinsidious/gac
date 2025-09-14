@@ -23,7 +23,6 @@ The diff command is particularly useful for:
 
 import logging
 import sys
-from typing import Optional
 
 import click
 
@@ -36,11 +35,11 @@ from gac.utils import print_message, setup_logging
 def _diff_implementation(
     filter: bool,
     truncate: bool,
-    max_tokens: Optional[int],
+    max_tokens: int | None,
     staged: bool,
     color: bool,
-    commit1: Optional[str] = None,
-    commit2: Optional[str] = None,
+    commit1: str | None = None,
+    commit2: str | None = None,
 ) -> None:
     """Implementation of the diff command logic for easier testing."""
     setup_logging()
@@ -98,21 +97,18 @@ def _diff_implementation(
     default=True,
     help="Filter out binary files, minified files, and lockfiles",
 )
-
 # Display options
 @click.option(
     "--color/--no-color",
     default=True,
     help="Show colored diff output",
 )
-
 # Diff source options
 @click.option(
     "--staged/--unstaged",
     default=True,
     help="Show staged changes (default) or unstaged changes",
 )
-
 # Size control options
 @click.option(
     "--truncate/--no-truncate",
@@ -131,11 +127,11 @@ def _diff_implementation(
 def diff(
     filter: bool,
     truncate: bool,
-    max_tokens: Optional[int],
+    max_tokens: int | None,
     staged: bool,
     color: bool,
-    commit1: Optional[str] = None,
-    commit2: Optional[str] = None,
+    commit1: str | None = None,
+    commit2: str | None = None,
 ) -> None:
     """
     Display the diff of staged or unstaged changes.
@@ -163,11 +159,11 @@ def diff(
 def _callback_for_testing(
     filter: bool,
     truncate: bool,
-    max_tokens: Optional[int],
+    max_tokens: int | None,
     staged: bool,
     color: bool,
-    commit1: Optional[str] = None,
-    commit2: Optional[str] = None,
+    commit1: str | None = None,
+    commit2: str | None = None,
 ) -> None:
     """A version of the diff command callback that can be called directly from tests."""
     _diff_implementation(
