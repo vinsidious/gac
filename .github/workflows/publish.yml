@@ -1,6 +1,5 @@
 # Publishes your package to PyPI using Astral/uv for builds.
 # Set PYPI_API_TOKEN in repo secrets.
-# Note: This publishes as 'gac-dev' to avoid conflicts until merged
 
 permissions:
   contents: write # Allows writing to the repository
@@ -21,12 +20,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Need full history for version bumping
+          fetch-depth: 0 # Need full history for version bumping
 
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install uv, build, and twine
         run: pip install uv build twine
@@ -34,11 +33,6 @@ jobs:
       - name: Setup uv virtual environment
         run: uv venv
 
-      - name: Modify package name for dev publishing
-        run: |
-          # Temporarily change package name to avoid conflicts
-          sed -i 's/name = "gac"/name = "gac-dev"/' pyproject.toml
-          
       - name: Bump version
         run: |
           # Install bump-my-version for version management
@@ -64,12 +58,6 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: uv run twine upload dist/*
-
-      - name: Revert package name change
-        if: always()
-        run: |
-          # Revert the package name change
-          sed -i 's/name = "gac-dev"/name = "gac"/' pyproject.toml
 
       - name: Push version bump to GitHub
         if: ${{ success() }}
