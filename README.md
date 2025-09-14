@@ -38,6 +38,24 @@ gac
 
 ### 1. Installation
 
+#### Quick Try with uvx (no installation)
+
+You can try gac without installing it using uvx:
+
+```sh
+# Try gac without installation
+uvx gac --help
+
+# Set up configuration (creates ~/.gac.env)
+uvx gac init
+
+# Use gac on staged changes
+git add .
+uvx gac
+```
+
+#### Permanent Installation
+
 Install system-wide using pipx from the GitHub repository:
 
 ```sh
