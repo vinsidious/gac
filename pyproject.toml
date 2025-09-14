@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling", "hatch-vcs", "packaging>=23.1"]
+requires = ["hatchling", "packaging>=23.1"]
 build-backend = "hatchling.build"
 
 [project]
@@ -115,7 +115,7 @@ skip-excluded = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/gac"]
-include-files = ["src/gac/config.env"]
+include-files = []
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -126,7 +126,7 @@ exclude = [
     "*.tests.*",
 ]
 include = [
-    "src/gac/config.env",
+    "src/gac/",
 ]
 
 [tool.hatch.envs.default]
