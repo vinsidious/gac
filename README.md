@@ -1,6 +1,6 @@
 <!-- markdownlint-disable MD013 -->
 
-# gac (Git Auto Commit)
+# Git Auto Commit (gac)
 
 [![PyPI version](https://img.shields.io/pypi/v/gac.svg)](https://pypi.org/project/gac/)
 [![Python](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12%20|%203.13-blue.svg)](https://www.python.org/downloads/)
@@ -46,7 +46,7 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 
 # Install gac
-pipx install git+https://github.com/cellwebb/gac.git
+pipx install gac
 ```
 
 Verify installation:
@@ -153,5 +153,3 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ## Community & Support
 
 For questions, suggestions, or support, please open an issue or discussion on GitHub.
-
-_Brought to you by [Criteria](https://criteria.dev)_
