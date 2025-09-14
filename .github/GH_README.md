@@ -18,7 +18,7 @@ This directory contains configuration files for GitHub-specific features:
 ### Managing the CLA
 
 - To add someone to the allowlist (e.g., bots), edit the `contributorWhitelist` in `cla.json`
-- The CLA Assistant dashboard is available at: <https://cla-assistant.io/criteria-dev/gac>
+- The CLA Assistant dashboard is available at: <https://cla-assistant.io/cellwebb/gac>
 - To require a new CLA version, update the document and increment the version in `cla.json`
 
 ### Why we use a CLA

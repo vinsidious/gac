@@ -66,9 +66,9 @@ dev = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/criteria-dev/gac#readme"
-Issues = "https://github.com/criteria-dev/gac/issues"
-Source = "https://github.com/criteria-dev/gac"
+Documentation = "https://github.com/cellwebb/gac#readme"
+Issues = "https://github.com/cellwebb/gac/issues"
+Source = "https://github.com/cellwebb/gac"
 
 [tool.black]
 line-length = 120

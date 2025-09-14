@@ -91,7 +91,7 @@ This guide covers common issues and solutions for installing, configuring, and r
 
 ## Still Stuck?
 
-- Search existing issues or open a new one on the [GitHub repository](https://github.com/criteria-dev/gac)
+- Search existing issues or open a new one on the [GitHub repository](https://github.com/cellwebb/gac)
 - Include details about your OS, Python version, gac version, provider, and error output
 - The more detail you provide, the faster your issue can be resolved
 
