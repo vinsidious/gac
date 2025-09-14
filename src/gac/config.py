@@ -12,12 +12,18 @@ from gac.constants import EnvDefaults, Logging
 
 
 def load_config() -> dict[str, str | int | float | bool]:
-    """Load configuration from $HOME/.gac.env, then ./.env, then environment variables."""
+    """Load configuration from $HOME/.gac.env, then ./.gac.env or ./.env, then environment variables."""
     user_config = Path.home() / ".gac.env"
     if user_config.exists():
         load_dotenv(user_config)
+
+    # Check for both .gac.env and .env in project directory
+    project_gac_env = Path(".gac.env")
     project_env = Path(".env")
-    if project_env.exists():
+
+    if project_gac_env.exists():
+        load_dotenv(project_gac_env, override=True)
+    elif project_env.exists():
         load_dotenv(project_env, override=True)
 
     config = {
