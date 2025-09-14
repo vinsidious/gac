@@ -28,7 +28,11 @@ import click
 
 from gac.errors import GitError, with_error_handling
 from gac.git import get_diff, get_staged_files
-from gac.preprocess import filter_binary_and_minified, smart_truncate_diff, split_diff_into_sections
+from gac.preprocess import (
+    filter_binary_and_minified,
+    smart_truncate_diff,
+    split_diff_into_sections,
+)
 from gac.utils import print_message, setup_logging
 
 

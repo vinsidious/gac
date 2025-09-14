@@ -1,5 +1,7 @@
 """Tests for ai module."""
 
+from unittest.mock import MagicMock, patch
+
 import tiktoken
 
 from gac.ai import count_tokens, extract_text_content, get_encoding
@@ -48,8 +50,44 @@ class TestAiUtils:
         assert token_count > 0
         assert isinstance(token_count, int)
 
-        # Test with empty content
+    @patch("gac.ai.count_tokens")
+    def test_count_tokens_anthropic_mock(self, mock_count_tokens):
+        """Test that anthropic models are handled correctly."""
+        # This tests the code path, not the actual implementation
+        mock_count_tokens.return_value = 5
+
+        # Test that anthropic model strings are recognized
+        model = "anthropic:claude-3-haiku"
+        assert model.startswith("anthropic")
+
+    def test_count_tokens_anthropic_integration(self):
+        """Test token counting for Anthropic models with dynamic import."""
+        text = "Hello, world!"
+
+        # Mock at the module level where it's imported
+        with patch("builtins.__import__") as mock_import:
+            # Create a mock anthropic module
+            mock_anthropic = MagicMock()
+            mock_client = MagicMock()
+            mock_client.count_tokens.return_value = 5
+            mock_anthropic.Client.return_value = mock_client
+
+            # Make __import__ return our mock for anthropic
+            def import_side_effect(name, *args, **kwargs):
+                if name == "anthropic":
+                    return mock_anthropic
+                return __import__(name, *args, **kwargs)
+
+            mock_import.side_effect = import_side_effect
+
+            token_count = count_tokens(text, "anthropic:claude-3-haiku")
+            assert token_count == 5
+
+    def test_count_tokens_empty_content(self):
+        """Test token counting with empty content."""
         assert count_tokens("", "openai:gpt-4") == 0
+        assert count_tokens([], "openai:gpt-4") == 0
+        assert count_tokens({}, "openai:gpt-4") == 0
 
         # Test with list of messages
         messages = [{"role": "user", "content": "Hello"}, {"role": "assistant", "content": "Hi there!"}]

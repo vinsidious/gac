@@ -3,7 +3,15 @@
 import unittest
 from unittest.mock import patch
 
-from gac.errors import AIError, ConfigError, FormattingError, GacError, GitError, format_error_for_user, handle_error
+from gac.errors import (
+    AIError,
+    ConfigError,
+    FormattingError,
+    GacError,
+    GitError,
+    format_error_for_user,
+    handle_error,
+)
 
 
 class TestErrors(unittest.TestCase):

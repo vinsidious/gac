@@ -209,6 +209,7 @@ def main(
             console.print("[green]Commit created successfully[/green]")
     except AIError as e:
         logger.error(str(e))
+        console = Console()
         console.print(f"[red]Failed to generate commit message: {str(e)}[/red]")
         sys.exit(1)
 

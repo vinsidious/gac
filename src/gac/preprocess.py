@@ -11,7 +11,12 @@ import os
 import re
 
 from gac.ai import count_tokens
-from gac.constants import CodePatternImportance, FilePatterns, FileTypeImportance, Utility
+from gac.constants import (
+    CodePatternImportance,
+    FilePatterns,
+    FileTypeImportance,
+    Utility,
+)
 
 logger = logging.getLogger(__name__)
 

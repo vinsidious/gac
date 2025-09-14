@@ -7,6 +7,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.16.0] - 2025-09-14
+
+### Added
+
+- **Cerebras AI Provider Support**: Added comprehensive support for Cerebras AI models
+  - Added `cerebras_cloud_sdk` dependency to pyproject.toml
+  - Updated init CLI to include Cerebras with qwen-3-coder-480b as default model
+  - Added CEREBRAS_API_KEY to example configuration file
+  - Updated README to list Cerebras as a supported provider
+
+### Changed
+
+- **Configuration Loading**: Improved configuration file loading precedence
+  - Now properly supports project-level `.gac.env` files (not just `.env`)
+  - Priority order: `$HOME/.gac.env` → `./.gac.env` → `./.env` → environment variables
+  - Project config files override user config when present
+
+### Fixed
+
+- **Anthropic Token Counting**: Fixed AttributeError with Anthropic API
+  - Changed from `client.messages.count_tokens()` to `client.count_tokens(text)`
+  - Simplified token counting implementation for Anthropic models
+- **Error Handling**: Fixed console initialization in AIError exception handler
+  - Console is now properly initialized when catching AIError exceptions
+  - Prevents "console not defined" errors during error handling
+
+## [v0.15.0] - 2025-06-08
+
+### Added
+
+- **PyPI Release**: Published package to PyPI for easy installation via pip
+- **Quick Try with uvx**: Added support for trying gac without installation using uvx
+- **Modern CI/CD Pipeline**: Implemented auto-publishing with ruff and modern tooling
+
+### Changed
+
+- **Build System**: Switched from VCS versioning to static version management
+- **Dependencies**: Updated and modernized dependency management with uv dependency groups
+- **Documentation**: Improved README with better installation instructions and badges
+- **Repository Structure**: Updated URLs and references for PyPI compatibility
+
+### Removed
+
+- **VSCode Configuration**: Removed VSCode configuration files from repository
+- **CLA Requirement**: Removed CLA requirement from project
+
 ## [v0.14.7] - 2025-06-06
 
 ### Added
