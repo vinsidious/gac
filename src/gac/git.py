@@ -7,7 +7,6 @@ It focuses on the core operations needed for commit generation.
 import logging
 import os
 import subprocess
-from typing import List, Optional
 
 from gac.errors import GitError
 from gac.utils import run_subprocess
@@ -15,13 +14,13 @@ from gac.utils import run_subprocess
 logger = logging.getLogger(__name__)
 
 
-def run_git_command(args: List[str], silent: bool = False, timeout: int = 30) -> str:
+def run_git_command(args: list[str], silent: bool = False, timeout: int = 30) -> str:
     """Run a git command and return the output."""
     command = ["git"] + args
     return run_subprocess(command, silent=silent, timeout=timeout, raise_on_error=False, strip_output=True)
 
 
-def get_staged_files(file_type: Optional[str] = None, existing_only: bool = False) -> List[str]:
+def get_staged_files(file_type: str | None = None, existing_only: bool = False) -> list[str]:
     """Get list of staged files with optional filtering.
 
     Args:
@@ -51,9 +50,7 @@ def get_staged_files(file_type: Optional[str] = None, existing_only: bool = Fals
         return []
 
 
-def get_diff(
-    staged: bool = True, color: bool = True, commit1: Optional[str] = None, commit2: Optional[str] = None
-) -> str:
+def get_diff(staged: bool = True, color: bool = True, commit1: str | None = None, commit2: str | None = None) -> str:
     """Get the diff between commits or working tree.
 
     Args:
@@ -88,7 +85,7 @@ def get_diff(
         return output
     except Exception as e:
         logger.error(f"Failed to get diff: {str(e)}")
-        raise GitError(f"Failed to get diff: {str(e)}")
+        raise GitError(f"Failed to get diff: {str(e)}") from e
 
 
 def get_repo_root() -> str:

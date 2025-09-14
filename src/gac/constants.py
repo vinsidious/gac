@@ -2,7 +2,7 @@
 
 import os
 from enum import Enum
-from typing import Dict, List, Pattern
+from re import Pattern
 
 
 class FileStatus(Enum):
@@ -29,7 +29,7 @@ class Logging:
     """Logging configuration constants."""
 
     DEFAULT_LEVEL: str = "WARNING"
-    LEVELS: List[str] = ["DEBUG", "INFO", "WARNING", "ERROR"]
+    LEVELS: list[str] = ["DEBUG", "INFO", "WARNING", "ERROR"]
 
 
 class Utility:
@@ -44,13 +44,13 @@ class FilePatterns:
     """Patterns for identifying special file types."""
 
     # Regex patterns to detect binary file changes in git diffs (e.g., images or other non-text files)
-    BINARY: List[Pattern[str]] = [
+    BINARY: list[Pattern[str]] = [
         r"Binary files .* differ",
         r"GIT binary patch",
     ]
 
     # Regex patterns to detect minified files in git diffs (e.g., JavaScript or CSS files)
-    MINIFIED_EXTENSIONS: List[str] = [
+    MINIFIED_EXTENSIONS: list[str] = [
         ".min.js",
         ".min.css",
         ".bundle.js",
@@ -62,7 +62,7 @@ class FilePatterns:
     ]
 
     # Regex patterns to detect build directories in git diffs (e.g., dist, build, vendor, etc.)
-    BUILD_DIRECTORIES: List[str] = [
+    BUILD_DIRECTORIES: list[str] = [
         "/dist/",
         "/build/",
         "/vendor/",
@@ -76,7 +76,7 @@ class FilePatterns:
 class FileTypeImportance:
     """Importance multipliers for different file types."""
 
-    EXTENSIONS: Dict[str, float] = {
+    EXTENSIONS: dict[str, float] = {
         # Programming languages
         ".py": 5.0,  # Python
         ".js": 4.5,  # JavaScript
@@ -125,7 +125,7 @@ class CodePatternImportance:
 
     # Regex patterns to detect code structure changes in git diffs (e.g., class, function, import)
     # Note: The patterns are prefixed with "+" to match only added and modified lines
-    PATTERNS: Dict[Pattern[str], float] = {
+    PATTERNS: dict[Pattern[str], float] = {
         # Structure changes
         r"\+\s*(class|interface|enum)\s+\w+": 1.8,  # Class/interface/enum definitions
         r"\+\s*(def|function|func)\s+\w+\s*\(": 1.5,  # Function definitions

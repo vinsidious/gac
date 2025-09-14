@@ -2,7 +2,8 @@
 
 import logging
 import sys
-from typing import Callable, Optional, Type, TypeVar
+from collections.abc import Callable
+from typing import TypeVar
 
 from rich.console import Console
 
@@ -19,9 +20,9 @@ class GacError(Exception):
     def __init__(
         self,
         message: str,
-        details: Optional[str] = None,
-        suggestion: Optional[str] = None,
-        exit_code: Optional[int] = None,
+        details: str | None = None,
+        suggestion: str | None = None,
+        exit_code: int | None = None,
     ):
         """
         Initialize a new GacError.
@@ -57,7 +58,7 @@ class AIError(GacError):
 
     exit_code = 4
 
-    def __init__(self, message: str, error_type: str = "unknown", exit_code: Optional[int] = None):
+    def __init__(self, message: str, error_type: str = "unknown", exit_code: int | None = None):
         """Initialize an AIError with a specific error type.
 
         Args:
@@ -185,8 +186,8 @@ def format_error_for_user(error: Exception) -> str:
 
 
 def with_error_handling(
-    error_type: Type[GacError], error_message: str, quiet: bool = False, exit_on_error: bool = True
-) -> Callable[[Callable[..., T]], Callable[..., Optional[T]]]:
+    error_type: type[GacError], error_message: str, quiet: bool = False, exit_on_error: bool = True
+) -> Callable[[Callable[..., T]], Callable[..., T | None]]:
     """
     A decorator that wraps a function with standardized error handling.
 
@@ -200,8 +201,8 @@ def with_error_handling(
         A decorator function that handles errors for the wrapped function
     """
 
-    def decorator(func: Callable[..., T]) -> Callable[..., Optional[T]]:
-        def wrapper(*args, **kwargs) -> Optional[T]:
+    def decorator(func: Callable[..., T]) -> Callable[..., T | None]:
+        def wrapper(*args, **kwargs) -> T | None:
             try:
                 return func(*args, **kwargs)
             except Exception as e:

@@ -9,7 +9,6 @@ import concurrent.futures
 import logging
 import os
 import re
-from typing import List, Optional, Tuple
 
 from gac.ai import count_tokens
 from gac.constants import CodePatternImportance, FilePatterns, FileTypeImportance, Utility
@@ -53,7 +52,7 @@ def preprocess_diff(
     return truncated_diff
 
 
-def split_diff_into_sections(diff: str) -> List[str]:
+def split_diff_into_sections(diff: str) -> list[str]:
     """Split a git diff into individual file sections.
 
     Args:
@@ -83,7 +82,7 @@ def split_diff_into_sections(diff: str) -> List[str]:
     return sections
 
 
-def process_sections_parallel(sections: List[str]) -> List[str]:
+def process_sections_parallel(sections: list[str]) -> list[str]:
     """Process diff sections in parallel for better performance.
 
     Args:
@@ -112,7 +111,7 @@ def process_sections_parallel(sections: List[str]) -> List[str]:
     return filtered_sections
 
 
-def process_section(section: str) -> Optional[str]:
+def process_section(section: str) -> str | None:
     """Process a single diff section.
 
     Args:
@@ -294,7 +293,7 @@ def is_minified_content(content: str) -> bool:
     return False
 
 
-def score_sections(sections: List[str]) -> List[Tuple[str, float]]:
+def score_sections(sections: list[str]) -> list[tuple[str, float]]:
     """Score diff sections by importance.
 
     Args:
@@ -430,7 +429,7 @@ def filter_binary_and_minified(diff: str) -> str:
     return "".join(filtered_sections)
 
 
-def smart_truncate_diff(scored_sections: List[Tuple[str, float]], token_limit: int, model: str) -> str:
+def smart_truncate_diff(scored_sections: list[tuple[str, float]], token_limit: int, model: str) -> str:
     """Intelligently truncate a diff to fit within token limits.
 
     Args:
@@ -484,7 +483,6 @@ def smart_truncate_diff(scored_sections: List[Tuple[str, float]], token_limit: i
         skipped_summary = "\n\n[Skipped files due to token limits:"
 
         for _, _, filename in skipped_sections[:5]:
-
             file_entry = f" {filename},"
             if current_tokens + len(skipped_summary) + len(file_entry) < token_limit:
                 skipped_summary += file_entry

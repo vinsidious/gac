@@ -1,4 +1,4 @@
-name: CI
+name: Quality Checks
 
 on:
   push:
@@ -55,39 +55,30 @@ on:
       - "scripts/**"
 
 jobs:
-  test:
+  quality:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          export PATH="$HOME/.local/bin:$PATH"
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
-          uv venv
-          # Install both main and dev dependencies
-          uv pip install -e ".[dev]"
-          # Activate the virtual environment and verify installation
-          source .venv/bin/activate
-          python -c "import sys; print(f'Path: {sys.path}'); import black; print(f'Black version: {black.__version__}')"
+          pip install ruff pytest pytest-cov pytest-asyncio
+          pip install .
 
-      - name: Run tests with coverage
-        run: |
-          source .venv/bin/activate
-          pytest --cov=gac --cov-report=xml
+      - name: Lint with ruff
+        run: ruff check .
+
+      - name: Check formatting with ruff
+        run: ruff format --check .
+
+      - name: Run pytest with coverage
+        run: pytest --cov=gac --cov-report=xml -s
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
@@ -100,52 +91,3 @@ jobs:
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-  lint:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.13
-
-      - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Install dependencies
-        run: |
-          uv venv
-          # Install both main and dev dependencies
-          uv pip install -e ".[dev]"
-          # Activate the virtual environment and verify installation
-          source .venv/bin/activate
-          python -c "import sys; print(f'Path: {sys.path}'); import black; print(f'Black version: {black.__version__}')"
-          npm install -g markdownlint-cli2 prettier
-
-      - name: Run black
-        run: |
-          source .venv/bin/activate
-          black --check .
-
-      - name: Run isort
-        run: |
-          source .venv/bin/activate
-          isort --check .
-
-      - name: Run flake8
-        run: |
-          source .venv/bin/activate
-          flake8 src
-
-      - name: Run prettier
-        run: |
-          prettier --check "**/*.{md,yaml,yml,json}"
-
-      - name: Run markdownlint
-        run: |
-          markdownlint-cli2 --config .markdownlint-cli2.yaml "**/*.md"

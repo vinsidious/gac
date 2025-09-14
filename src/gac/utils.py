@@ -2,7 +2,6 @@
 
 import logging
 import subprocess
-from typing import List, Union
 
 from rich.console import Console
 from rich.theme import Theme
@@ -12,7 +11,7 @@ from gac.errors import GacError
 
 
 def setup_logging(
-    log_level: Union[int, str] = Logging.DEFAULT_LEVEL,
+    log_level: int | str = Logging.DEFAULT_LEVEL,
     quiet: bool = False,
     force: bool = False,
     suppress_noisy: bool = False,
@@ -67,7 +66,7 @@ def print_message(message: str, level: str = "info") -> None:
 
 
 def run_subprocess(
-    command: List[str],
+    command: list[str],
     silent: bool = False,
     timeout: int = 60,
     check: bool = True,
@@ -97,8 +96,7 @@ def run_subprocess(
     try:
         result = subprocess.run(
             command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             check=False,
             timeout=timeout,
@@ -131,5 +129,5 @@ def run_subprocess(
         if raise_on_error:
             # Convert generic exceptions to CalledProcessError for consistency
             error = subprocess.CalledProcessError(1, command, "", str(e))
-            raise error
+            raise error from e
         return ""

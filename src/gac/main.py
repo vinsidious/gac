@@ -5,7 +5,6 @@ prompt building, AI generation, and commit/push operations. This module contains
 
 import logging
 import sys
-from typing import Optional
 
 import click
 from rich.console import Console
@@ -26,11 +25,11 @@ config = load_config()
 
 def main(
     stage_all: bool = False,
-    model: Optional[str] = None,
+    model: str | None = None,
     hint: str = "",
     one_liner: bool = False,
     show_prompt: bool = False,
-    scope: Optional[str] = None,
+    scope: str | None = None,
     require_confirmation: bool = True,
     push: bool = False,
     quiet: bool = False,
