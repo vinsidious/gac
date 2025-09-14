@@ -2,6 +2,7 @@
 
 # gac (Git Auto Commit)
 
+[![PyPI version](https://badge.fury.io/py/gac.svg)](https://pypi.org/project/gac/)
 [![Python](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12%20|%203.13-blue.svg)](https://www.python.org/downloads/)
 [![Contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](docs/CONTRIBUTING.md)
 [![Code Style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
