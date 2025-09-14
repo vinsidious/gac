@@ -7,6 +7,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.16.3] - 2025-09-14
+
+### Fixed
+
+- **Documentation Commit Type Detection**: Fixed issue where documentation-only changes were incorrectly labeled as `feat` or `refactor` instead of `docs` (#33)
+  - Updated prompt template to properly determine commit type based on PRIMARY purpose of changes
+  - Refined logic to use `docs:` ONLY when ALL changes are documentation files
+  - For mixed changes (code + docs), now correctly prioritizes the code change type
+  - Reduced documentation file importance scores (`.md`, `.rst`) from 4.0/3.8 to 2.5 to ensure proper prioritization
+  - Added comprehensive test suite for documentation-only change detection
+  - Ensures README and other documentation updates are correctly classified regardless of content significance
+
+### Improved
+
+- **Commit Message Generation Quality**: Enhanced prompt template with better guidance for AI models
+  - Added `<focus>` section to prioritize core purpose and impact in commit messages
+  - Added `<mixed_changes>` section with clear rules for handling multi-area changes
+  - Enhanced scope inference with better guidance for component and module naming
+  - Simplified example structure to two sections: no-scope and with-scope examples
+  - Improved template consistency by aligning examples pattern with conventions sections
+  - Examples now always match the expected output format for each scope mode
+- **Pre-commit Hook Error Reporting**: Enhanced error messages when pre-commit hooks fail
+  - Now displays detailed output showing which specific hooks failed and why
+  - Captures and displays both stdout and stderr from pre-commit
+  - Replaces generic "exit code 1" message with actionable failure information
+- **Git Module Test Coverage**: Added comprehensive tests for all git module functions
+  - Added tests for `get_staged_files` with various filtering options
+  - Added tests for `get_diff` covering staged, unstaged and commit comparison scenarios
+  - Added tests for `push_changes` covering all error and success cases
+
 ## [v0.16.2] - 2025-09-14
 
 ### Fixed

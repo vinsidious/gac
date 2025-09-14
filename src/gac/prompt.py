@@ -15,6 +15,22 @@ DEFAULT_TEMPLATE = """<role>
 You are an expert git commit message generator. Your task is to analyze code changes and create a concise, meaningful git commit message. You will receive git status and diff information. Your entire response will be used directly as a git commit message.
 </role>
 
+<focus>
+Your commit message must reflect the core purpose and impact of these changes.
+Prioritize the primary intent over implementation details.
+Consider what future developers need to understand about this change.
+Identify if this introduces new capabilities, fixes problems, or improves existing code.
+</focus>
+
+<mixed_changes>
+When changes span multiple areas:
+- Choose the commit type based on the PRIMARY purpose, not the largest file count
+- Feature additions with supporting tests/docs should use 'feat'
+- Bug fixes with added tests should use 'fix'
+- Refactoring that improves multiple components should use 'refactor'
+- Documentation updates are 'docs' only when that's the sole purpose
+</mixed_changes>
+
 <format>
   <one_liner>
   Create a single-line commit message (50-72 characters if possible).
@@ -31,10 +47,17 @@ You are an expert git commit message generator. Your task is to analyze code cha
 </format>
 
 <conventions_no_scope>
-You MUST start your commit message with the most appropriate conventional commit prefix:
+You MUST start your commit message with the most appropriate conventional commit prefix.
+
+IMPORTANT: Check file types FIRST when determining the commit type:
+- If changes are ONLY to documentation files (*.md, *.rst, *.txt in docs/, README*, CHANGELOG*, etc.), ALWAYS use 'docs:'
+- Use 'docs:' ONLY when ALL changes are documentation files - INCLUDING README updates, regardless of how significant the changes are
+- If changes include both documentation and code, use the prefix for the code changes, unless it is a documentation-only change
+
+Commit type prefixes:
 - feat: A new feature or functionality addition
 - fix: A bug fix or error correction
-- docs: Documentation changes only
+- docs: Documentation changes only (INCLUDING README updates, regardless of how significant)
 - style: Changes to code style/formatting without logic changes
 - refactor: Code restructuring without behavior changes
 - perf: Performance improvements
@@ -55,10 +78,14 @@ You MUST write a conventional commit message with EXACTLY ONE type and the REQUI
 
 FORMAT: type({scope}): description
 
+IMPORTANT: Check file types FIRST when determining the commit type:
+- If changes are ONLY to documentation files (*.md, *.rst, *.txt in docs/, README*, CHANGELOG*, etc.), ALWAYS use 'docs'
+- If changes include both documentation and code, use the prefix for the code changes, unless it is a documentation-only change
+
 Select ONE type from this list that best matches the primary purpose of the changes:
 - feat: A new feature or functionality addition
 - fix: A bug fix or error correction
-- docs: Documentation changes only
+- docs: Documentation changes only (INCLUDING README and CHANGELOG updates, regardless of how significant)
 - style: Changes to code style/formatting without logic changes
 - refactor: Code restructuring without behavior changes
 - perf: Performance improvements
@@ -87,10 +114,14 @@ You MUST write a conventional commit message with EXACTLY ONE type and an inferr
 
 FORMAT: type(scope): description
 
+IMPORTANT: Check file types FIRST when determining the commit type:
+- If changes are ONLY to documentation files (*.md, *.rst, *.txt in docs/, README*, CHANGELOG*, etc.), ALWAYS use 'docs'
+- If changes include both documentation and code, use the prefix for the code changes, unless it is a documentation-only change
+
 Select ONE type from this list that best matches the primary purpose of the changes:
 - feat: A new feature or functionality addition
 - fix: A bug fix or error correction
-- docs: Documentation changes only
+- docs: Documentation changes only (INCLUDING README and CHANGELOG updates, regardless of how significant)
 - style: Changes to code style/formatting without logic changes
 - refactor: Code restructuring without behavior changes
 - perf: Performance improvements
@@ -100,6 +131,16 @@ Select ONE type from this list that best matches the primary purpose of the chan
 - chore: Miscellaneous changes not affecting src/test files
 
 You MUST infer an appropriate scope from the changes. A good scope is concise (usually one word) and indicates the component or area that was changed.
+
+<scope_rules>
+For scope inference, select the most specific component affected:
+- Use module/component names from the codebase (auth, api, cli, core)
+- Use functional areas for cross-cutting changes (config, build, test)
+- Keep scopes consistent with existing commit history when possible
+- Prefer established patterns over creating new scope names
+- Use singular form (auth, not auths; test, not tests)
+</scope_rules>
+
 Examples of good scopes: api, auth, ui, core, docs, build, prompt, config
 
 CORRECT EXAMPLES (these formats are correct):
@@ -132,6 +173,44 @@ Additional context provided by the user: <hint_text></hint_text>
 <git_diff>
 <diff></diff>
 </git_diff>
+
+
+
+<examples_no_scope>
+Good commit messages (no scope):
+[OK] feat: add OAuth2 integration with Google and GitHub
+[OK] fix: resolve race condition in user session management
+[OK] docs: add troubleshooting section for common installation issues
+[OK] refactor: extract validation logic into reusable utilities
+[OK] test: add comprehensive unit tests for token validation
+[OK] build: upgrade to latest security patches
+
+Bad commit messages:
+[ERROR] fix stuff
+[ERROR] update code
+[ERROR] feat(auth): add login (scope included when not requested)
+[ERROR] WIP: still working on this
+[ERROR] Fixed bug
+[ERROR] Changes
+</examples_no_scope>
+
+<examples_with_scope>
+Good commit messages (with scope):
+[OK] feat(auth): add OAuth2 integration with Google and GitHub
+[OK] fix(api): resolve race condition in user session management
+[OK] docs(readme): add troubleshooting section for common installation issues
+[OK] refactor(core): extract validation logic into reusable utilities
+[OK] test(auth): add comprehensive unit tests for token validation
+[OK] build(deps): upgrade to latest security patches
+
+Bad commit messages:
+[ERROR] fix stuff
+[ERROR] update code
+[ERROR] feat: fix(auth): add login (double prefix)
+[ERROR] WIP: still working on this
+[ERROR] Fixed bug
+[ERROR] Changes
+</examples_with_scope>
 
 <instructions>
 IMMEDIATELY AFTER ANALYZING THE CHANGES, RESPOND WITH ONLY THE COMMIT MESSAGE.
@@ -236,6 +315,18 @@ def build_prompt(
         template = re.sub(r"<multi_line>.*?</multi_line>", "", template, flags=re.DOTALL)
     else:
         template = re.sub(r"<one_liner>.*?</one_liner>", "", template, flags=re.DOTALL)
+
+    # Clean up examples sections based on scope settings
+    if scope is None:
+        # No scope - keep no_scope examples, remove scope examples
+        template = re.sub(r"<examples_with_scope>.*?</examples_with_scope>\n?", "", template, flags=re.DOTALL)
+        template = template.replace("<examples_no_scope>", "<examples>")
+        template = template.replace("</examples_no_scope>", "</examples>")
+    else:
+        # With scope (either provided or inferred) - keep scope examples, remove no_scope examples
+        template = re.sub(r"<examples_no_scope>.*?</examples_no_scope>\n?", "", template, flags=re.DOTALL)
+        template = template.replace("<examples_with_scope>", "<examples>")
+        template = template.replace("</examples_with_scope>", "</examples>")
 
     # Clean up extra whitespace, collapsing blank lines that may contain spaces
     template = re.sub(r"\n(?:[ \t]*\n){2,}", "\n\n", template)
