@@ -21,7 +21,8 @@ def init() -> None:
 
     providers = [
         ("Anthropic", "claude-3-5-haiku-latest"),
-        ("Groq", "meta-llama/llama-4-scout-17b-16e-instruct"),
+        ("Cerebras", "qwen-3-coder-480b"),
+        ("Groq", "meta-llama/llama-4-maverick-17b-128e-instruct"),
         ("Ollama", "gemma3"),
         ("OpenAI", "gpt-4.1-mini"),
     ]

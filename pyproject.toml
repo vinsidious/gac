@@ -27,6 +27,7 @@ dependencies = [
     # AI components - base providers
     "aisuite",
     "anthropic",
+    "cerebras_cloud_sdk",
     "groq",
     "ollama",
     "openai",
