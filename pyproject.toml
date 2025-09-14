@@ -63,6 +63,10 @@ dev = [
     
     # Linting and formatting
     "ruff",
+    
+    # Release tools
+    "build",
+    "twine",
 ]
 
 [project.urls]
