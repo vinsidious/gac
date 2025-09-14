@@ -8,7 +8,6 @@ make the process smooth for everyone.
 - [Contributing to gac](#contributing-to-gac)
   - [Table of Contents](#table-of-contents)
   - [How to Contribute](#how-to-contribute)
-  - [Contributor License Agreement (CLA)](#contributor-license-agreement-cla)
   - [Coding Standards](#coding-standards)
   - [Testing Guidelines](#testing-guidelines)
     - [Running Tests](#running-tests)
@@ -30,21 +29,6 @@ make the process smooth for everyone.
 
 If you have questions or want to discuss ideas before contributing, please open an issue or start a discussion on
 GitHub.
-
-## Contributor License Agreement (CLA)
-
-Before we can accept your contribution, you need to sign our Contributor License Agreement (CLA). This is a one-time
-requirement that grants us the necessary rights to use and distribute your contributions while you retain ownership of
-your work.
-
-**How to sign the CLA:**
-
-1. When you submit your first pull request, our CLA bot will automatically comment with instructions
-2. Read the [CLA document](https://gist.github.com/cellwebb/1542fa5c0f6c59be6d1cb64ae985732e)
-3. If you agree, comment on the PR with: `I have read the CLA Document and I hereby sign the CLA`
-4. The bot will then mark you as having signed, and your PR can proceed
-
-The CLA only needs to be signed once and will apply to all your future contributions to this project.
 
 ## Coding Standards
 
