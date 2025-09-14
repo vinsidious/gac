@@ -12,16 +12,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 - **Cerebras AI Provider Support**: Added comprehensive support for Cerebras AI models
+
   - Added `cerebras_cloud_sdk` dependency to pyproject.toml
   - Updated init CLI to include Cerebras with qwen-3-coder-480b as default model
   - Added CEREBRAS_API_KEY to example configuration file
   - Updated README to list Cerebras as a supported provider
 
+- **Test Coverage**: Added comprehensive tests for new features
+  - Added tests for project-level `.gac.env` file loading with proper isolation
+  - Added tests for `.env` file fallback behavior when `.gac.env` doesn't exist
+  - Added tests for configuration precedence validation
+  - Added tests for Anthropic token counting implementation
+  - Improved test isolation using temporary directories and Path.home mocking
+
 ### Changed
 
 - **Configuration Loading**: Improved configuration file loading precedence
   - Now properly supports project-level `.gac.env` files (not just `.env`)
-  - Priority order: `$HOME/.gac.env` → `./.gac.env` → `./.env` → environment variables
+  - Loading order (each level overrides the previous):
+    1. `$HOME/.gac.env` (user-level config)
+    2. `./.gac.env` OR `./.env` (project-level config, `.gac.env` takes precedence if both exist)
+    3. Environment variables (highest priority)
   - Project config files override user config when present
 
 ### Fixed
