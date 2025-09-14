@@ -53,7 +53,7 @@ jobs:
             echo '[bumpversion:file:src/gac/__version__.py]' >> .bumpversion.cfg
           fi
           # Bump patch version
-          bump-my-version bump patch
+          bump-my-version bump patch --allow-dirty
 
       - name: Build package
         run: |
