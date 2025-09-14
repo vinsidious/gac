@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "gac"
 dynamic = ["version"]
-description = 'git auto commit'
+description = "AI-powered Git commit message generator with multi-provider support"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -66,8 +66,11 @@ dev = [
 ]
 
 [project.urls]
+Homepage = "https://github.com/cellwebb/gac"
 Documentation = "https://github.com/cellwebb/gac#readme"
+Repository = "https://github.com/cellwebb/gac.git"
 Issues = "https://github.com/cellwebb/gac/issues"
+Changelog = "https://github.com/cellwebb/gac/blob/main/CHANGELOG.md"
 Source = "https://github.com/cellwebb/gac"
 
 [tool.black]
