@@ -97,7 +97,6 @@ venv.bak/
 
 # Package management
 poetry.toml
-uv.lock
 
 # =========================
 # Python tools and linters
