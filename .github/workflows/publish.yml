@@ -20,111 +20,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Need full history for version bumping
+          fetch-depth: 0 # Need full history for version detection
 
       - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install uv, build, and twine
-        run: pip install uv build twine
+      - name: Install dependencies
+        run: pip install uv build twine bump-my-version packaging
 
       - name: Setup uv virtual environment
         run: uv venv
 
-      - name: Check for version bump and skip flags
+      - name: Check if version bump is needed
         id: version_check
         run: |
-          # Install bump-my-version and packaging for version comparison
-          pip install bump-my-version packaging
+          echo "=== Version Bump Check ==="
 
-          # Sync versions between __version__.py and .bumpversion.cfg
-          python3 << 'EOF'
-          import re
-          from packaging import version
-
-          # Read version from __version__.py
-          try:
-              with open('src/gac/__version__.py', 'r') as f:
-                  content = f.read()
-                  match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
-                  version_py = match.group(1) if match else "0.0.0"
-          except FileNotFoundError:
-              version_py = "0.0.0"
-
-          # Read version from .bumpversion.cfg
-          try:
-              with open('.bumpversion.cfg', 'r') as f:
-                  content = f.read()
-                  match = re.search(r'current_version\s*=\s*([^\n]+)', content)
-                  version_cfg = match.group(1).strip() if match else "0.0.0"
-          except FileNotFoundError:
-              version_cfg = "0.0.0"
-
-          print(f"Version in __version__.py: {version_py}")
-          print(f"Version in .bumpversion.cfg: {version_cfg}")
-
-          # Compare and use the higher version
-          if version.parse(version_py) > version.parse(version_cfg):
-              print(f"Using higher version from __version__.py: {version_py}")
-              higher_version = version_py
-              needs_sync = True
-          elif version.parse(version_cfg) > version.parse(version_py):
-              print(f"Using higher version from .bumpversion.cfg: {version_cfg}")
-              higher_version = version_cfg
-              needs_sync = True
-          else:
-              print(f"Versions are equal: {version_py}")
-              higher_version = version_py
-              needs_sync = False
-
-          # Write the results for bash to read
-          with open('/tmp/sync_info.txt', 'w') as f:
-              f.write(f"{higher_version}\n{needs_sync}")
-          EOF
-
-          # Read the sync info
-          SYNC_INFO=$(cat /tmp/sync_info.txt)
-          CURRENT_VERSION=$(echo "$SYNC_INFO" | head -n1)
-          NEEDS_SYNC=$(echo "$SYNC_INFO" | tail -n1)
-
-          echo "Synchronized version: $CURRENT_VERSION"
-
-          # If versions were out of sync, update both files
-          if [ "$NEEDS_SYNC" = "True" ]; then
-            echo "Syncing version files to $CURRENT_VERSION"
-            
-            # Update .bumpversion.cfg
-            if [ ! -f .bumpversion.cfg ]; then
-              echo '[bumpversion]' > .bumpversion.cfg
-              echo "current_version = $CURRENT_VERSION" >> .bumpversion.cfg
-              echo 'commit = False' >> .bumpversion.cfg
-              echo 'tag = False' >> .bumpversion.cfg
-              echo '' >> .bumpversion.cfg
-              echo '[bumpversion:file:src/gac/__version__.py]' >> .bumpversion.cfg
-            else
-              sed -i "s/current_version = .*/current_version = $CURRENT_VERSION/" .bumpversion.cfg
-            fi
-            
-            # Update __version__.py
-            echo '"""Version information for gac package."""' > src/gac/__version__.py
-            echo "" >> src/gac/__version__.py
-            echo "__version__ = \"$CURRENT_VERSION\"" >> src/gac/__version__.py
-          fi
-
-          # Check recent commit messages for skip flags
-          RECENT_COMMITS=$(git log --oneline -5)
-          echo "Recent commits:"
-          echo "$RECENT_COMMITS"
-
-          if echo "$RECENT_COMMITS" | grep -qiE '\[(skip-version-bump|skip-auto-bump|no-auto-bump|version-bump-done)\]'; then
-            echo "Skip flag detected in recent commit messages"
+          # Skip if recent commits have skip flags
+          if git log --oneline -5 | grep -qiE '\[(skip-version-bump|skip-auto-bump|no-auto-bump|version-bump-done|ci skip)\]'; then
+            echo "Skip flag detected in recent commits"
             echo "skip_auto_bump=true" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # Enhanced version bump detection for squash merges
           python3 << 'EOF'
           import re
           import subprocess
@@ -132,115 +52,138 @@ jobs:
           import os
           from packaging import version
 
-          def get_version_from_commit(commit_sha, file_path):
-              """Get version from a specific commit."""
+          def get_version_from_file(file_path):
+              """Read version from __version__.py file"""
               try:
-                  result = subprocess.run(
-                      ['git', 'show', f'{commit_sha}:{file_path}'],
-                      capture_output=True, text=True, check=True
-                  )
-                  content = result.stdout
-                  
-                  if 'gac/__version__.py' in file_path:
-                      match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
-                  else:  # .bumpversion.cfg
-                      match = re.search(r'current_version\s*=\s*([^\n]+)', content)
-                  
-                  return match.group(1).strip() if match else "0.0.0"
-              except (subprocess.CalledProcessError, AttributeError):
-                  return "0.0.0"
-
-          def get_current_version():
-              """Get current version from __version__.py"""
-              try:
-                  with open('src/gac/__version__.py', 'r') as f:
+                  with open(file_path, 'r') as f:
                       content = f.read()
                       match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
-                      return match.group(1) if match else "0.0.0"
+                      return match.group(1) if match else None
               except FileNotFoundError:
-                  return "0.0.0"
+                  return None
 
-          def get_version_from_parent():
-              """Get version from parent commit (HEAD~1)"""
+          def get_version_at_commit(commit, file_path):
+              """Get version from a file at a specific commit"""
               try:
-                  # For squash merges, we want to compare with the previous commit on main
-                  result = subprocess.run(['git', 'rev-parse', 'HEAD~1'], 
-                                        capture_output=True, text=True, check=True)
-                  parent_sha = result.stdout.strip()
-                  return get_version_from_commit(parent_sha, 'src/gac/__version__.py'), parent_sha
+                  result = subprocess.run(
+                      ['git', 'show', f'{commit}:{file_path}'],
+                      capture_output=True, text=True, check=True
+                  )
+                  match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', result.stdout)
+                  return match.group(1) if match else None
               except subprocess.CalledProcessError:
-                  return "0.0.0", None
+                  return None
 
-          # Method 1: Compare with parent commit (works for squash merges)
-          current_version = get_current_version()
-          parent_version, parent_sha = get_version_from_parent()
+          def get_last_version_on_main():
+              """Get the last published version from main branch"""
+              try:
+                  # Get the parent commit on main (before the current merge)
+                  result = subprocess.run(
+                      ['git', 'rev-parse', 'HEAD~1'],
+                      capture_output=True, text=True, check=True
+                  )
+                  parent_commit = result.stdout.strip()
+                  return get_version_at_commit(parent_commit, 'src/gac/__version__.py')
+              except subprocess.CalledProcessError:
+                  return None
 
-          print(f"Current version (HEAD): {current_version}")
-          print(f"Parent version (HEAD~1): {parent_version}")
-          if parent_sha:
-              print(f"Parent commit: {parent_sha}")
-
-          # Method 2: Use github.event context if available
-          before_sha = os.environ.get('GITHUB_EVENT_BEFORE', '')
-          after_sha = os.environ.get('GITHUB_EVENT_AFTER', '')
-
-          if before_sha and before_sha != "0000000000000000000000000000000000000000":
-              github_before_version = get_version_from_commit(before_sha, 'src/gac/__version__.py')
-              print(f"GitHub event before version: {github_before_version}")
+          def parse_version_bump_type(current, previous):
+              """Determine what type of version bump occurred"""
+              if not current or not previous:
+                  return None
               
-              # Use GitHub event version if it's different from parent
-              if github_before_version != "0.0.0":
-                  parent_version = github_before_version
-
-          # Method 3: Check git diff for version file changes in recent commits
-          try:
-              # Check if version file was modified in the last commit
-              result = subprocess.run(
-                  ['git', 'diff', 'HEAD~1', 'HEAD', '--name-only'],
-                  capture_output=True, text=True, check=True
-              )
-              changed_files = result.stdout.strip().split('\n')
-              version_file_changed = any('__version__.py' in f or '.bumpversion.cfg' in f for f in changed_files)
-              print(f"Version files changed in last commit: {version_file_changed}")
-              print(f"Changed files: {changed_files}")
-          except subprocess.CalledProcessError:
-              version_file_changed = False
-
-          # Compare versions
-          skip_auto_bump = False
-          try:
-              if version.parse(current_version) > version.parse(parent_version):
-                  print(f"[OK] Version was manually bumped: {parent_version} -> {current_version}")
-                  skip_auto_bump = True
-              elif version_file_changed and current_version == parent_version:
-                  print(" Version file was modified but version unchanged - assuming intentional")
-                  skip_auto_bump = True
+              curr = version.parse(current)
+              prev = version.parse(previous)
+              
+              if curr.major > prev.major:
+                  return "major"
+              elif curr.minor > prev.minor:
+                  return "minor"
+              elif curr.micro > prev.micro:
+                  return "patch"
               else:
-                  print(f"[OK] No version bump detected, auto-bump will proceed")
-                  skip_auto_bump = False
-          except Exception as e:
-              print(f"Error comparing versions: {e}")
-              print("Proceeding with auto-bump to be safe")
-              skip_auto_bump = False
+                  return None
 
-          # Output result for GitHub Actions
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
-              f.write(f"skip_auto_bump={str(skip_auto_bump).lower()}\n")
-              f.write(f"current_version={current_version}\n")
-              f.write(f"parent_version={parent_version}\n")
+          # Get versions
+          current_version = get_version_from_file('src/gac/__version__.py')
+          previous_version = get_last_version_on_main()
 
-          if skip_auto_bump:
-              print(" Skipping auto-bump - version was already updated")
-              sys.exit(0)
-          else:
-              print(" Proceeding with auto-bump")
+          print(f"Current version: {current_version}")
+          print(f"Previous version on main: {previous_version}")
+
+          # Check if version was already bumped
+          skip_bump = False
+
+          if not current_version:
+              print("ERROR: Could not read current version")
               sys.exit(1)
+
+          if not previous_version:
+              print("WARNING: Could not read previous version, assuming first release")
+              skip_bump = False
+          elif current_version == previous_version:
+              print("Version unchanged - will apply patch bump")
+              skip_bump = False
+          else:
+              curr_v = version.parse(current_version)
+              prev_v = version.parse(previous_version)
+              
+              if curr_v > prev_v:
+                  bump_type = parse_version_bump_type(current_version, previous_version)
+                  print(f"Version already bumped ({bump_type}): {previous_version} -> {current_version}")
+                  skip_bump = True
+              elif curr_v < prev_v:
+                  print(f"ERROR: Current version ({current_version}) is lower than previous ({previous_version})")
+                  sys.exit(1)
+              else:
+                  print("Version unchanged - will apply patch bump")
+                  skip_bump = False
+
+          # Sync .bumpversion.cfg if needed
+          try:
+              with open('.bumpversion.cfg', 'r') as f:
+                  cfg_content = f.read()
+                  cfg_match = re.search(r'current_version\s*=\s*([^\n]+)', cfg_content)
+                  cfg_version = cfg_match.group(1).strip() if cfg_match else None
+              
+              if cfg_version != current_version:
+                  print(f"Syncing .bumpversion.cfg: {cfg_version} -> {current_version}")
+                  new_content = re.sub(
+                      r'current_version\s*=\s*[^\n]+',
+                      f'current_version = {current_version}',
+                      cfg_content
+                  )
+                  with open('.bumpversion.cfg', 'w') as f:
+                      f.write(new_content)
+          except FileNotFoundError:
+              print("Creating .bumpversion.cfg")
+              with open('.bumpversion.cfg', 'w') as f:
+                  f.write(f'''[bumpversion]
+          current_version = {current_version}
+          commit = False
+          tag = False
+
+          [bumpversion:file:src/gac/__version__.py]
+          ''')
+
+          # Write output
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"skip_auto_bump={'true' if skip_bump else 'false'}\n")
+              f.write(f"current_version={current_version}\n")
+              f.write(f"previous_version={previous_version or '0.0.0'}\n")
+
+          if skip_bump:
+              print("\n✅ Skipping auto-bump - version already updated")
+          else:
+              print("\n⚙ Will apply patch bump")
+
+          sys.exit(0)
           EOF
 
       - name: Apply automatic version bump
         if: steps.version_check.outputs.skip_auto_bump != 'true'
         run: |
-          echo "Applying automatic version bump..."
+          echo "Applying automatic patch version bump..."
           bump-my-version bump patch --allow-dirty
 
       - name: Build package
