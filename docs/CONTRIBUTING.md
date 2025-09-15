@@ -8,7 +8,9 @@ make the process smooth for everyone.
 - [Contributing to gac](#contributing-to-gac)
   - [Table of Contents](#table-of-contents)
   - [How to Contribute](#how-to-contribute)
+  - [Version Bumping](#version-bumping)
   - [Coding Standards](#coding-standards)
+  - [Pre-commit Hooks](#pre-commit-hooks)
   - [Testing Guidelines](#testing-guidelines)
     - [Running Tests](#running-tests)
   - [Code of Conduct](#code-of-conduct)
@@ -25,10 +27,55 @@ make the process smooth for everyone.
   2. Make your changes following the coding standards below.
   3. Add or update tests as needed.
   4. Ensure all tests pass (`pytest`).
-  5. Submit a pull request with a clear description of your changes.
+  5. Bump the version in `src/gac/__version__.py` if this is a releasable change.
+  6. Update `CHANGELOG.md` with your changes.
+  7. Submit a pull request with a clear description of your changes.
 
 If you have questions or want to discuss ideas before contributing, please open an issue or start a discussion on
 GitHub.
+
+## Version Bumping
+
+**Important**: PRs should include a version bump in `src/gac/__version__.py` when they contain changes that should be released.
+
+### How to bump the version
+
+1. Edit `src/gac/__version__.py` and increment the version number
+2. Follow [Semantic Versioning](https://semver.org/):
+   - **Patch** (0.0.X): Bug fixes, small improvements
+   - **Minor** (0.X.0): New features, backwards-compatible changes
+   - **Major** (X.0.0): Breaking changes
+
+### Release Process
+
+Releases are triggered by pushing version tags:
+
+1. Merge PR(s) with version bumps to main
+2. Create a tag: `git tag v0.17.3`
+3. Push the tag: `git push origin v0.17.3`
+4. GitHub Actions automatically publishes to PyPI
+
+Example:
+
+```python
+# src/gac/__version__.py
+__version__ = "0.17.3"  # Bumped from 0.17.2
+```
+
+### Using bump-my-version (optional)
+
+If you have `bump-my-version` installed, you can use it locally:
+
+```bash
+# For bug fixes:
+bump-my-version bump patch
+
+# For new features:
+bump-my-version bump minor
+
+# For breaking changes:
+bump-my-version bump major
+```
 
 ## Coding Standards
 

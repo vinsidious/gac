@@ -7,6 +7,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.17.3] - 2025-09-14
+
+### Changed
+
+- **Tag-Based Release Workflow**: Switched to tag-triggered releases for better control
+  - CI/CD now publishes to PyPI only when version tags are pushed (e.g., `v0.17.3`)
+  - Removed complex auto-version-bumping logic
+  - Allows batching multiple PRs before releasing
+  - Prevents accidental releases and "file already exists" errors
+  - Verifies tag version matches code version before publishing
+  - Updated documentation to explain tag-based release process
+
 ## [v0.17.2] - 2025-09-14
 
 ### Fixed
