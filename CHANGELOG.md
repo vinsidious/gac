@@ -9,13 +9,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Pre-commit Hooks**: Migrated to ruff for faster linting and formatting
+  - Replaced black, isort, and flake8 with ruff in pre-commit configuration
+  - Uses `uvx ruff` for even faster execution without separate virtual environments
+  - Matches CI/CD pipeline tooling for consistency
+  - Significantly reduces pre-commit hook execution time
+
 ## [0.18.0] - 2025-09-15
 
-## [0.17.7] - 2025-09-15
+### Added
 
-## [0.17.6] - 2025-09-15
+- **Dependency Lock File**: Added `uv.lock` file for reproducible builds
+  - Ensures all team members and CI/CD pipelines use exact same dependency versions
+  - Provides deterministic dependency resolution across different environments
+  - Improves build reliability and reduces "works on my machine" issues
 
-## [0.17.5] - 2025-09-14
+### Fixed
+
+- **Token Counting for Anthropic Models**: Improved accuracy and reliability
+  - Updated to use Anthropic's new beta token counting API for precise token counts
+  - Added proper model name extraction from provider-prefixed model strings
+  - Implemented fallback estimation when API is unavailable
+  - Fixed deprecated `Client().count_tokens()` usage
+
+### Added
+
+- **Comprehensive Test Coverage**: Expanded test suite for AI module
+  - Added extensive tests for `generate_commit_message()` function
+  - Added tests for retry logic with exponential backoff
+  - Added tests for error classification (authentication, rate limit, timeout, etc.)
+  - Added tests for both string and tuple prompt formats
+  - Added tests for spinner integration in non-quiet mode
+  - Improved test coverage for edge cases and error scenarios
 
 ## [0.17.4] - 2025-09-14
 
