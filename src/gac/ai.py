@@ -30,13 +30,11 @@ def count_tokens(content: str | list[dict[str, str]] | dict[str, Any], model: st
 
         try:
             client = anthropic.Anthropic()
-            # Extract the actual model name after the provider prefix
-            model_name = model.split(":", 1)[1] if ":" in model else "claude-3-5-haiku-latest"
 
-            # Use the beta messages.count_tokens API for accurate counting
-            response = client.messages.count_tokens(
-                model=model_name, messages=[{"role": "user", "content": text}], betas=["token-counting-2024-11-01"]
-            )
+            # Use the messages.count_tokens API for accurate counting
+            model_name = model.split(":", 1)[1] if ":" in model else "claude-3-5-haiku-latest"
+            response = client.messages.count_tokens(model=model_name, messages=[{"role": "user", "content": text}])
+
             return response.input_tokens
         except Exception:
             # Fallback to simple estimation for Anthropic models
