@@ -77,8 +77,10 @@ class TestAiUtils:
             mock_anthropic = MagicMock()
             mock_client = MagicMock()
 
-            # Mock the count_tokens method directly on the client
-            mock_client.count_tokens.return_value = 5
+            # Mock the messages.count_tokens response
+            mock_response = MagicMock()
+            mock_response.input_tokens = 5
+            mock_client.messages.count_tokens.return_value = mock_response
 
             mock_anthropic.Anthropic.return_value = mock_client
 
