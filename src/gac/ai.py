@@ -28,7 +28,10 @@ def count_tokens(content: str | list[dict[str, str]] | dict[str, Any], model: st
     if model.startswith("anthropic"):
         import anthropic
 
-        return anthropic.Client().count_tokens(text)
+        client = anthropic.Anthropic()
+        # Use the simple count_tokens method
+        # Note: This is only a rough estimate for newer models
+        return client.count_tokens(text)
 
     try:
         encoding = get_encoding(model)

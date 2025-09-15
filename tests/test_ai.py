@@ -76,8 +76,11 @@ class TestAiUtils:
             # Create a mock anthropic module
             mock_anthropic = MagicMock()
             mock_client = MagicMock()
+
+            # Mock the count_tokens method directly on the client
             mock_client.count_tokens.return_value = 5
-            mock_anthropic.Client.return_value = mock_client
+
+            mock_anthropic.Anthropic.return_value = mock_client
 
             # Make __import__ return our mock for anthropic
             def import_side_effect(name, *args, **kwargs):
