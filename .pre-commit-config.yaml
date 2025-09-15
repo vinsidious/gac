@@ -1,26 +1,4 @@
 repos:
-  - repo: https://github.com/psf/black
-    rev: 25.1.0
-    hooks:
-      - id: black
-        language_version: python3
-        exclude: ^(\.venv/|_deprecated/)
-
-  - repo: https://github.com/pycqa/isort
-    rev: 6.0.1
-    hooks:
-      - id: isort
-        args: ["--profile", "black"]
-        exclude: ^(\.venv/|_deprecated/)
-
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.2.0
-    hooks:
-      - id: flake8
-        additional_dependencies: ["flake8-bugbear"]
-        args: ["--max-line-length=120", "--ignore=E203,W503,E501"]
-        exclude: ^(\.venv/|_deprecated/)
-
   - repo: https://github.com/DavidAnson/markdownlint-cli2
     rev: v0.18.1
     hooks:
@@ -36,6 +14,18 @@ repos:
 
   - repo: local
     hooks:
+      - id: ruff
+        name: ruff lint
+        entry: uvx ruff check --fix
+        language: system
+        types: [python]
+        exclude: ^(\.venv/|_deprecated/)
+      - id: ruff-format
+        name: ruff format
+        entry: uvx ruff format
+        language: system
+        types: [python]
+        exclude: ^(\.venv/|_deprecated/)
       - id: check-upstream
         name: check for upstream changes
         entry: .githooks/check-upstream
