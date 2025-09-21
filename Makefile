@@ -26,13 +26,13 @@ test-cov:
 lint:
 	uv run -- ruff check src/ tests/
 	uv run -- ruff format --check src/ tests/
-	npx prettier --check "**/*.{md,yaml,yml,json}" --log-level silent
+	npx prettier --check "**/*.{md,yaml,yml,json}"
 	npx markdownlint-cli2 --config .markdownlint-cli2.yaml "**/*.md"
 
 format:
 	uv run -- ruff check --fix src/ tests/
 	uv run -- ruff format src/ tests/
-	npx prettier --write "**/*.{md,yaml,yml,json}" --log-level silent
+	npx prettier --write "**/*.{md,yaml,yml,json}"
 	npx markdownlint-cli2 --fix --config .markdownlint-cli2.yaml "**/*.md"
 
 # Clean build artifacts
