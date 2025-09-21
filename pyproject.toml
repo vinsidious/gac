@@ -43,10 +43,6 @@ dependencies = [
     "halo",
     "questionary",
     "rich",
-    
-    # Code formatting
-    "black",
-    "isort",
 ]
 
 [project.scripts]
@@ -78,9 +74,7 @@ Issues = "https://github.com/cellwebb/gac/issues"
 Changelog = "https://github.com/cellwebb/gac/blob/main/CHANGELOG.md"
 Source = "https://github.com/cellwebb/gac"
 
-[tool.black]
-line-length = 120
-target-version = ["py310", "py311", "py312", "py313"]
+
 
 [tool.coverage.run]
 source_pkgs = ["gac"]
@@ -108,11 +102,7 @@ exclude_lines = [
   "except ImportError"
 ]
 
-[tool.flake8]
-max-line-length = 120
-exclude = [".git", "__pycache__", ".venv", "venv", "build", "dist"]
-per-file-ignores = "__init__.py:F401"
-ignore = "E203,W503,E501"
+
 
 [tool.hatch.version]
 path = "src/gac/__version__.py"
@@ -151,30 +141,25 @@ dependencies = [
     # CLI and formatting
     "halo",
     
-    # Code formatting
-    "black",
-    "isort",
-    
     # Testing
     "pytest",
     "pytest-cov",
     "codecov",
     
-    # Linting
-    "flake8",
+    # Linting and formatting
+    "ruff",
 ]
 
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
 test-cov = "coverage run -m pytest {args:tests} && coverage report"
 lint = [
-    "black .",
-    "isort .",
-    "flake8 .",
+    "ruff check .",
+    "ruff format --check .",
 ]
 format = [
-    "black .",
-    "isort .",
+    "ruff check --fix .",
+    "ruff format .",
 ]
 
 [tool.hatch.env]
@@ -195,7 +180,7 @@ select = [
     "UP", # pyupgrade
 ]
 ignore = [
-    "E501",  # line too long, handled by black
+    "E501",  # line too long, handled by ruff format
     "B008",  # do not perform function calls in argument defaults
     "C901",  # too complex
 ]
