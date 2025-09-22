@@ -12,11 +12,11 @@
 
 ## Features
 
-- **AI-Powered Commit Messages:** Automatically generates clear, concise, and context-aware commit messages using large language models.
+- **LLM-Powered Commit Messages:** Automatically generates clear, concise, and context-aware commit messages using large language models.
 - **Deep Contextual Analysis:** Understands your code by analyzing staged changes, repository structure, and recent commit history to provide highly relevant suggestions.
 - **Multi-Provider & Model Support:** Flexibly works with various leading AI providers (like Anthropic, Cerebras, Groq, OpenAI) and models, easily configured through an interactive setup or environment variables.
 - **Seamless Git Workflow:** Integrates smoothly into your existing Git routine as a simple drop-in replacement for `git commit`.
-- **Extensive Customization:** Tailor commit messages to your needs with a rich set of flags, including one-liners (`-o`), AI hints (`-h`), commit scope (`-s`), and specific model selection (`-m`).
+- **Extensive Customization:** Tailor commit messages to your needs with a rich set of flags, including one-liners (`-o`), AI hints (`-h`), scope inference (`-s`), and specific model selection (`-m`).
 - **Streamlined Workflow Commands:** Boost your productivity with convenient options to stage all changes (`-a`), auto-confirm commits (`-y`), and push to your remote repository (`-p`) in a single step.
 - **Interactive Reroll with Feedback:** Not satisfied with the generated commit message? Use `r` for a simple regeneration, or `r <feedback>` to provide specific improvement suggestions (e.g., `r make it shorter`, `r focus on the bug fix`).
 - **Token Usage Tracking:** Display token consumption statistics (prompt, completion, and total tokens).

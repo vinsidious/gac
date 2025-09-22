@@ -34,7 +34,7 @@ def main(
     hint: str = "",
     one_liner: bool = False,
     show_prompt: bool = False,
-    scope: str | None = None,
+    infer_scope: bool = False,
     require_confirmation: bool = True,
     push: bool = False,
     quiet: bool = False,
@@ -101,7 +101,7 @@ def main(
         diff_stat=diff_stat,
         one_liner=one_liner,
         hint=hint,
-        scope=scope,
+        infer_scope=infer_scope,
     )
 
     if show_prompt:
@@ -202,7 +202,7 @@ def main(
                                 diff_stat=diff_stat,
                                 one_liner=one_liner,
                                 hint=combined_hint,
-                                scope=scope,
+                                infer_scope=infer_scope,
                             )
                         else:
                             # No hint given, just reroll with same prompts

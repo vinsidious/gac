@@ -21,7 +21,7 @@ echo "Initial content" > test.py
 git add test.py
 git commit -m "Initial commit"
 
-echo "1. Testing --scope with specific value (auth)"
+echo "1. Testing --scope flag (infer scope)"
 echo "   Creating a new authentication file..."
 cat > auth.py << 'EOF'
 def login(username, password):
@@ -30,38 +30,11 @@ def login(username, password):
 EOF
 git add auth.py
 
-echo "   Running: gac preview --scope auth"
-gac preview --scope auth || echo "Note: Preview may fail if AI providers aren't configured"
-echo
-
-echo "2. Testing -s short flag with value (api)"
-echo "   Creating an API endpoint file..."
-cat > api.py << 'EOF'
-def get_users():
-    """Get all users from the API."""
-    return []
-EOF
-git add api.py
-
-echo "   Running: gac preview -s api"
-gac preview -s api || echo "Note: Preview may fail if AI providers aren't configured"
-echo
-
-echo "3. Testing --scope without value (AI determines scope)"
-echo "   Modifying multiple files..."
-echo "# Database config" >> test.py
-cat > database.py << 'EOF'
-def connect():
-    """Connect to database."""
-    pass
-EOF
-git add test.py database.py
-
 echo "   Running: gac preview --scope"
 gac preview --scope || echo "Note: Preview may fail if AI providers aren't configured"
 echo
 
-echo "4. Testing without --scope flag"
+echo "2. Testing without --scope flag"
 echo "   Adding a README file..."
 cat > README.md << 'EOF'
 # Test Project
@@ -73,13 +46,13 @@ echo "   Running: gac preview"
 gac preview || echo "Note: Preview may fail if AI providers aren't configured"
 echo
 
-echo "5. Testing --scope with other flags"
+echo "3. Testing --scope with other flags"
 echo "   Modifying auth.py with hint..."
 echo "def logout(): pass" >> auth.py
 git add auth.py
 
-echo "   Running: gac preview --scope auth --one-liner --hint 'Add logout functionality'"
-gac preview --scope auth --one-liner --hint "Add logout functionality" || echo "Note: Preview may fail if AI providers aren't configured"
+echo "   Running: gac preview --scope --one-liner --hint 'Add logout functionality'"
+gac preview --scope --one-liner --hint "Add logout functionality" || echo "Note: Preview may fail if AI providers aren't configured"
 echo
 
 # Cleanup

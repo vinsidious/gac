@@ -86,8 +86,16 @@ class TestScopeFlag:
         monkeypatch.setattr("logging.Logger.warning", lambda *args, **kwargs: None)
         monkeypatch.setattr("logging.Logger.debug", lambda *args, **kwargs: None)
 
-    def test_scope_flag_with_value(self, runner, monkeypatch):
-        """Test --scope flag with a specific value."""
+    @pytest.mark.parametrize(
+        "flag,expected_scope",
+        [
+            (["--scope"], True),
+            (["-s"], True),
+            ([], False),
+        ],
+    )
+    def test_scope_flag_behavior(self, runner, monkeypatch, flag, expected_scope):
+        """Test that --scope flag always triggers scope inference."""
         captured_prompt = None
 
         def capture_prompt(**kwargs):
@@ -97,63 +105,11 @@ class TestScopeFlag:
 
         monkeypatch.setattr("gac.main.build_prompt", capture_prompt)
 
-        result = runner.invoke(cli, ["--scope", "auth", "--no-verify"])
+        result = runner.invoke(cli, flag + ["--no-verify"])
 
         assert result.exit_code == 0
         assert captured_prompt is not None
-        assert captured_prompt.get("scope") == "auth"
-
-    def test_scope_flag_short_with_value(self, runner, monkeypatch):
-        """Test -s flag (short form) with a specific value."""
-        captured_prompt = None
-
-        def capture_prompt(**kwargs):
-            nonlocal captured_prompt
-            captured_prompt = kwargs
-            return ("system prompt", "user prompt")
-
-        monkeypatch.setattr("gac.main.build_prompt", capture_prompt)
-
-        result = runner.invoke(cli, ["-s", "api", "--no-verify"])
-
-        assert result.exit_code == 0
-        assert captured_prompt is not None
-        assert captured_prompt.get("scope") == "api"
-
-    def test_scope_flag_without_value(self, runner, monkeypatch):
-        """Test --scope flag when an empty string is provided (AI determines scope)."""
-        captured_prompt = None
-
-        def capture_prompt(**kwargs):
-            nonlocal captured_prompt
-            captured_prompt = kwargs
-            return ("system prompt", "user prompt")
-
-        monkeypatch.setattr("gac.main.build_prompt", capture_prompt)
-
-        # Invoke with an explicit empty string for the scope value
-        result = runner.invoke(cli, ["--scope", "", "--no-verify"])
-
-        assert result.exit_code == 0
-        assert captured_prompt is not None
-        assert captured_prompt.get("scope") == ""  # Empty string when no value provided
-
-    def test_no_scope_flag(self, runner, monkeypatch):
-        """Test behavior when --scope flag is not used."""
-        captured_prompt = None
-
-        def capture_prompt(**kwargs):
-            nonlocal captured_prompt
-            captured_prompt = kwargs
-            return ("system prompt", "user prompt")
-
-        monkeypatch.setattr("gac.main.build_prompt", capture_prompt)
-
-        result = runner.invoke(cli, ["--no-verify"])
-
-        assert result.exit_code == 0
-        assert captured_prompt is not None
-        assert captured_prompt.get("scope") is None  # None when flag not used
+        assert bool(captured_prompt.get("infer_scope")) == bool(expected_scope)
 
     def test_scope_with_other_flags(self, runner, monkeypatch):
         """Test --scope flag combined with other flags."""
@@ -166,11 +122,11 @@ class TestScopeFlag:
 
         monkeypatch.setattr("gac.main.build_prompt", capture_prompt)
 
-        result = runner.invoke(cli, ["--one-liner", "--scope", "docs", "--hint", "Update documentation", "--no-verify"])
+        result = runner.invoke(cli, ["--one-liner", "--scope", "--hint", "Update documentation", "--no-verify"])
 
         assert result.exit_code == 0
         assert captured_prompt is not None
-        assert captured_prompt.get("scope") == "docs"
+        assert bool(captured_prompt.get("infer_scope")) is True
         assert captured_prompt.get("one_liner") is True
         assert captured_prompt.get("hint") == "Update documentation"
 
@@ -179,27 +135,13 @@ class TestScopePromptBuilding:
     """Test how scope affects prompt building."""
 
     @patch("gac.preprocess.preprocess_diff", return_value="mock_diff")
-    def test_build_prompt_with_specific_scope(self, mock_preprocess):
-        """Test prompt building when scope is explicitly provided."""
+    def test_build_prompt_with_inferred_scope(self, mock_preprocess):
+        """Test prompt building when scope inference is triggered."""
         # Skip the regex processing by directly mocking build_prompt's internal calls
         with patch("gac.prompt.re.sub") as mock_sub:
             # Make re.sub pass through the original string
             mock_sub.side_effect = lambda pattern, repl, string, flags=0: string
-            system_prompt, user_prompt = build_prompt("status", "mock_diff", scope="ui")
-            # Verify we attempted to process the right template sections
-            assert mock_sub.call_count > 0
-            # Just check we have something in both prompts
-            assert len(system_prompt) > 0
-            assert len(user_prompt) > 0
-
-    @patch("gac.preprocess.preprocess_diff", return_value="mock_diff")
-    def test_build_prompt_with_empty_scope(self, mock_preprocess):
-        """Test prompt building when scope flag is used but no value is provided."""
-        # Skip the regex processing by directly mocking build_prompt's internal calls
-        with patch("gac.prompt.re.sub") as mock_sub:
-            # Make re.sub pass through the original string
-            mock_sub.side_effect = lambda pattern, repl, string, flags=0: string
-            system_prompt, user_prompt = build_prompt("status", "mock_diff", scope="")
+            system_prompt, user_prompt = build_prompt("status", "mock_diff", infer_scope=True)
             # Verify we attempted to process the right template sections
             assert mock_sub.call_count > 0
             # Just check we have something in both prompts
@@ -213,33 +155,12 @@ class TestScopePromptBuilding:
         with patch("gac.prompt.re.sub") as mock_sub:
             # Make re.sub pass through the original string
             mock_sub.side_effect = lambda pattern, repl, string, flags=0: string
-            system_prompt, user_prompt = build_prompt("status", "mock_diff", scope=None)
+            system_prompt, user_prompt = build_prompt("status", "mock_diff", infer_scope=False)
             # Verify we attempted to process the right template sections
             assert mock_sub.call_count > 0
             # Just check we have something in both prompts
             assert len(system_prompt) > 0
             assert len(user_prompt) > 0
-
-    @patch("gac.preprocess.preprocess_diff", return_value="mock_diff")
-    def test_scope_with_different_values(self, mock_preprocess):
-        """Test various scope values in prompt building."""
-        # Test with a variety of valid scope values
-        scopes = ["ui", "api", "auth", "docs", "core"]
-
-        # Skip the regex processing by directly mocking build_prompt's internal calls
-        with patch("gac.prompt.re.sub") as mock_sub:
-            # Make re.sub pass through the original string
-            mock_sub.side_effect = lambda pattern, repl, string, flags=0: string
-
-            for scope_value in scopes:
-                system_prompt, user_prompt = build_prompt("status", "mock_diff", scope=scope_value)
-                # Verify we attempted to process the right template sections
-                assert mock_sub.call_count > 0
-                # Just check we have something in both prompts
-                assert len(system_prompt) > 0
-                assert len(user_prompt) > 0
-                # Reset the mock for the next iteration
-                mock_sub.reset_mock()
 
 
 class TestScopeIntegration:
@@ -290,6 +211,8 @@ class TestScopeIntegration:
         monkeypatch.setattr("gac.main.run_git_command", git_spy.run_git_command)
 
         # Mock AI to return message with scope
+        call_count = 0
+
         def mock_generate(**kwargs):
             prompt = kwargs.get("prompt", "")
             # Handle both string and tuple prompt formats
@@ -299,10 +222,17 @@ class TestScopeIntegration:
             else:
                 prompt_text = prompt
 
-            if "REQUIRED scope 'auth'" in prompt_text:
-                return "feat(auth): add login functionality"
-            elif "inferred scope" in prompt_text.lower():
-                return "fix(api): handle null response"
+            nonlocal call_count
+            call_count += 1
+
+            # Since we're always inferring scope now, check for "inferred scope" in the prompt
+            if "inferred scope" in prompt_text.lower():
+                if call_count == 1:
+                    # First call should return the first message
+                    return "feat(auth): add login functionality"
+                else:
+                    # Subsequent calls should return the second message
+                    return "fix(api): handle null response"
             else:
                 return "feat: add new feature"
 
@@ -341,9 +271,9 @@ class TestScopeIntegration:
 
             monkeypatch.setattr("gac.main.clean_commit_message", spy_clean_commit_message)
 
-            # Test with specific scope
+            # Test with scope inference enabled
             with pytest.raises(SystemExit) as exc_info:
-                main(scope="auth", dry_run=True)  # Use dry_run to avoid actual git calls
+                main(infer_scope=True, dry_run=True)  # Use dry_run to avoid actual git calls
             assert exc_info.value.code == 0
             assert git_spy.commit_message == "feat(auth): add login functionality"
 
@@ -355,7 +285,7 @@ class TestScopeIntegration:
 
             # Test with AI-determined scope
             with pytest.raises(SystemExit) as exc_info:
-                main(scope="", dry_run=True)  # Use dry_run to avoid actual git calls
+                main(infer_scope=True, dry_run=True)  # Use dry_run to avoid actual git calls
             assert exc_info.value.code == 0
             assert git_spy.commit_message == "fix(api): handle null response"
 
@@ -364,7 +294,7 @@ class TestScopeIntegration:
 
             # Test without scope
             with pytest.raises(SystemExit) as exc_info:
-                main(scope=None, dry_run=True)  # Use dry_run to avoid actual git calls
+                main(infer_scope=False, dry_run=True)  # Use dry_run to avoid actual git calls
             assert exc_info.value.code == 0
             assert git_spy.commit_message == "feat: add new feature"
 
@@ -376,4 +306,5 @@ def test_scope_flag_help():
 
     assert result.exit_code == 0
     assert "--scope" in result.output or "-s" in result.output
-    assert "Add a scope to the commit message" in result.output
+    assert "Infer an appropriate scope for the commit" in result.output
+    assert "message" in result.output

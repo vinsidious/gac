@@ -36,10 +36,9 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--scope",
     "-s",
-    is_flag=False,
-    flag_value="",
-    default=None,
-    help="Add a scope to the commit message. If used without a value, the LLM will determine an appropriate scope.",
+    is_flag=True,
+    default=False,
+    help="Infer an appropriate scope for the commit message",
 )
 @click.option("--hint", "-h", default="", help="Additional context to include in the prompt")
 # Model options
@@ -65,7 +64,7 @@ def cli(
     one_liner: bool = False,
     push: bool = False,
     show_prompt: bool = False,
-    scope: str = None,
+    scope: bool = False,
     quiet: bool = False,
     yes: bool = False,
     hint: str = "",
@@ -88,10 +87,8 @@ def cli(
         setup_logging(effective_log_level)
         logger.info("Starting gac")
 
-        # Apply always_include_scope setting if no explicit scope provided
-        effective_scope = scope
-        if scope is None and config.get("always_include_scope", False):
-            effective_scope = ""  # Empty string triggers scope inference
+        # Determine if we should infer scope based on -s flag or always_include_scope setting
+        infer_scope = bool(scope or config.get("always_include_scope", False))
 
         try:
             main(
@@ -100,7 +97,7 @@ def cli(
                 hint=hint,
                 one_liner=one_liner,
                 show_prompt=show_prompt,
-                scope=effective_scope,
+                infer_scope=bool(infer_scope),
                 require_confirmation=not yes,
                 push=push,
                 quiet=quiet,
@@ -110,13 +107,16 @@ def cli(
         except Exception as e:
             handle_error(e, exit_program=True)
     else:
+        # Determine if we should infer scope based on -s flag or always_include_scope setting
+        infer_scope = bool(scope or config.get("always_include_scope", False))
+
         ctx.obj = {
             "add_all": add_all,
             "log_level": log_level,
             "one_liner": one_liner,
             "push": push,
             "show_prompt": show_prompt,
-            "scope": scope,
+            "scope": infer_scope,
             "quiet": quiet,
             "yes": yes,
             "hint": hint,

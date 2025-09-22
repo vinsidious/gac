@@ -67,14 +67,14 @@ class TestAlwaysIncludeScopeCLI:
         runner = CliRunner()
         runner.invoke(cli, [])
 
-        # Check that main was called with scope="" (which triggers inference)
+        # Check that main was called with infer_scope=True (which triggers inference)
         mock_main.assert_called_once()
         call_kwargs = mock_main.call_args[1]
-        assert call_kwargs["scope"] == ""
+        assert call_kwargs["infer_scope"] is True
 
     @patch("gac.cli.main")
-    def test_cli_respects_explicit_scope_flag_over_setting(self, mock_main, monkeypatch):
-        """Test that explicit --scope flag takes precedence over always_include_scope setting."""
+    def test_cli_uses_scope_flag_when_provided(self, mock_main, monkeypatch):
+        """Test that --scope flag triggers scope inference when provided."""
         from click.testing import CliRunner
 
         from gac.cli import cli
@@ -85,12 +85,12 @@ class TestAlwaysIncludeScopeCLI:
         monkeypatch.setattr("gac.config.load_config", lambda: mock_config)
 
         runner = CliRunner()
-        runner.invoke(cli, ["--scope", "api"])
+        runner.invoke(cli, ["--scope"])
 
-        # Check that main was called with the explicit scope
+        # Check that main was called with infer_scope=True (which triggers inference)
         mock_main.assert_called_once()
         call_kwargs = mock_main.call_args[1]
-        assert call_kwargs["scope"] == "api"
+        assert call_kwargs["infer_scope"] is True
 
     @patch("gac.cli.main")
     def test_cli_does_not_apply_scope_when_disabled(self, mock_main, monkeypatch):
@@ -107,7 +107,7 @@ class TestAlwaysIncludeScopeCLI:
         runner = CliRunner()
         runner.invoke(cli, [])
 
-        # Check that main was called with scope=None (no scope)
+        # Check that main was called with infer_scope=False (no scope)
         mock_main.assert_called_once()
         call_kwargs = mock_main.call_args[1]
-        assert call_kwargs["scope"] is None
+        assert call_kwargs["infer_scope"] is False

@@ -47,12 +47,12 @@ Generates an AI-powered commit message for staged changes and prompts for confir
 
 ## Message Customization
 
-| Flag / Option     | Short | Description                                 |
-| ----------------- | ----- | ------------------------------------------- |
-| `--one-liner`     | `-o`  | Generate a single-line commit message       |
-| `--hint <text>`   | `-h`  | Add a hint to guide the AI                  |
-| `--model <model>` | `-m`  | Specify the model to use for this commit    |
-| `--scope <scope>` | `-s`  | Specify the scope of changes for the commit |
+| Flag / Option     | Short | Description                               |
+| ----------------- | ----- | ----------------------------------------- |
+| `--one-liner`     | `-o`  | Generate a single-line commit message     |
+| `--hint <text>`   | `-h`  | Add a hint to guide the AI                |
+| `--model <model>` | `-m`  | Specify the model to use for this commit  |
+| `--scope`         | `-s`  | Infer an appropriate scope for the commit |
 
 **Note:** You can also provide feedback interactively during the reroll process by typing `r <feedback>` at the prompt.
 
@@ -100,10 +100,10 @@ Generates an AI-powered commit message for staged changes and prompts for confir
   gac -h "Refactor authentication logic"
   ```
 
-- **Specify the scope of changes:**
+- **Infer scope for the commit:**
 
   ```sh
-  gac -s "auth"
+  gac -s
   ```
 
 - **Use a specific model just for this commit:**

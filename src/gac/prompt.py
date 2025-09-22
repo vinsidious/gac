@@ -73,43 +73,7 @@ If you cannot confidently determine a type, use 'chore'.
 Do NOT include a scope in your commit prefix.
 </conventions_no_scope>
 
-<conventions_scope_provided>
-You MUST write a conventional commit message with EXACTLY ONE type and the REQUIRED scope '{scope}'.
-
-FORMAT: type({scope}): description
-
-IMPORTANT: Check file types FIRST when determining the commit type:
-- If changes are ONLY to documentation files (*.md, *.rst, *.txt in docs/, README*, CHANGELOG*, etc.), ALWAYS use 'docs'
-- If changes include both documentation and code, use the prefix for the code changes, unless it is a documentation-only change
-
-Select ONE type from this list that best matches the primary purpose of the changes:
-- feat: A new feature or functionality addition
-- fix: A bug fix or error correction
-- docs: Documentation changes only (INCLUDING README and CHANGELOG updates, regardless of how significant)
-- style: Changes to code style/formatting without logic changes
-- refactor: Code restructuring without behavior changes
-- perf: Performance improvements
-- test: Adding/modifying tests
-- build: Changes to build system/dependencies
-- ci: Changes to CI configuration
-- chore: Miscellaneous changes not affecting src/test files
-
-CORRECT EXAMPLES (these formats are correct):
-✅ feat({scope}): add new feature
-✅ fix({scope}): resolve bug
-✅ refactor({scope}): improve code structure
-✅ chore({scope}): update dependencies
-
-INCORRECT EXAMPLES (these formats are wrong and must NOT be used):
-❌ chore: feat({scope}): description
-❌ fix: refactor({scope}): description
-❌ feat: feat({scope}): description
-❌ chore: chore({scope}): description
-
-You MUST NOT prefix the type({scope}) with another type. Use EXACTLY ONE type, which MUST include the scope in parentheses.
-</conventions_scope_provided>
-
-<conventions_scope_inferred>
+<conventions_with_scope>
 You MUST write a conventional commit message with EXACTLY ONE type and an inferred scope.
 
 FORMAT: type(scope): description
@@ -156,7 +120,7 @@ INCORRECT EXAMPLES (these formats are wrong and must NOT be used):
 ❌ chore: chore(component): description
 
 You MUST NOT prefix the type(scope) with another type. Use EXACTLY ONE type, which MUST include the scope in parentheses.
-</conventions_scope_inferred>
+</conventions_with_scope>
 
 <hint>
 Additional context provided by the user: <hint_text></hint_text>
@@ -235,8 +199,8 @@ def build_prompt(
     processed_diff: str,
     diff_stat: str = "",
     one_liner: bool = False,
+    infer_scope: bool = False,
     hint: str = "",
-    scope: str | None = None,
 ) -> tuple[str, str]:
     """Build system and user prompts for the AI model using the provided template and git information.
 
@@ -245,47 +209,29 @@ def build_prompt(
         processed_diff: Git diff output, already preprocessed and ready to use
         diff_stat: Git diff stat output showing file changes summary
         one_liner: Whether to request a one-line commit message
+        infer_scope: Whether to infer scope for the commit message
         hint: Optional hint to guide the AI
-        scope: Optional scope parameter. None = no scope, "infer" = infer scope, any other string = use as scope
 
     Returns:
         Tuple of (system_prompt, user_prompt) ready to be sent to an AI model
     """
     template = load_prompt_template()
 
-    # Select the appropriate conventions section based on scope parameter
+    # Select the appropriate conventions section based on infer_scope parameter
     try:
-        logger.debug(f"Processing scope parameter: {scope}")
-        if scope is None:
+        logger.debug(f"Processing infer_scope parameter: {infer_scope}")
+        if infer_scope:
+            # User wants to infer a scope from changes (any value other than None)
+            logger.debug("Using inferred-scope conventions")
+            template = re.sub(r"<conventions_no_scope>.*?</conventions_no_scope>\n", "", template, flags=re.DOTALL)
+            template = template.replace("<conventions_with_scope>", "<conventions>")
+            template = template.replace("</conventions_with_scope>", "</conventions>")
+        else:
             # No scope - use the plain conventions section
             logger.debug("Using no-scope conventions")
-            template = re.sub(
-                r"<conventions_scope_provided>.*?</conventions_scope_provided>\n", "", template, flags=re.DOTALL
-            )
-            template = re.sub(
-                r"<conventions_scope_inferred>.*?</conventions_scope_inferred>\n", "", template, flags=re.DOTALL
-            )
+            template = re.sub(r"<conventions_with_scope>.*?</conventions_with_scope>\n", "", template, flags=re.DOTALL)
             template = template.replace("<conventions_no_scope>", "<conventions>")
             template = template.replace("</conventions_no_scope>", "</conventions>")
-        elif scope == "infer" or scope == "":
-            # User wants to infer a scope from changes (either with "infer" or empty string)
-            logger.debug(f"Using inferred-scope conventions (scope={scope})")
-            template = re.sub(
-                r"<conventions_scope_provided>.*?</conventions_scope_provided>\n", "", template, flags=re.DOTALL
-            )
-            template = re.sub(r"<conventions_no_scope>.*?</conventions_no_scope>\n", "", template, flags=re.DOTALL)
-            template = template.replace("<conventions_scope_inferred>", "<conventions>")
-            template = template.replace("</conventions_scope_inferred>", "</conventions>")
-        else:
-            # User provided a specific scope
-            logger.debug(f"Using provided-scope conventions with scope '{scope}'")
-            template = re.sub(
-                r"<conventions_scope_inferred>.*?</conventions_scope_inferred>\n", "", template, flags=re.DOTALL
-            )
-            template = re.sub(r"<conventions_no_scope>.*?</conventions_no_scope>\n", "", template, flags=re.DOTALL)
-            template = template.replace("<conventions_scope_provided>", "<conventions>")
-            template = template.replace("</conventions_scope_provided>", "</conventions>")
-            template = template.replace("{scope}", scope)
     except Exception as e:
         logger.error(f"Error processing scope parameter: {e}")
         # Fallback to no scope if there's an error
@@ -316,17 +262,17 @@ def build_prompt(
     else:
         template = re.sub(r"<one_liner>.*?</one_liner>", "", template, flags=re.DOTALL)
 
-    # Clean up examples sections based on scope settings
-    if scope is None:
+    # Clean up examples sections based on infer_scope settings
+    if infer_scope:
+        # With scope (inferred) - keep scope examples, remove no_scope examples
+        template = re.sub(r"<examples_no_scope>.*?</examples_no_scope>\n?", "", template, flags=re.DOTALL)
+        template = template.replace("<examples_with_scope>", "<examples>")
+        template = template.replace("</examples_with_scope>", "</examples>")
+    else:
         # No scope - keep no_scope examples, remove scope examples
         template = re.sub(r"<examples_with_scope>.*?</examples_with_scope>\n?", "", template, flags=re.DOTALL)
         template = template.replace("<examples_no_scope>", "<examples>")
         template = template.replace("</examples_no_scope>", "</examples>")
-    else:
-        # With scope (either provided or inferred) - keep scope examples, remove no_scope examples
-        template = re.sub(r"<examples_no_scope>.*?</examples_no_scope>\n?", "", template, flags=re.DOTALL)
-        template = template.replace("<examples_with_scope>", "<examples>")
-        template = template.replace("</examples_with_scope>", "</examples>")
 
     # Clean up extra whitespace, collapsing blank lines that may contain spaces
     template = re.sub(r"\n(?:[ \t]*\n){2,}", "\n\n", template)
