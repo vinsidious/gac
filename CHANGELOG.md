@@ -9,6 +9,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.19.0] - 2025-05-15
+
+### Changed
+
+- **Simplified Scope Flag Implementation**: Refactored the `--scope`/`-s` flag to be a simple boolean flag that triggers scope inference rather than accepting scope values
+  - Modified CLI to make `-s` flag a simple boolean switch instead of accepting values
+  - Updated prompt system to handle boolean `infer_scope` parameter instead of string values
+  - Simplified configuration logic while preserving `always_include_scope` functionality
+  - Removed deprecated scope value passing functionality
+  - All scope-related tests updated to reflect new boolean-based implementation
+
 ## [0.18.1] - 2025-09-21
 
 ### Added
