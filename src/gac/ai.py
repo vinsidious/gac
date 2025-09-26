@@ -5,14 +5,18 @@ It consolidates all AI-related functionality including token counting and commit
 """
 
 import logging
-import time
 from functools import lru_cache
 from typing import Any
 
-import aisuite as ai
 import tiktoken
-from halo import Halo
 
+from gac.ai_providers import (
+    anthropic_generate,
+    cerebras_generate,
+    groq_generate,
+    ollama_generate,
+    openai_generate,
+)
 from gac.constants import EnvDefaults, Utility
 from gac.errors import AIError
 
@@ -77,7 +81,7 @@ def generate_commit_message(
     max_retries: int = EnvDefaults.MAX_RETRIES,
     quiet: bool = False,
 ) -> str:
-    """Generate a commit message using aisuite.
+    """Generate a commit message using direct API calls to AI providers.
 
     Args:
         model: The model to use in provider:model_name format (e.g., 'anthropic:claude-3-5-haiku-latest')
@@ -106,76 +110,24 @@ def generate_commit_message(
             f"Invalid model format: {model}. Please use the format 'provider:model_name'."
         ) from err
 
-    client = ai.Client()
+    # Parse the model string to extract provider and model name
+    try:
+        provider, model_name = model.split(":", 1)
+    except ValueError as err:
+        raise AIError.model_error(
+            f"Invalid model format: {model}. Please use the format 'provider:model_name'."
+        ) from err
 
-    # Handle both old (string) and new (tuple) prompt formats
-    if isinstance(prompt, tuple):
-        system_prompt, user_prompt = prompt
-        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
+    # Route to the appropriate provider function
+    if provider == "openai":
+        return openai_generate(model_name, prompt, temperature, max_tokens, max_retries, quiet)
+    elif provider == "anthropic":
+        return anthropic_generate(model_name, prompt, temperature, max_tokens, max_retries, quiet)
+    elif provider == "groq":
+        return groq_generate(model_name, prompt, temperature, max_tokens, max_retries, quiet)
+    elif provider == "cerebras":
+        return cerebras_generate(model_name, prompt, temperature, max_tokens, max_retries, quiet)
+    elif provider == "ollama":
+        return ollama_generate(model_name, prompt, temperature, max_tokens, max_retries, quiet)
     else:
-        # Backward compatibility: treat string as user prompt
-        messages = [{"role": "user", "content": prompt}]
-
-    if quiet:
-        spinner = None
-    else:
-        spinner = Halo(text=f"Generating commit message with {model}...", spinner="dots")
-        spinner.start()
-
-    last_error = None
-
-    retry_count = 0
-    while retry_count < max_retries:
-        try:
-            logger.debug(f"Trying with model {model} (attempt {retry_count + 1}/{max_retries})")
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-
-            message = response.choices[0].message.content if hasattr(response, "choices") else response.content
-
-            if spinner:
-                spinner.succeed(f"Generated commit message with {model}")
-
-            return message
-
-        except Exception as e:
-            last_error = e
-            retry_count += 1
-
-            if retry_count == max_retries:
-                logger.warning(f"Error generating commit message: {e}. Giving up.")
-                break
-
-            wait_time = 2**retry_count
-            logger.warning(f"Error generating commit message: {e}. Retrying in {wait_time}s...")
-            if spinner:
-                for i in range(wait_time, 0, -1):
-                    spinner.text = f"Retry {retry_count}/{max_retries} in {i}s..."
-                    time.sleep(1)
-            else:
-                time.sleep(wait_time)
-    if spinner:
-        spinner.fail("Failed to generate commit message")
-
-    error_str = str(last_error).lower()
-
-    if "api key" in error_str or "unauthorized" in error_str or "authentication" in error_str:
-        error_type = "authentication"
-    elif "timeout" in error_str:
-        error_type = "timeout"
-    elif "rate limit" in error_str or "too many requests" in error_str:
-        error_type = "rate_limit"
-    elif "connect" in error_str or "network" in error_str:
-        error_type = "connection"
-    elif "model" in error_str or "not found" in error_str:
-        error_type = "model"
-    else:
-        error_type = "unknown"
-
-    raise AIError(
-        f"Failed to generate commit message after {max_retries} attempts: {last_error}", error_type=error_type
-    )
+        raise AIError.model_error(f"Unsupported provider: {provider}")

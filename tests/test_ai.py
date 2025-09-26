@@ -154,39 +154,28 @@ class TestGenerateCommitMessage:
             generate_commit_message(model="invalid-format", prompt="test prompt")  # Missing colon separator
         assert "Invalid model format" in str(exc_info.value)
 
-    @patch("gac.ai.ai.Client")
-    def test_generate_commit_message_string_prompt(self, mock_client_class):
+    @patch("gac.ai_providers.openai_generate")
+    def test_generate_commit_message_string_prompt(self, mock_openai_generate):
         """Test generate_commit_message with string prompt (backward compatibility)."""
         # Setup mock
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(message=MagicMock(content="feat: Add new feature"))]
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_openai_generate.return_value = "feat: Add new feature"
 
         # Test with string prompt
         result = generate_commit_message(model="openai:gpt-4", prompt="Generate a commit message", quiet=True)
 
         assert result == "feat: Add new feature"
 
-        # Verify the message format for backward compatibility
-        call_args = mock_client.chat.completions.create.call_args
-        messages = call_args.kwargs["messages"]
-        assert len(messages) == 1
-        assert messages[0]["role"] == "user"
-        assert messages[0]["content"] == "Generate a commit message"
+        # Verify the parameters passed to openai_generate
+        call_args = mock_openai_generate.call_args
+        assert call_args[0][0] == "gpt-4"  # model_name
+        assert call_args[0][1] == "Generate a commit message"  # prompt
+        assert call_args[1]["quiet"] is True
 
-    @patch("gac.ai.ai.Client")
-    def test_generate_commit_message_tuple_prompt(self, mock_client_class):
+    @patch("gac.ai_providers.anthropic_generate")
+    def test_generate_commit_message_tuple_prompt(self, mock_anthropic_generate):
         """Test generate_commit_message with tuple prompt (system and user)."""
         # Setup mock
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(message=MagicMock(content="fix: Resolve bug"))]
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_anthropic_generate.return_value = "fix: Resolve bug"
 
         # Test with tuple prompt
         system_prompt = "You are a helpful assistant."
@@ -197,33 +186,24 @@ class TestGenerateCommitMessage:
 
         assert result == "fix: Resolve bug"
 
-        # Verify the message format
-        call_args = mock_client.chat.completions.create.call_args
-        messages = call_args.kwargs["messages"]
-        assert len(messages) == 2
-        assert messages[0]["role"] == "system"
-        assert messages[0]["content"] == system_prompt
-        assert messages[1]["role"] == "user"
-        assert messages[1]["content"] == user_prompt
-
-        # Verify other parameters
-        assert call_args.kwargs["temperature"] == 0.5
+        # Verify the parameters passed to anthropic_generate
+        call_args = mock_anthropic_generate.call_args
+        assert call_args[0][0] == "claude-3"  # model_name
+        assert call_args[0][1] == (system_prompt, user_prompt)  # prompt tuple
+        assert call_args[1]["temperature"] == 0.5
+        assert call_args[1]["max_tokens"] == 100
+        assert call_args[1]["quiet"] is True
         assert call_args.kwargs["max_tokens"] == 100
 
-    @patch("gac.ai.ai.Client")
+    @patch("gac.ai_providers.openai_generate")
     @patch("gac.ai.Halo")
-    def test_generate_commit_message_with_spinner(self, mock_halo_class, mock_client_class):
+    @patch("gac.ai_providers.openai_generate")
+    def test_generate_commit_message_with_spinner(self, mock_openai_generate, mock_halo_class):
         """Test generate_commit_message with spinner (non-quiet mode)."""
         # Setup mocks
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
         mock_spinner = MagicMock()
         mock_halo_class.return_value = mock_spinner
-
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(message=MagicMock(content="docs: Update README"))]
-        mock_client.chat.completions.create.return_value = mock_response
+        mock_openai_generate.return_value = "docs: Update README"
 
         # Test with spinner enabled (quiet=False)
         result = generate_commit_message(model="openai:gpt-4", prompt="test", quiet=False)
@@ -235,36 +215,29 @@ class TestGenerateCommitMessage:
         mock_spinner.start.assert_called_once()
         mock_spinner.succeed.assert_called_once_with("Generated commit message with openai:gpt-4")
 
-    @patch("gac.ai.ai.Client")
+    @patch("gac.ai_providers.openai_generate")
     @patch("gac.ai.time.sleep")
-    def test_generate_commit_message_retry_logic(self, mock_sleep, mock_client_class):
+    def test_generate_commit_message_retry_logic(self, mock_openai_generate, mock_sleep):
         """Test retry logic when generation fails."""
-        # Setup mock
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
         # First two attempts fail, third succeeds
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(message=MagicMock(content="feat: Success after retries"))]
-
-        mock_client.chat.completions.create.side_effect = [
+        mock_openai_generate.side_effect = [
             Exception("Network error"),
             Exception("Timeout"),
-            mock_response,
+            "feat: Success after retries",
         ]
 
         # Test with retries
         result = generate_commit_message(model="openai:gpt-4", prompt="test", max_retries=3, quiet=True)
 
         assert result == "feat: Success after retries"
-        assert mock_client.chat.completions.create.call_count == 3
+        assert mock_openai_generate.call_count == 3
 
         # Verify sleep was called for retries
         assert mock_sleep.call_count == 2  # 2 retries
         mock_sleep.assert_any_call(2)  # First retry: 2^1 = 2
         mock_sleep.assert_any_call(4)  # Second retry: 2^2 = 4
 
-    @patch("gac.ai.ai.Client")
+    @patch("gac.ai_providers.openai_generate")
     @patch("gac.ai.time.sleep")
     def test_generate_commit_message_max_retries_exceeded(self, mock_sleep, mock_client_class):
         """Test that AIError is raised when max retries are exceeded."""
@@ -282,14 +255,10 @@ class TestGenerateCommitMessage:
         assert "Failed to generate commit message after 2 attempts" in str(exc_info.value)
         assert mock_client.chat.completions.create.call_count == 2
 
-    @patch("gac.ai.ai.Client")
-    def test_generate_commit_message_authentication_error(self, mock_client_class):
+    @patch("gac.ai_providers.openai_generate")
+    def test_generate_commit_message_authentication_error(self, mock_openai_generate):
         """Test error type classification for authentication errors."""
-        # Setup mock
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
-        mock_client.chat.completions.create.side_effect = Exception("Invalid API key")
+        mock_openai_generate.side_effect = Exception("Invalid API key")
 
         # Test authentication error
         with pytest.raises(AIError) as exc_info:
@@ -297,14 +266,10 @@ class TestGenerateCommitMessage:
 
         assert exc_info.value.error_type == "authentication"
 
-    @patch("gac.ai.ai.Client")
-    def test_generate_commit_message_rate_limit_error(self, mock_client_class):
+    @patch("gac.ai_providers.openai_generate")
+    def test_generate_commit_message_rate_limit_error(self, mock_openai_generate):
         """Test error type classification for rate limit errors."""
-        # Setup mock
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
-        mock_client.chat.completions.create.side_effect = Exception("Rate limit exceeded")
+        mock_openai_generate.side_effect = Exception("Rate limit exceeded")
 
         # Test rate limit error
         with pytest.raises(AIError) as exc_info:
@@ -312,14 +277,10 @@ class TestGenerateCommitMessage:
 
         assert exc_info.value.error_type == "rate_limit"
 
-    @patch("gac.ai.ai.Client")
-    def test_generate_commit_message_timeout_error(self, mock_client_class):
+    @patch("gac.ai_providers.openai_generate")
+    def test_generate_commit_message_timeout_error(self, mock_openai_generate):
         """Test error type classification for timeout errors."""
-        # Setup mock
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
-        mock_client.chat.completions.create.side_effect = Exception("Request timeout")
+        mock_openai_generate.side_effect = Exception("Request timeout")
 
         # Test timeout error
         with pytest.raises(AIError) as exc_info:
@@ -327,14 +288,10 @@ class TestGenerateCommitMessage:
 
         assert exc_info.value.error_type == "timeout"
 
-    @patch("gac.ai.ai.Client")
-    def test_generate_commit_message_connection_error(self, mock_client_class):
+    @patch("gac.ai_providers.openai_generate")
+    def test_generate_commit_message_connection_error(self, mock_openai_generate):
         """Test error type classification for connection errors."""
-        # Setup mock
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
-        mock_client.chat.completions.create.side_effect = Exception("Network connection failed")
+        mock_openai_generate.side_effect = Exception("Network connection failed")
 
         # Test connection error
         with pytest.raises(AIError) as exc_info:
@@ -342,14 +299,10 @@ class TestGenerateCommitMessage:
 
         assert exc_info.value.error_type == "connection"
 
-    @patch("gac.ai.ai.Client")
-    def test_generate_commit_message_model_error(self, mock_client_class):
+    @patch("gac.ai_providers.openai_generate")
+    def test_generate_commit_message_model_error(self, mock_openai_generate):
         """Test error type classification for model errors."""
-        # Setup mock
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
-        mock_client.chat.completions.create.side_effect = Exception("Model not found")
+        mock_openai_generate.side_effect = Exception("Model not found")
 
         # Test model error
         with pytest.raises(AIError) as exc_info:
@@ -357,14 +310,10 @@ class TestGenerateCommitMessage:
 
         assert exc_info.value.error_type == "model"
 
-    @patch("gac.ai.ai.Client")
-    def test_generate_commit_message_unknown_error(self, mock_client_class):
+    @patch("gac.ai_providers.openai_generate")
+    def test_generate_commit_message_unknown_error(self, mock_openai_generate):
         """Test error type classification for unknown errors."""
-        # Setup mock
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
-        mock_client.chat.completions.create.side_effect = Exception("Some random error")
+        mock_openai_generate.side_effect = Exception("Some random error")
 
         # Test unknown error
         with pytest.raises(AIError) as exc_info:
@@ -372,41 +321,27 @@ class TestGenerateCommitMessage:
 
         assert exc_info.value.error_type == "unknown"
 
-    @patch("gac.ai.ai.Client")
-    def test_generate_commit_message_response_without_choices(self, mock_client_class):
+    @patch("gac.ai_providers.openai_generate")
+    def test_generate_commit_message_response_without_choices(self, mock_openai_generate):
         """Test handling of response without choices attribute."""
-        # Setup mock
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
-        # Response without choices but with content attribute
-        mock_response = MagicMock(spec=[])
-        mock_response.content = "Alternative response format"
-        del mock_response.choices  # Ensure no choices attribute
-
-        mock_client.chat.completions.create.return_value = mock_response
+        # Return a string directly (simulating the provider function returning a string)
+        mock_openai_generate.return_value = "Alternative response format"
 
         result = generate_commit_message(model="openai:gpt-4", prompt="test", quiet=True)
 
         assert result == "Alternative response format"
 
-    @patch("gac.ai.ai.Client")
-    @patch("gac.ai.Halo")
     @patch("gac.ai.time.sleep")
-    def test_generate_commit_message_retry_with_spinner(self, mock_sleep, mock_halo_class, mock_client_class):
+    @patch("gac.ai.Halo")
+    @patch("gac.ai_providers.openai_generate")
+    def test_generate_commit_message_retry_with_spinner(self, mock_sleep, mock_halo_class, mock_openai_generate):
         """Test retry logic with spinner animation."""
         # Setup mocks
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
         mock_spinner = MagicMock()
         mock_halo_class.return_value = mock_spinner
 
         # First attempt fails, second succeeds
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(message=MagicMock(content="Success"))]
-
-        mock_client.chat.completions.create.side_effect = [Exception("Temporary error"), mock_response]
+        mock_openai_generate.side_effect = [Exception("Temporary error"), "Success"]
 
         # Test with spinner and retry
         result = generate_commit_message(model="openai:gpt-4", prompt="test", max_retries=2, quiet=False)
@@ -420,19 +355,16 @@ class TestGenerateCommitMessage:
         # Verify that sleep was called during retry (indicating retry countdown happened)
         assert mock_sleep.call_count > 0
 
-    @patch("gac.ai.ai.Client")
     @patch("gac.ai.Halo")
-    def test_generate_commit_message_failure_with_spinner(self, mock_halo_class, mock_client_class):
+    @patch("gac.ai_providers.openai_generate")
+    def test_generate_commit_message_failure_with_spinner(self, mock_halo_class, mock_openai_generate):
         """Test that spinner shows failure when all retries are exhausted."""
         # Setup mocks
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
         mock_spinner = MagicMock()
         mock_halo_class.return_value = mock_spinner
 
         # All attempts fail
-        mock_client.chat.completions.create.side_effect = Exception("Persistent error")
+        mock_openai_generate.side_effect = Exception("Persistent error")
 
         # Test failure with spinner
         with pytest.raises(AIError):
