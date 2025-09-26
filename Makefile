@@ -1,5 +1,7 @@
 .PHONY: setup install install-dev test lint format clean bump bump-patch bump-minor bump-major bump-alpha bump-beta bump-rc coverage
 
+PRETTIER_VERSION := npx prettier@3.1.0
+
 # Create virtual environment and install dependencies
 setup:
 	uv venv
@@ -26,13 +28,13 @@ test-cov:
 lint:
 	uv run -- ruff check src/ tests/
 	uv run -- ruff format --check src/ tests/
-	npx prettier --check "**/*.{md,yaml,yml,json}"
+	$(PRETTIER) --check "**/*.{md,yaml,yml,json}"
 	npx markdownlint-cli2 --config .markdownlint-cli2.yaml "**/*.md"
 
 format:
 	uv run -- ruff check --fix src/ tests/
 	uv run -- ruff format src/ tests/
-	npx prettier --write "**/*.{md,yaml,yml,json}"
+	$(PRETTIER) --write "**/*.{md,yaml,yml,json}"
 	npx markdownlint-cli2 --fix --config .markdownlint-cli2.yaml "**/*.md"
 
 # Clean build artifacts
