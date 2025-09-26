@@ -1,26 +1,10 @@
 import os
 import sys
-from unittest.mock import MagicMock
 
 import pytest
 
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-
-# Mock external dependencies
-mock_tiktoken = MagicMock()
-sys.modules["tiktoken"] = mock_tiktoken
-
-mock_halo = MagicMock()
-sys.modules["halo"] = mock_halo
-
-# Mock constants
-mock_constants = MagicMock()
-mock_constants.EnvDefaults.TEMPERATURE = 0.5
-mock_constants.EnvDefaults.MAX_OUTPUT_TOKENS = 200
-mock_constants.EnvDefaults.MAX_RETRIES = 3
-sys.modules["gac.constants"] = mock_constants
-sys.modules["gac.errors"] = MagicMock()
 
 from gac.ai_providers import anthropic_generate, openai_generate  # noqa: E402
 from gac.errors import AIError  # noqa: E402
