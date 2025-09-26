@@ -18,6 +18,7 @@ from gac.ai_providers import (
     groq_generate,
     ollama_generate,
     openai_generate,
+    openrouter_generate,
 )
 from gac.constants import EnvDefaults, Utility
 from gac.errors import AIError
@@ -176,5 +177,7 @@ def generate_commit_message(
         return cerebras_generate(model_name, prompt, temperature, max_tokens, max_retries, quiet)
     elif provider == "ollama":
         return ollama_generate(model_name, prompt, temperature, max_tokens, max_retries, quiet)
+    elif provider == "openrouter":
+        return openrouter_generate(model_name, prompt, temperature, max_tokens, max_retries, quiet)
     else:
         raise AIError.model_error(f"Unsupported provider: {provider}")

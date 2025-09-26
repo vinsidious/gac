@@ -14,6 +14,7 @@ def test_ai_providers_functions_exist():
     assert hasattr(ai_providers, "groq_generate")
     assert hasattr(ai_providers, "cerebras_generate")
     assert hasattr(ai_providers, "ollama_generate")
+    assert hasattr(ai_providers, "openrouter_generate")
     assert hasattr(ai_providers, "_classify_error")
 
 

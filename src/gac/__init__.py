@@ -8,6 +8,7 @@ from gac.ai_providers import (
     groq_generate,
     ollama_generate,
     openai_generate,
+    openrouter_generate,
 )
 from gac.git import get_staged_files, push_changes
 from gac.prompt import build_prompt, clean_commit_message
@@ -24,4 +25,5 @@ __all__ = [
     "groq_generate",
     "ollama_generate",
     "openai_generate",
+    "openrouter_generate",
 ]

@@ -235,6 +235,25 @@ class TestGenerateCommitMessage:
         mock_spinner.start.assert_called_once()
         mock_spinner.succeed.assert_called_once_with("Generated commit message with OpenAI gpt-4")
 
+    @patch("gac.ai.openrouter_generate")
+    def test_generate_commit_message_openrouter_provider(self, mock_openrouter_generate):
+        """Test that generate_commit_message routes openrouter provider correctly."""
+        mock_openrouter_generate.return_value = "chore: tidy config"
+
+        result = generate_commit_message(
+            model="openrouter:openrouter/auto",
+            prompt="Generate",
+            temperature=0.7,
+            max_tokens=256,
+            quiet=True,
+        )
+
+        assert result == "chore: tidy config"
+        call_args = mock_openrouter_generate.call_args
+        assert call_args[0][0] == "openrouter/auto"
+        assert call_args[0][2] == 0.7
+        assert call_args[0][3] == 256
+
     @patch("gac.ai_providers.httpx.Client")
     @patch("gac.ai_providers.time.sleep")
     @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"})

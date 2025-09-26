@@ -15,6 +15,7 @@ from gac.ai_providers import (
     cerebras_generate,
     groq_generate,
     openai_generate,
+    openrouter_generate,
 )
 from gac.errors import AIError
 
@@ -102,3 +103,10 @@ class TestAPIKeyValidation:
             with pytest.raises(AIError) as exc_info:
                 groq_generate(model="llama3-8b-8192", prompt="test", quiet=True)
             assert "GROQ_API_KEY environment variable not set" in str(exc_info.value)
+
+    def test_openrouter_generate_missing_api_key(self):
+        """Test that AIError is raised when API key is missing."""
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(AIError) as exc_info:
+                openrouter_generate(model="openrouter/auto", prompt="test", quiet=True)
+            assert "OPENROUTER_API_KEY environment variable not set" in str(exc_info.value)

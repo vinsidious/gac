@@ -24,6 +24,7 @@ def init() -> None:
         ("Cerebras", "qwen-3-coder-480b"),
         ("Groq", "meta-llama/llama-4-maverick-17b-128e-instruct"),
         ("Ollama", "gemma3"),
+        ("OpenRouter", "openrouter/auto"),
         ("OpenAI", "gpt-4.1-mini"),
     ]
     provider_names = [p[0] for p in providers]

@@ -16,6 +16,7 @@ from ai_providers import (
     groq_generate,
     ollama_generate,
     openai_generate,
+    openrouter_generate,
 )
 
 
@@ -113,3 +114,30 @@ class TestHttpxBasedProviders:
         with patch.dict(os.environ, {}):
             result = ollama_generate(model="llama3", prompt="Generate a commit message", quiet=True)
             assert result == "test: Add unit tests"
+
+    @patch("gac.ai_providers.httpx.Client")
+    def test_openrouter_generate_with_httpx(self, mock_httpx_client_class):
+        """Test openrouter_generate uses httpx directly and applies optional headers."""
+        mock_client = MagicMock()
+        mock_httpx_client_class.return_value.__enter__.return_value = mock_client
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"choices": [{"message": {"content": "chore: tidy config"}}]}
+        mock_client.post.return_value = mock_response
+
+        env_vars = {
+            "OPENROUTER_API_KEY": "test-key",
+            "OPENROUTER_SITE_URL": "https://example.com",
+            "OPENROUTER_SITE_NAME": "Example App",
+        }
+
+        with patch.dict(os.environ, env_vars):
+            result = openrouter_generate(model="openrouter/auto", prompt="Generate", quiet=True)
+
+        assert result == "chore: tidy config"
+        call_args = mock_client.post.call_args
+        assert call_args.kwargs["headers"]["Authorization"] == "Bearer test-key"
+        assert call_args.kwargs["headers"]["HTTP-Referer"] == "https://example.com"
+        assert call_args.kwargs["headers"]["X-Title"] == "Example App"
+        assert call_args.kwargs["json"]["model"] == "openrouter/auto"

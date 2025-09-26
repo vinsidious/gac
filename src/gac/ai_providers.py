@@ -284,6 +284,57 @@ def ollama_generate(
     )
 
 
+def openrouter_generate(
+    model: str,
+    prompt: str | tuple[str, str],
+    temperature: float = EnvDefaults.TEMPERATURE,
+    max_tokens: int = EnvDefaults.MAX_OUTPUT_TOKENS,
+    max_retries: int = EnvDefaults.MAX_RETRIES,
+    quiet: bool = False,
+) -> str:
+    """Generate commit message using OpenRouter API with retry logic."""
+
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        raise AIError.model_error("OPENROUTER_API_KEY environment variable not set")
+
+    if isinstance(prompt, tuple):
+        system_prompt, user_prompt = prompt
+        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
+    else:
+        messages = [{"role": "user", "content": prompt}]
+
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    }
+
+    site_url = os.getenv("OPENROUTER_SITE_URL")
+    if site_url:
+        headers["HTTP-Referer"] = site_url
+
+    site_name = os.getenv("OPENROUTER_SITE_NAME")
+    if site_name:
+        headers["X-Title"] = site_name
+
+    return _make_request_with_retry(
+        url="https://openrouter.ai/api/v1/chat/completions",
+        headers=headers,
+        payload=payload,
+        provider_name=f"OpenRouter {model}",
+        max_retries=max_retries,
+        quiet=quiet,
+        response_parser=lambda r: r["choices"][0]["message"]["content"],
+    )
+
+
 def openai_generate(
     model: str,
     prompt: str | tuple[str, str],
