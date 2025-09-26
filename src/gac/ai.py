@@ -5,9 +5,11 @@ It consolidates all AI-related functionality including token counting and commit
 """
 
 import logging
+import os
 from functools import lru_cache
 from typing import Any
 
+import httpx
 import tiktoken
 
 from gac.ai_providers import (
@@ -30,19 +32,10 @@ def count_tokens(content: str | list[dict[str, str]] | dict[str, Any], model: st
         return 0
 
     if model.startswith("anthropic"):
-        import anthropic
-
-        try:
-            client = anthropic.Anthropic()
-
-            # Use the messages.count_tokens API for accurate counting
-            model_name = model.split(":", 1)[1] if ":" in model else "claude-3-5-haiku-latest"
-            response = client.messages.count_tokens(model=model_name, messages=[{"role": "user", "content": text}])
-
-            return response.input_tokens
-        except Exception:
-            # Fallback to simple estimation for Anthropic models
-            return len(text) // 4
+        anthropic_tokens = anthropic_count_tokens(text, model)
+        if anthropic_tokens is not None:
+            return anthropic_tokens
+        return len(text) // 4
 
     try:
         encoding = get_encoding(model)
@@ -50,6 +43,60 @@ def count_tokens(content: str | list[dict[str, str]] | dict[str, Any], model: st
     except Exception as e:
         logger.error(f"Error counting tokens: {e}")
         return len(text) // 4
+
+
+def anthropic_count_tokens(text: str, model: str) -> int | None:
+    """Call Anthropic's token count endpoint and return the token usage.
+
+    Returns the token count when successful, otherwise ``None`` so callers can
+    fall back to a heuristic estimate.
+    """
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        logger.debug("ANTHROPIC_API_KEY not set; using heuristic token estimation for Anthropic model")
+        return None
+
+    model_name = model.split(":", 1)[1] if ":" in model else "claude-3-5-haiku-latest"
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+    }
+    payload = {
+        "model": model_name,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": text,
+                    }
+                ],
+            }
+        ],
+    }
+
+    try:
+        response = httpx.post(
+            "https://api.anthropic.com/v1/messages/count_tokens",
+            headers=headers,
+            json=payload,
+            timeout=30.0,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        if "input_tokens" in data:
+            return data["input_tokens"]
+        if "usage" in data and "input_tokens" in data["usage"]:
+            return data["usage"]["input_tokens"]
+
+        logger.warning("Unexpected response format from Anthropic token count API: %s", data)
+    except Exception as exc:
+        logger.warning("Failed to retrieve Anthropic token count via HTTP: %s", exc)
+
+    return None
 
 
 def extract_text_content(content: str | list[dict[str, str]] | dict[str, Any]) -> str:

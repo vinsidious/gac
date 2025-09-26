@@ -6,6 +6,7 @@ import pytest
 import tiktoken
 
 from gac.ai import (
+    anthropic_count_tokens,
     count_tokens,
     extract_text_content,
     generate_commit_message,
@@ -67,33 +68,48 @@ class TestAiUtils:
         model = "anthropic:claude-3-haiku"
         assert model.startswith("anthropic")
 
-    def test_count_tokens_anthropic_integration(self):
-        """Test token counting for Anthropic models with dynamic import."""
+    @patch("gac.ai.anthropic_count_tokens", return_value=5)
+    def test_count_tokens_anthropic_integration(self, mock_helper):
+        """Test that count_tokens delegates to the Anthropic helper."""
         text = "Hello, world!"
 
-        # Mock at the module level where it's imported
-        with patch("builtins.__import__") as mock_import:
-            # Create a mock anthropic module
-            mock_anthropic = MagicMock()
-            mock_client = MagicMock()
+        token_count = count_tokens(text, "anthropic:claude-3-haiku")
 
-            # Mock the messages.count_tokens response
-            mock_response = MagicMock()
-            mock_response.input_tokens = 5
-            mock_client.messages.count_tokens.return_value = mock_response
+        assert token_count == 5
+        mock_helper.assert_called_once_with(text, "anthropic:claude-3-haiku")
 
-            mock_anthropic.Anthropic.return_value = mock_client
+    @patch("gac.ai.anthropic_count_tokens", return_value=None)
+    def test_count_tokens_anthropic_without_api_key(self, mock_helper):
+        """Test token counting fallback when Anthropic helper cannot compute tokens."""
+        text = "Hello, world!"
 
-            # Make __import__ return our mock for anthropic
-            def import_side_effect(name, *args, **kwargs):
-                if name == "anthropic":
-                    return mock_anthropic
-                return __import__(name, *args, **kwargs)
+        token_count = count_tokens(text, "anthropic:claude-3-haiku")
 
-            mock_import.side_effect = import_side_effect
+        assert token_count == len(text) // 4
+        mock_helper.assert_called_once_with(text, "anthropic:claude-3-haiku")
 
-            token_count = count_tokens(text, "anthropic:claude-3-haiku")
-            assert token_count == 5
+    @patch("gac.ai.httpx.post")
+    @patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"})
+    def test_anthropic_count_tokens_http(self, mock_post):
+        """Test the Anthropic-specific token counting helper uses HTTP API."""
+        text = "Hello, world!"
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"input_tokens": 5}
+        mock_response.raise_for_status.return_value = None
+        mock_post.return_value = mock_response
+
+        token_count = anthropic_count_tokens(text, "anthropic:claude-3-haiku")
+
+        assert token_count == 5
+        mock_post.assert_called_once()
+
+    @patch.dict("os.environ", clear=True)
+    def test_anthropic_count_tokens_missing_key(self):
+        """Test helper returns None when API key is unavailable."""
+        token_count = anthropic_count_tokens("Hello", "anthropic:claude-3-haiku")
+
+        assert token_count is None
 
     def test_count_tokens_empty_content(self):
         """Test token counting with empty content."""
