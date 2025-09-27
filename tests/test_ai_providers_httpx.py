@@ -6,18 +6,14 @@ import os
 import sys
 from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-
 # Import the functions from the module for testing direct API calls
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src", "gac"))
-from ai_providers import (
-    anthropic_generate,
-    cerebras_generate,
-    groq_generate,
-    ollama_generate,
-    openai_generate,
-    openrouter_generate,
-)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+from gac.providers.anthropic import generate as anthropic_generate
+from gac.providers.cerebras import generate as cerebras_generate
+from gac.providers.groq import generate as groq_generate
+from gac.providers.ollama import generate as ollama_generate
+from gac.providers.openai import generate as openai_generate
+from gac.providers.openrouter import generate as openrouter_generate
 
 
 # Simple AIError class for testing purposes
@@ -30,7 +26,7 @@ class AIError(Exception):
 class TestHttpxBasedProviders:
     """Tests for the httpx-based provider functions."""
 
-    @patch("gac.ai_providers.httpx.Client")
+    @patch("gac.providers.openai.httpx.Client")
     def test_openai_generate_with_httpx(self, mock_httpx_client_class):
         """Test openai_generate uses httpx directly."""
         # Setup mock
@@ -47,9 +43,9 @@ class TestHttpxBasedProviders:
             result = openai_generate(model="gpt-4", prompt="Generate a commit message", quiet=True)
             assert result == "feat: Add new feature"
 
-    @patch("gac.ai_providers.httpx.Client")
+    @patch("gac.providers.anthropic.httpx.Client")
     def test_anthropic_generate_with_httpx(self, mock_httpx_client_class):
-        """Test anthropic_generate uses httpx directly."""
+        """Test gac.providers.anthropic.generate uses httpx directly."""
         # Setup mock
         mock_client = MagicMock()
         mock_httpx_client_class.return_value.__enter__.return_value = mock_client
@@ -64,7 +60,7 @@ class TestHttpxBasedProviders:
             result = anthropic_generate(model="claude-3-haiku", prompt="Generate a commit message", quiet=True)
             assert result == "fix: Resolve bug"
 
-    @patch("gac.ai_providers.httpx.Client")
+    @patch("gac.providers.groq.httpx.Client")
     def test_groq_generate_with_httpx(self, mock_httpx_client_class):
         """Test groq_generate uses httpx directly."""
         # Setup mock
@@ -81,7 +77,7 @@ class TestHttpxBasedProviders:
             result = groq_generate(model="llama3-8b-8192", prompt="Generate a commit message", quiet=True)
             assert result == "docs: Update README"
 
-    @patch("gac.ai_providers.httpx.Client")
+    @patch("gac.providers.cerebras.httpx.Client")
     def test_cerebras_generate_with_httpx(self, mock_httpx_client_class):
         """Test cerebras_generate uses httpx directly."""
         # Setup mock
@@ -98,7 +94,7 @@ class TestHttpxBasedProviders:
             result = cerebras_generate(model="llama3.1-8b", prompt="Generate a commit message", quiet=True)
             assert result == "refactor: Improve code structure"
 
-    @patch("gac.ai_providers.httpx.Client")
+    @patch("gac.providers.ollama.httpx.Client")
     def test_ollama_generate_with_httpx(self, mock_httpx_client_class):
         """Test ollama_generate uses httpx directly."""
         # Setup mock
@@ -115,7 +111,7 @@ class TestHttpxBasedProviders:
             result = ollama_generate(model="llama3", prompt="Generate a commit message", quiet=True)
             assert result == "test: Add unit tests"
 
-    @patch("gac.ai_providers.httpx.Client")
+    @patch("gac.providers.openrouter.httpx.Client")
     def test_openrouter_generate_with_httpx(self, mock_httpx_client_class):
         """Test openrouter_generate uses httpx directly and applies optional headers."""
         mock_client = MagicMock()

@@ -10,7 +10,7 @@ import logging
 import os
 import re
 
-from gac.ai import count_tokens
+from gac.ai_utils import count_tokens
 from gac.constants import (
     CodePatternImportance,
     FilePatterns,

@@ -6,8 +6,10 @@ import pytest
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from gac.ai_providers import anthropic_generate, openai_generate, openrouter_generate  # noqa: E402
 from gac.errors import AIError  # noqa: E402
+from gac.providers.anthropic import generate as anthropic_generate
+from gac.providers.openai import generate as openai_generate
+from gac.providers.openrouter import generate as openrouter_generate
 
 
 class TestAIProvidersIntegration:

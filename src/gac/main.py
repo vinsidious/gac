@@ -10,7 +10,8 @@ import click
 from rich.console import Console
 from rich.panel import Panel
 
-from gac.ai import count_tokens, generate_commit_message
+from gac.ai import generate_commit_message
+from gac.ai_utils import count_tokens
 from gac.config import load_config
 from gac.constants import EnvDefaults, Utility
 from gac.errors import AIError, GitError, handle_error

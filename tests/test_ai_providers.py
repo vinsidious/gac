@@ -8,16 +8,13 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from gac.ai import count_tokens
-from gac.ai_providers import (
-    _classify_error,
-    anthropic_generate,
-    cerebras_generate,
-    groq_generate,
-    openai_generate,
-    openrouter_generate,
-)
+from gac.ai_utils import _classify_error, count_tokens
 from gac.errors import AIError
+from gac.providers.anthropic import generate as anthropic_generate
+from gac.providers.cerebras import generate as cerebras_generate
+from gac.providers.groq import generate as groq_generate
+from gac.providers.openai import generate as openai_generate
+from gac.providers.openrouter import generate as openrouter_generate
 
 
 class TestAiProvidersUtils:
