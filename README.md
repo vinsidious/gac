@@ -97,8 +97,6 @@ ANTHROPIC_API_KEY=your_anthropic_key_here
 # Optional: configure OpenRouter
 # GAC_MODEL=openrouter:openrouter/auto
 # OPENROUTER_API_KEY=your_openrouter_key_here
-# OPENROUTER_SITE_URL=https://example.com
-# OPENROUTER_SITE_NAME=Example App
 ```
 
 Alternatively, you can configure `gac` using environment variables or by manually creating/editing the configuration file.

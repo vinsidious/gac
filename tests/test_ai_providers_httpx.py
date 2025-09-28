@@ -108,7 +108,7 @@ class TestHttpxBasedProviders:
 
     @patch("gac.providers.openrouter.httpx.post")
     def test_openrouter_generate_with_httpx(self, mock_post):
-        """Test call_openrouter_api uses httpx directly and applies optional headers."""
+        """Test call_openrouter_api uses httpx directly."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"choices": [{"message": {"content": "chore: tidy config"}}]}
@@ -117,8 +117,6 @@ class TestHttpxBasedProviders:
 
         env_vars = {
             "OPENROUTER_API_KEY": "test-key",
-            "OPENROUTER_SITE_URL": "https://example.com",
-            "OPENROUTER_SITE_NAME": "Example App",
         }
 
         with patch.dict(os.environ, env_vars):
@@ -128,6 +126,4 @@ class TestHttpxBasedProviders:
         assert result == "chore: tidy config"
         call_args = mock_post.call_args
         assert call_args.kwargs["headers"]["Authorization"] == "Bearer test-key"
-        assert call_args.kwargs["headers"]["HTTP-Referer"] == "https://example.com"
-        assert call_args.kwargs["headers"]["X-Title"] == "Example App"
         assert call_args.kwargs["json"]["model"] == "openrouter/auto"

@@ -19,15 +19,6 @@ def call_openrouter_api(model: str, messages: list[dict], temperature: float, ma
         "Authorization": f"Bearer {api_key}",
     }
 
-    # Add optional headers if environment variables are set
-    site_url = os.getenv("OPENROUTER_SITE_URL")
-    if site_url:
-        headers["HTTP-Referer"] = site_url
-
-    site_name = os.getenv("OPENROUTER_SITE_NAME")
-    if site_name:
-        headers["X-Title"] = site_name
-
     data = {
         "model": model,
         "messages": messages,
