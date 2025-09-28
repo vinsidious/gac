@@ -6,14 +6,17 @@ It consolidates all AI-related functionality including token counting and commit
 
 import logging
 
+from gac.ai_utils import generate_with_retries
 from gac.constants import EnvDefaults
 from gac.errors import AIError
-from gac.providers.anthropic import generate as anthropic_generate
-from gac.providers.cerebras import generate as cerebras_generate
-from gac.providers.groq import generate as groq_generate
-from gac.providers.ollama import generate as ollama_generate
-from gac.providers.openai import generate as openai_generate
-from gac.providers.openrouter import generate as openrouter_generate
+from gac.providers import (
+    call_anthropic_api,
+    call_cerebras_api,
+    call_groq_api,
+    call_ollama_api,
+    call_openai_api,
+    call_openrouter_api,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -48,33 +51,36 @@ def generate_commit_message(
         >>> generate_commit_message(model, (system_prompt, user_prompt))
         'docs: Update README with installation instructions'
     """
-    try:
-        _, _ = model.split(":", 1)
-    except ValueError as err:
-        raise AIError.model_error(
-            f"Invalid model format: {model}. Please use the format 'provider:model_name'."
-        ) from err
-
-    # Parse the model string to extract provider and model name
-    try:
-        provider, model_name = model.split(":", 1)
-    except ValueError as err:
-        raise AIError.model_error(
-            f"Invalid model format: {model}. Please use the format 'provider:model_name'."
-        ) from err
-
-    # Route to the appropriate provider function
-    if provider == "openai":
-        return openai_generate(model_name, prompt, temperature, max_tokens, max_retries, quiet)
-    elif provider == "anthropic":
-        return anthropic_generate(model_name, prompt, temperature, max_tokens, max_retries, quiet)
-    elif provider == "groq":
-        return groq_generate(model_name, prompt, temperature, max_tokens, max_retries, quiet)
-    elif provider == "cerebras":
-        return cerebras_generate(model_name, prompt, temperature, max_tokens, max_retries, quiet)
-    elif provider == "ollama":
-        return ollama_generate(model_name, prompt, temperature, max_tokens, max_retries, quiet)
-    elif provider == "openrouter":
-        return openrouter_generate(model_name, prompt, temperature, max_tokens, max_retries, quiet)
+    # Handle both old (string) and new (tuple) prompt formats
+    if isinstance(prompt, tuple):
+        system_prompt, user_prompt = prompt
     else:
-        raise AIError.model_error(f"Unsupported provider: {provider}")
+        # Backward compatibility: treat string as user prompt with no system prompt
+        system_prompt = ""
+        user_prompt = prompt
+
+    # Provider functions mapping
+    provider_funcs = {
+        "anthropic": call_anthropic_api,
+        "openai": call_openai_api,
+        "groq": call_groq_api,
+        "cerebras": call_cerebras_api,
+        "ollama": call_ollama_api,
+        "openrouter": call_openrouter_api,
+    }
+
+    # Generate the commit message using centralized retry logic
+    try:
+        return generate_with_retries(
+            provider_funcs=provider_funcs,
+            model=model,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            max_retries=max_retries,
+            quiet=quiet,
+        )
+    except Exception as e:
+        logger.error(f"Failed to generate commit message: {e}")
+        raise AIError.model_error(f"Failed to generate commit message: {e}") from e

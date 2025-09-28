@@ -5,13 +5,16 @@ This module provides utility functions that support the AI provider implementati
 
 import logging
 import os
+import time
 from functools import lru_cache
 from typing import Any
 
 import httpx
 import tiktoken
+from halo import Halo
 
 from gac.constants import Utility
+from gac.errors import AIError
 
 logger = logging.getLogger(__name__)
 
@@ -132,3 +135,95 @@ def _classify_error(error_str: str) -> str:
         return "model"
     else:
         return "unknown"
+
+
+def generate_with_retries(
+    provider_funcs: dict,
+    model: str,
+    system_prompt: str,
+    user_prompt: str,
+    temperature: float,
+    max_tokens: int,
+    max_retries: int,
+    quiet: bool = False,
+) -> str:
+    """Generate content with retry logic using direct API calls."""
+    # Parse model string to determine provider and actual model
+    if ":" not in model:
+        raise AIError.model_error(f"Invalid model format. Expected 'provider:model', got '{model}'")
+
+    provider, model_name = model.split(":", 1)
+
+    # Validate provider
+    supported_providers = ["anthropic", "openai", "groq", "cerebras", "ollama", "openrouter"]
+    if provider not in supported_providers:
+        raise AIError.model_error(f"Unsupported provider: {provider}. Supported providers: {supported_providers}")
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    # Set up spinner
+    if quiet:
+        spinner = None
+    else:
+        spinner = Halo(text=f"Generating commit message with {provider} {model_name}...", spinner="dots")
+        spinner.start()
+
+    last_exception = None
+
+    for attempt in range(max_retries):
+        try:
+            if not quiet and attempt > 0:
+                if spinner:
+                    spinner.text = f"Retry {attempt + 1}/{max_retries} with {provider} {model_name}..."
+                logger.info(f"Retry attempt {attempt + 1}/{max_retries}")
+
+            # Call the appropriate provider function
+            provider_func = provider_funcs.get(provider)
+            if not provider_func:
+                raise AIError.model_error(f"Provider function not found for: {provider}")
+
+            content = provider_func(model=model_name, messages=messages, temperature=temperature, max_tokens=max_tokens)
+
+            if spinner:
+                spinner.succeed(f"Generated commit message with {provider} {model_name}")
+
+            if content:
+                return content.strip()
+            else:
+                raise AIError.model_error("Empty response from AI model")
+
+        except Exception as e:
+            last_exception = e
+            error_type = _classify_error(str(e))
+
+            if error_type in ["authentication", "model"]:
+                # Don't retry these errors
+                if spinner:
+                    spinner.fail(f"Failed to generate commit message with {provider} {model_name}")
+                raise AIError.authentication_error(f"AI generation failed: {str(e)}") from e
+
+            if attempt < max_retries - 1:
+                # Exponential backoff
+                wait_time = 2**attempt
+                if not quiet:
+                    logger.warning(f"AI generation failed (attempt {attempt + 1}), retrying in {wait_time}s: {str(e)}")
+
+                if spinner:
+                    for i in range(wait_time, 0, -1):
+                        spinner.text = f"Retry {attempt + 1}/{max_retries} in {i}s..."
+                        time.sleep(1)
+                else:
+                    time.sleep(wait_time)
+            else:
+                logger.error(f"AI generation failed after {max_retries} attempts: {str(e)}")
+
+    if spinner:
+        spinner.fail(f"Failed to generate commit message with {provider} {model_name}")
+
+    # If we get here, all retries failed
+    raise AIError.model_error(
+        f"AI generation failed after {max_retries} attempts: {str(last_exception)}"
+    ) from last_exception
