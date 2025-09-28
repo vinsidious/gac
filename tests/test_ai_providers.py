@@ -10,11 +10,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from gac.ai_utils import _classify_error, count_tokens
 from gac.errors import AIError
-from gac.providers.anthropic import generate as anthropic_generate
-from gac.providers.cerebras import generate as cerebras_generate
-from gac.providers.groq import generate as groq_generate
-from gac.providers.openai import generate as openai_generate
-from gac.providers.openrouter import generate as openrouter_generate
+from gac.providers.anthropic import call_anthropic_api
+from gac.providers.cerebras import call_cerebras_api
+from gac.providers.groq import call_groq_api
+from gac.providers.openai import call_openai_api
+from gac.providers.openrouter import call_openrouter_api
 
 
 class TestAiProvidersUtils:
@@ -74,36 +74,55 @@ class TestAPIKeyValidation:
         # Temporarily remove the API key from environment
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(AIError) as exc_info:
-                openai_generate(model="gpt-4", prompt="test", quiet=True)
-            assert "OPENAI_API_KEY environment variable not set" in str(exc_info.value)
+                call_openai_api(
+                    model="gpt-4", messages=[{"role": "user", "content": "test"}], temperature=0.7, max_tokens=100
+                )
+            assert "OPENAI_API_KEY not found in environment variables" in str(exc_info.value)
 
     def test_anthropic_generate_missing_api_key(self):
         """Test that AIError is raised when API key is missing."""
         # Temporarily remove the API key from environment
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(AIError) as exc_info:
-                anthropic_generate(model="claude-3-haiku", prompt="test", quiet=True)
-            assert "ANTHROPIC_API_KEY environment variable not set" in str(exc_info.value)
+                call_anthropic_api(
+                    model="claude-3-haiku",
+                    messages=[{"role": "user", "content": "test"}],
+                    temperature=0.7,
+                    max_tokens=100,
+                )
+            assert "ANTHROPIC_API_KEY not found in environment variables" in str(exc_info.value)
 
     def test_cerebras_generate_missing_api_key(self):
         """Test that AIError is raised when API key is missing."""
         # Temporarily remove the API key from environment
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(AIError) as exc_info:
-                cerebras_generate(model="llama3.1-8b", prompt="test", quiet=True)
-            assert "CEREBRAS_API_KEY environment variable not set" in str(exc_info.value)
+                call_cerebras_api(
+                    model="llama3.1-8b", messages=[{"role": "user", "content": "test"}], temperature=0.7, max_tokens=100
+                )
+            assert "CEREBRAS_API_KEY not found in environment variables" in str(exc_info.value)
 
     def test_groq_generate_missing_api_key(self):
         """Test that AIError is raised when API key is missing."""
         # Temporarily remove the API key from environment
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(AIError) as exc_info:
-                groq_generate(model="llama3-8b-8192", prompt="test", quiet=True)
-            assert "GROQ_API_KEY environment variable not set" in str(exc_info.value)
+                call_groq_api(
+                    model="llama3-8b-8192",
+                    messages=[{"role": "user", "content": "test"}],
+                    temperature=0.7,
+                    max_tokens=100,
+                )
+            assert "GROQ_API_KEY not found in environment variables" in str(exc_info.value)
 
     def test_openrouter_generate_missing_api_key(self):
         """Test that AIError is raised when API key is missing."""
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(AIError) as exc_info:
-                openrouter_generate(model="openrouter/auto", prompt="test", quiet=True)
+                call_openrouter_api(
+                    model="openrouter/auto",
+                    messages=[{"role": "user", "content": "test"}],
+                    temperature=0.7,
+                    max_tokens=100,
+                )
             assert "OPENROUTER_API_KEY environment variable not set" in str(exc_info.value)
