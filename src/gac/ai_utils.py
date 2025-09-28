@@ -4,12 +4,10 @@ This module provides utility functions that support the AI provider implementati
 """
 
 import logging
-import os
 import time
 from functools import lru_cache
 from typing import Any
 
-import httpx
 import tiktoken
 from halo import Halo
 
@@ -25,72 +23,12 @@ def count_tokens(content: str | list[dict[str, str]] | dict[str, Any], model: st
     if not text:
         return 0
 
-    if model.startswith("anthropic"):
-        anthropic_tokens = anthropic_count_tokens(text, model)
-        if anthropic_tokens is not None:
-            return anthropic_tokens
-        return len(text) // 4
-
     try:
         encoding = get_encoding(model)
         return len(encoding.encode(text))
     except Exception as e:
         logger.error(f"Error counting tokens: {e}")
         return len(text) // 4
-
-
-def anthropic_count_tokens(text: str, model: str) -> int | None:
-    """Call Anthropic's token count endpoint and return the token usage.
-
-    Returns the token count when successful, otherwise ``None`` so callers can
-    fall back to a heuristic estimate.
-    """
-    api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not api_key:
-        logger.debug("ANTHROPIC_API_KEY not set; using heuristic token estimation for Anthropic model")
-        return None
-
-    model_name = model.split(":", 1)[1] if ":" in model else "claude-3-5-haiku-latest"
-    headers = {
-        "Content-Type": "application/json",
-        "x-api-key": api_key,
-        "anthropic-version": "2023-06-01",
-    }
-    payload = {
-        "model": model_name,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": text,
-                    }
-                ],
-            }
-        ],
-    }
-
-    try:
-        response = httpx.post(
-            "https://api.anthropic.com/v1/messages/count_tokens",
-            headers=headers,
-            json=payload,
-            timeout=30.0,
-        )
-        response.raise_for_status()
-        data = response.json()
-
-        if "input_tokens" in data:
-            return data["input_tokens"]
-        if "usage" in data and "input_tokens" in data["usage"]:
-            return data["usage"]["input_tokens"]
-
-        logger.warning("Unexpected response format from Anthropic token count API: %s", data)
-    except Exception as exc:
-        logger.warning("Failed to retrieve Anthropic token count via HTTP: %s", exc)
-
-    return None
 
 
 def extract_text_content(content: str | list[dict[str, str]] | dict[str, Any]) -> str:
@@ -172,6 +110,7 @@ def generate_with_retries(
         spinner.start()
 
     last_exception = None
+    last_error_type = "unknown"
 
     for attempt in range(max_retries):
         try:
@@ -190,20 +129,27 @@ def generate_with_retries(
             if spinner:
                 spinner.succeed(f"Generated commit message with {provider} {model_name}")
 
-            if content:
+            if content is not None and content.strip():
                 return content.strip()
             else:
+                logger.warning(f"Empty or None content received from {provider} {model_name}: {repr(content)}")
                 raise AIError.model_error("Empty response from AI model")
 
         except Exception as e:
             last_exception = e
             error_type = _classify_error(str(e))
+            last_error_type = error_type
 
+            # For authentication and model errors, don't retry
             if error_type in ["authentication", "model"]:
-                # Don't retry these errors
                 if spinner:
                     spinner.fail(f"Failed to generate commit message with {provider} {model_name}")
-                raise AIError.authentication_error(f"AI generation failed: {str(e)}") from e
+
+                # Create the appropriate error type based on classification
+                if error_type == "authentication":
+                    raise AIError.authentication_error(f"AI generation failed: {str(e)}") from e
+                elif error_type == "model":
+                    raise AIError.model_error(f"AI generation failed: {str(e)}") from e
 
             if attempt < max_retries - 1:
                 # Exponential backoff
@@ -223,7 +169,17 @@ def generate_with_retries(
     if spinner:
         spinner.fail(f"Failed to generate commit message with {provider} {model_name}")
 
-    # If we get here, all retries failed
-    raise AIError.model_error(
-        f"AI generation failed after {max_retries} attempts: {str(last_exception)}"
-    ) from last_exception
+    # If we get here, all retries failed - use the last classified error type
+    error_message = f"Failed to generate commit message after {max_retries} attempts"
+    if last_error_type == "authentication":
+        raise AIError.authentication_error(error_message) from last_exception
+    elif last_error_type == "rate_limit":
+        raise AIError.rate_limit_error(error_message) from last_exception
+    elif last_error_type == "timeout":
+        raise AIError.timeout_error(error_message) from last_exception
+    elif last_error_type == "connection":
+        raise AIError.connection_error(error_message) from last_exception
+    elif last_error_type == "model":
+        raise AIError.model_error(error_message) from last_exception
+    else:
+        raise AIError.unknown_error(error_message) from last_exception

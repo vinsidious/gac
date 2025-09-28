@@ -95,6 +95,11 @@ class AIError(GacError):
         """Create a model error."""
         return cls(message, error_type="model")
 
+    @classmethod
+    def unknown_error(cls, message: str) -> "AIError":
+        """Create an unknown error."""
+        return cls(message, error_type="unknown")
+
 
 class FormattingError(GacError):
     """Error related to code formatting."""

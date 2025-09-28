@@ -81,6 +81,9 @@ def generate_commit_message(
             max_retries=max_retries,
             quiet=quiet,
         )
+    except AIError:
+        # Re-raise AIError exceptions as-is to preserve error classification
+        raise
     except Exception as e:
         logger.error(f"Failed to generate commit message: {e}")
         raise AIError.model_error(f"Failed to generate commit message: {e}") from e

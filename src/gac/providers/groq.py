@@ -34,16 +34,23 @@ def call_groq_api(model: str, messages: list[dict], temperature: float, max_toke
             choice = response_data["choices"][0]
             if "message" in choice and "content" in choice["message"]:
                 content = choice["message"]["content"]
-                logger.debug(f"Found content in message.content: {content}")
+                logger.debug(f"Found content in message.content: {repr(content)}")
+                if content is None:
+                    logger.warning("Groq API returned None content in message.content")
+                    return ""
                 return content
             elif "text" in choice:
                 content = choice["text"]
-                logger.debug(f"Found content in choice.text: {content}")
+                logger.debug(f"Found content in choice.text: {repr(content)}")
+                if content is None:
+                    logger.warning("Groq API returned None content in choice.text")
+                    return ""
                 return content
             else:
-                logger.debug(f"Choice structure: {choice}")
+                logger.warning(f"Unexpected choice structure: {choice}")
 
         # If we can't find content in the expected places, raise an error
+        logger.error(f"Unexpected response format from Groq API: {response_data}")
         raise AIError.model_error(f"Unexpected response format from Groq API: {response_data}")
     except httpx.HTTPStatusError as e:
         raise AIError.model_error(f"Groq API error: {e.response.status_code} - {e.response.text}") from e
