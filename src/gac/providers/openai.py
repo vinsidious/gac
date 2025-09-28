@@ -16,7 +16,7 @@ def call_openai_api(model: str, messages: list[dict], temperature: float, max_to
     url = "https://api.openai.com/v1/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
-    data = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+    data = {"model": model, "messages": messages, "temperature": temperature, "max_completion_tokens": max_tokens}
 
     try:
         response = httpx.post(url, headers=headers, json=data, timeout=120)
