@@ -141,8 +141,17 @@ using the standard pytest framework.
 ### Running Tests
 
 ```sh
-# Run all tests
+# Run standard tests (excludes integration tests with real API calls)
 make test
+
+# Run only provider integration tests (requires API keys)
+make test-providers
+
+# Run all tests including provider integration tests
+make test-all
+
+# Run tests with coverage
+make test-cov
 
 # Run specific test file
 python -m pytest tests/test_prompt.py
@@ -150,6 +159,35 @@ python -m pytest tests/test_prompt.py
 # Run specific test
 python -m pytest tests/test_prompt.py::TestExtractRepositoryContext::test_extract_repository_context_with_docstring
 ```
+
+#### Provider Integration Tests
+
+Provider integration tests make real API calls to verify that provider implementations work correctly with actual APIs. These tests are marked with `@pytest.mark.providers` and are skipped by default to:
+
+- Avoid consuming API credits during regular development
+- Prevent test failures when API keys are not configured
+- Keep test execution fast for rapid iteration
+
+To run provider integration tests:
+
+1. **Set up API keys** for the providers you want to test:
+
+   ```sh
+   export OPENAI_API_KEY="your-key"
+   export ANTHROPIC_API_KEY="your-key"
+   export OPENROUTER_API_KEY="your-key"
+   export GROQ_API_KEY="your-key"
+   export CEREBRAS_API_KEY="your-key"
+   # Ollama requires a local instance running
+   ```
+
+2. **Run provider tests**:
+
+   ```sh
+   make test-providers
+   ```
+
+Tests will skip providers where API keys are not configured. These tests help detect API changes early and ensure compatibility with provider APIs.
 
 ## Code of Conduct
 

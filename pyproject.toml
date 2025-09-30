@@ -193,6 +193,12 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
 
+[tool.pytest.ini_options]
+markers = [
+    "providers: marks tests that make real API calls to AI providers (deselect with '-m \"not providers\"')",
+]
+addopts = "-m 'not providers'"
+
 [template.plugins.default]
 tests = true
 src-layout = true
