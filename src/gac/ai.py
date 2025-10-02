@@ -16,6 +16,7 @@ from gac.providers import (
     call_ollama_api,
     call_openai_api,
     call_openrouter_api,
+    call_zai_api,
 )
 
 logger = logging.getLogger(__name__)
@@ -67,6 +68,7 @@ def generate_commit_message(
         "cerebras": call_cerebras_api,
         "ollama": call_ollama_api,
         "openrouter": call_openrouter_api,
+        "zai": call_zai_api,
     }
 
     # Generate the commit message using centralized retry logic

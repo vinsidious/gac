@@ -36,8 +36,9 @@ def call_groq_api(model: str, messages: list[dict], temperature: float, max_toke
                 content = choice["message"]["content"]
                 logger.debug(f"Found content in message.content: {repr(content)}")
                 if content is None:
-                    logger.warning("Groq API returned None content in message.content")
-                    return ""
+                    raise AIError.model_error("Groq API returned null content")
+                if content == "":
+                    raise AIError.model_error("Groq API returned empty content")
                 return content
             elif "text" in choice:
                 content = choice["text"]

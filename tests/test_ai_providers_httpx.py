@@ -14,6 +14,7 @@ from gac.providers.groq import call_groq_api
 from gac.providers.ollama import call_ollama_api
 from gac.providers.openai import call_openai_api
 from gac.providers.openrouter import call_openrouter_api
+from gac.providers.zai import call_zai_api
 
 
 # Simple AIError class for testing purposes
@@ -127,3 +128,34 @@ class TestHttpxBasedProviders:
         call_args = mock_post.call_args
         assert call_args.kwargs["headers"]["Authorization"] == "Bearer test-key"
         assert call_args.kwargs["json"]["model"] == "openrouter/auto"
+
+    @patch("gac.providers.zai.httpx.post")
+    def test_zai_generate_with_httpx_empty_content(self, mock_post):
+        """Test call_zai_api handles empty content response."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"choices": [{"message": {"content": ""}}]}
+        mock_response.raise_for_status.return_value = None
+        mock_post.return_value = mock_response
+
+        with patch.dict(os.environ, {"ZAI_API_KEY": "test-key"}):
+            messages = [{"role": "user", "content": "Generate a commit message"}]
+            try:
+                call_zai_api(model="glm-4.5-air", messages=messages, temperature=0.7, max_tokens=100)
+                raise AssertionError("Should have raised an AIError")
+            except Exception as e:
+                assert "empty content" in str(e)
+
+    @patch("gac.providers.zai.httpx.post")
+    def test_zai_generate_with_httpx(self, mock_post):
+        """Test call_zai_api uses httpx directly."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"choices": [{"message": {"content": "style: Format code"}}]}
+        mock_response.raise_for_status.return_value = None
+        mock_post.return_value = mock_response
+
+        with patch.dict(os.environ, {"ZAI_API_KEY": "test-key"}):
+            messages = [{"role": "user", "content": "Generate a commit message"}]
+            result = call_zai_api(model="glm-4.5-air", messages=messages, temperature=0.7, max_tokens=100)
+            assert result == "style: Format code"

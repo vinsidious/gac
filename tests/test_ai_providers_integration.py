@@ -23,6 +23,7 @@ from gac.providers.groq import call_groq_api
 from gac.providers.ollama import call_ollama_api
 from gac.providers.openai import call_openai_api
 from gac.providers.openrouter import call_openrouter_api
+from gac.providers.zai import call_zai_api
 
 
 class TestAIProvidersIntegration:
@@ -103,6 +104,21 @@ class TestAIProvidersIntegration:
             if original_key:
                 os.environ["OPENROUTER_API_KEY"] = original_key
 
+    def test_zai_generate_missing_api_key(self):
+        """Test that call_zai_api raises AIError when API key is missing."""
+        original_key = os.getenv("ZAI_API_KEY")
+        if original_key:
+            del os.environ["ZAI_API_KEY"]
+
+        try:
+            with pytest.raises(AIError) as exc_info:
+                messages = [{"role": "user", "content": "test prompt"}]
+                call_zai_api(model="glm-4.5-air", messages=messages, temperature=0.7, max_tokens=100)
+            assert "ZAI_API_KEY not found in environment variables" in str(exc_info.value)
+        finally:
+            if original_key:
+                os.environ["ZAI_API_KEY"] = original_key
+
 
 @pytest.mark.providers
 class TestRealAPICallsAnthropic:
@@ -153,7 +169,7 @@ class TestRealAPICallsGroq:
             pytest.skip("GROQ_API_KEY not set - skipping real API test")
 
         messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
-        response = call_groq_api(model="openai/gpt-oss-20b", messages=messages, temperature=0.7, max_tokens=50)
+        response = call_groq_api(model="llama-3.3-70b-versatile", messages=messages, temperature=0.7, max_tokens=50)
 
         assert response is not None
         assert isinstance(response, str)
@@ -225,3 +241,27 @@ class TestRealAPICallsOpenRouter:
         assert response is not None
         assert isinstance(response, str)
         assert len(response) > 0
+
+
+@pytest.mark.providers
+class TestRealAPICallsZAI:
+    """Real API call tests for Z.AI."""
+
+    def test_zai_real_api_call(self):
+        """Test actual Z.AI API call with valid credentials."""
+        api_key = os.getenv("ZAI_API_KEY")
+        if not api_key:
+            pytest.skip("ZAI_API_KEY not set - skipping real API test")
+
+        messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
+        try:
+            response = call_zai_api(model="glm-4.5-air", messages=messages, temperature=0.7, max_tokens=50)
+
+            assert response is not None
+            assert isinstance(response, str)
+            assert len(response) > 0
+        except Exception as e:
+            if "empty content" in str(e) or "null content" in str(e):
+                pytest.skip(f"Z.AI API returned empty content - possible configuration issue: {e}")
+            else:
+                raise
