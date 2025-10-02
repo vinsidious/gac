@@ -14,7 +14,15 @@ Target Python 3.10+ and keep modules fully type annotated. Formatting is enforce
 
 ## Testing Guidelines
 
-Write pytest coverage alongside features and place integration scenarios under the same `tests/` tree. Name new files `test_<module>.py` and individual tests `test_<behavior>`, mirroring existing suites like `test_ai_providers_httpx.py`. Aim to maintain coverage parity by running `make test-cov`; HTML output lands in `htmlcov/index.html` for inspection. When shell-based repro steps are needed, add helper scripts under `scripts/` instead of mixing shell logic into pytest.
+Write pytest coverage alongside features and place integration scenarios under the same `tests/` tree. Name new files `test_<module>.py` and individual tests `test_<behavior>`, mirroring existing suites.
+
+Organize provider tests into three distinct categories for better maintainability:
+
+- **Unit tests** (`test_providers_unit.py`): Pure unit tests with no external dependencies
+- **Mocked tests** (`test_providers_mocked.py`): Tests with mocked HTTP calls that verify internal logic
+- **Integration tests** (`test_providers_integration.py`): Tests that make real API calls (marked with pytest markers)
+
+Aim to maintain coverage parity by running `make test-cov`; HTML output lands in `htmlcov/index.html` for inspection. When shell-based repro steps are needed, add helper scripts under `scripts/` instead of mixing shell logic into pytest.
 
 ## Commit & Pull Request Guidelines
 
