@@ -28,6 +28,7 @@ from gac.security import get_affected_files, scan_staged_diff
 logger = logging.getLogger(__name__)
 
 config = load_config()
+console = Console()  # Initialize console globally to prevent undefined access
 
 
 def main(
@@ -74,7 +75,6 @@ def main(
     # Check for staged files
     staged_files = get_staged_files(existing_only=False)
     if not staged_files:
-        console = Console()
         console.print(
             "[yellow]No staged changes found. Stage your changes with git add first or use --add-all.[/yellow]"
         )
@@ -83,7 +83,6 @@ def main(
     # Run pre-commit hooks before doing expensive operations
     if not no_verify and not dry_run:
         if not run_pre_commit_hooks():
-            console = Console()
             console.print("[red]Pre-commit hooks failed. Please fix the issues and try again.[/red]")
             console.print("[yellow]You can use --no-verify to skip pre-commit hooks.[/yellow]")
             sys.exit(1)
@@ -108,10 +107,10 @@ def main(
                     console.print(f"    Match: [dim]{secret.matched_text}[/dim]\n")
 
             if not quiet:
-                console.print("[bold]Options:[/bold]")
-                console.print("  [a] Abort commit (recommended)")
-                console.print("  [c] Continue anyway (not recommended)")
-                console.print("  [r] Remove affected file(s) and continue")
+                console.print("\n[bold]Options:[/bold]")
+                console.print("  \\[a] Abort commit (recommended)")
+                console.print("  \\[c] [yellow]Continue anyway[/yellow] (not recommended)")
+                console.print("  \\[r] Remove affected file(s) and continue")
 
             try:
                 choice = (
@@ -174,7 +173,6 @@ def main(
     )
 
     if show_prompt:
-        console = Console()
         # Show both system and user prompts
         full_prompt = f"SYSTEM PROMPT:\n{system_prompt}\n\nUSER PROMPT:\n{user_prompt}"
         console.print(
@@ -191,7 +189,6 @@ def main(
 
         warning_limit = config.get("warning_limit_tokens", EnvDefaults.WARNING_LIMIT_TOKENS)
         if warning_limit and prompt_tokens > warning_limit:
-            console = Console()
             console.print(
                 f"[yellow]⚠️  WARNING: Prompt contains {prompt_tokens} tokens, which exceeds the warning limit of "
                 f"{warning_limit} tokens.[/yellow]"
@@ -214,8 +211,6 @@ def main(
 
         logger.info("Generated commit message:")
         logger.info(commit_message)
-
-        console = Console()
 
         # Reroll loop
         while True:
@@ -318,7 +313,6 @@ def main(
             console.print("[green]Commit created successfully[/green]")
     except AIError as e:
         logger.error(str(e))
-        console = Console()
         console.print(f"[red]Failed to generate commit message: {str(e)}[/red]")
         sys.exit(1)
 
