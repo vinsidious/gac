@@ -40,6 +40,7 @@ class Utility:
     DEFAULT_ENCODING: str = "cl100k_base"  # llm encoding
     DEFAULT_DIFF_TOKEN_LIMIT: int = 15000  # Maximum tokens for diff processing
     MAX_WORKERS: int = os.cpu_count() or 4  # Maximum number of parallel workers
+    MAX_DISPLAYED_SECRET_LENGTH: int = 50  # Maximum length for displaying secrets
 
 
 class FilePatterns:

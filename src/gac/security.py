@@ -35,7 +35,7 @@ class SecretPatterns:
 
     # Generic API Keys
     GENERIC_API_KEY = re.compile(
-        r"(?:api[-_]?key|apikey|api[-_]?secret|key)[\s:=\"']+([A-Za-z0-9_\-]{20,})", re.IGNORECASE
+        r"(?:api[-_]?key|api[-_]?secret|access[-_]?key|secret[-_]?key)[\s:=\"']+([A-Za-z0-9_\-]{20,})", re.IGNORECASE
     )
 
     # GitHub Tokens
@@ -53,8 +53,8 @@ class SecretPatterns:
     # Private Keys (PEM format)
     PRIVATE_KEY = re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")
 
-    # Bearer Tokens
-    BEARER_TOKEN = re.compile(r"Bearer\s+[A-Za-z0-9\-._~+/]+=*", re.IGNORECASE)
+    # Bearer Tokens (require actual token with specific characteristics)
+    BEARER_TOKEN = re.compile(r"Bearer\s+[A-Za-z0-9]{20,}[/=]*\s", re.IGNORECASE)
 
     # JWT Tokens
     JWT_TOKEN = re.compile(r"eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+")
@@ -84,9 +84,12 @@ class SecretPatterns:
     EXCLUDED_PATTERNS = [
         re.compile(r"(?:example|sample|dummy|placeholder|your[-_]?api[-_]?key)", re.IGNORECASE),
         re.compile(r"(?:xxx+|yyy+|zzz+)", re.IGNORECASE),
-        re.compile(r"\b(?:123456|password|changeme|secret)\b", re.IGNORECASE),  # Word boundaries
+        re.compile(r"\b(?:123456|password|changeme|secret|testpass|admin)\b", re.IGNORECASE),  # Word boundaries
         re.compile(r"ghp_[a-f0-9]{16}", re.IGNORECASE),  # Short GitHub tokens (examples)
         re.compile(r"sk-[a-f0-9]{16}", re.IGNORECASE),  # Short OpenAI keys (examples)
+        re.compile(r"Bearer Token", re.IGNORECASE),  # Documentation text
+        re.compile(r"Add Bearer Token", re.IGNORECASE),  # Documentation text
+        re.compile(r"Test Bearer Token", re.IGNORECASE),  # Documentation text
     ]
 
     @classmethod
@@ -105,11 +108,12 @@ class SecretPatterns:
         return patterns
 
 
-def is_false_positive(matched_text: str) -> bool:
+def is_false_positive(matched_text: str, file_path: str = "") -> bool:
     """Check if a matched secret is likely a false positive.
 
     Args:
         matched_text: The text that matched a secret pattern
+        file_path: The file path where the match was found (for context-based filtering)
 
     Returns:
         True if the match is likely a false positive
@@ -121,6 +125,10 @@ def is_false_positive(matched_text: str) -> bool:
 
     # Check for all-same characters (e.g., "xxxxxxxxxxxxxxxx")
     if len(set(matched_text.lower())) <= 3 and len(matched_text) > 10:
+        return True
+
+    # Special handling for .env.example, .env.template, .env.sample files
+    if any(example_file in file_path for example_file in [".env.example", ".env.template", ".env.sample"]):
         return True
 
     return False
@@ -184,45 +192,52 @@ def scan_diff_section(section: str) -> list[DetectedSecret]:
     for line in lines:
         # Track hunk headers for line number extraction
         if line.startswith("@@"):
-            # Reset line counter based on hunk header
+            # Reset line counter based on hunk header (this is the starting line number in the new file)
             match = re.search(r"@@ -\d+(?:,\d+)? \+(\d+)", line)
             if match:
-                line_counter = int(match.group(1))
+                line_counter = int(match.group(1)) - 1  # Start one line before, will increment correctly
             continue
+
+        # Skip metadata lines
+        if line.startswith("+++") or line.startswith("---"):
+            continue
+
+        # Increment line counter for both added and context lines
+        if line.startswith("+") or line.startswith(" "):
+            line_counter += 1
 
         # Only scan added lines (starting with '+')
-        if not line.startswith("+") or line.startswith("+++"):
-            continue
+        if line.startswith("+") and not line.startswith("+++"):
+            # Check each pattern
+            content = line[1:]  # Remove the '+' prefix for pattern matching
+            for pattern_name, pattern in patterns.items():
+                matches = pattern.finditer(content)
+                for match in matches:
+                    matched_text = match.group(0)
 
-        # Increment line counter for added lines
-        line_counter += 1
+                    # Skip false positives
+                    if is_false_positive(matched_text, file_path):
+                        logger.debug(f"Skipping false positive: {matched_text}")
+                        continue
 
-        # Remove the '+' prefix for pattern matching
-        content = line[1:]
+                    # Truncate matched text for display (avoid showing full secrets)
+                    from gac.constants import Utility
 
-        # Check each pattern
-        for pattern_name, pattern in patterns.items():
-            matches = pattern.finditer(content)
-            for match in matches:
-                matched_text = match.group(0)
-
-                # Skip false positives
-                if is_false_positive(matched_text):
-                    logger.debug(f"Skipping false positive: {matched_text}")
-                    continue
-
-                # Truncate matched text for display (avoid showing full secrets)
-                display_text = matched_text[:50] + "..." if len(matched_text) > 50 else matched_text
-
-                secrets.append(
-                    DetectedSecret(
-                        file_path=file_path,
-                        line_number=line_counter,
-                        secret_type=pattern_name,
-                        matched_text=display_text,
-                        context=content.strip(),
+                    display_text = (
+                        matched_text[: Utility.MAX_DISPLAYED_SECRET_LENGTH] + "..."
+                        if len(matched_text) > Utility.MAX_DISPLAYED_SECRET_LENGTH
+                        else matched_text
                     )
-                )
+
+                    secrets.append(
+                        DetectedSecret(
+                            file_path=file_path,
+                            line_number=line_counter,
+                            secret_type=pattern_name,
+                            matched_text=display_text,
+                            context=content.strip(),
+                        )
+                    )
 
     return secrets
 
@@ -240,11 +255,22 @@ def scan_staged_diff(diff: str) -> list[DetectedSecret]:
         return []
 
     # Split diff into sections (one per file)
-    sections = re.split(r"(?=diff --git )", diff)
+    sections = re.split(r"(?=^diff --git )", diff, flags=re.MULTILINE)
     all_secrets = []
 
     for section in sections:
         if not section.strip():
+            continue
+
+        # Validate that this is a real git diff section
+        # Real diff sections must have diff --git header followed by --- and +++ lines
+        if not re.search(r"^diff --git ", section, flags=re.MULTILINE):
+            continue
+
+        if not re.search(r"^--- ", section, flags=re.MULTILINE):
+            continue
+
+        if not re.search(r"^\+\+\+ ", section, flags=re.MULTILINE):
             continue
 
         secrets = scan_diff_section(section)

@@ -98,28 +98,37 @@ def main(
         secrets = scan_staged_diff(diff)
         if secrets:
             console = Console()
-            console.print("\n[red bold]⚠️  SECURITY WARNING: Potential secrets detected![/red bold]")
-            console.print("[red]The following sensitive information was found in your staged changes:[/red]\n")
+            if not quiet:
+                console.print("\n[red bold]⚠️  SECURITY WARNING: Potential secrets detected![/red bold]")
+                console.print("[red]The following sensitive information was found in your staged changes:[/red]\n")
 
             for secret in secrets:
                 location = f"{secret.file_path}:{secret.line_number}" if secret.line_number else secret.file_path
-                console.print(f"  • [yellow]{secret.secret_type}[/yellow] in [cyan]{location}[/cyan]")
-                console.print(f"    Match: [dim]{secret.matched_text}[/dim]\n")
+                if not quiet:
+                    console.print(f"  • [yellow]{secret.secret_type}[/yellow] in [cyan]{location}[/cyan]")
+                    console.print(f"    Match: [dim]{secret.matched_text}[/dim]\n")
 
-            console.print("[bold]Options:[/bold]")
-            console.print("  [A] Abort commit (recommended)")
-            console.print("  [C] Continue anyway (not recommended)")
-            console.print("  [R] Remove affected file(s) and continue")
+            if not quiet:
+                console.print("[bold]Options:[/bold]")
+                console.print("  [A] Abort commit (recommended)")
+                console.print("  [C] Continue anyway (not recommended)")
+                console.print("  [R] Remove affected file(s) and continue")
 
-            while True:
-                try:
-                    choice = input("\nChoose an option [A/C/R]: ").strip().upper()
-                    if choice in ("A", "C", "R"):
-                        break
-                    console.print("[red]Invalid choice. Please enter A, C, or R.[/red]")
-                except (EOFError, KeyboardInterrupt):
-                    console.print("\n[red]Aborted by user.[/red]")
-                    sys.exit(0)
+            try:
+                choice = (
+                    click.prompt(
+                        "\nChoose an option",
+                        type=click.Choice(["A", "C", "R"], case_sensitive=False),
+                        default="A",
+                        show_choices=True,
+                        show_default=True,
+                    )
+                    .strip()
+                    .upper()
+                )
+            except (EOFError, KeyboardInterrupt):
+                console.print("\n[red]Aborted by user.[/red]")
+                sys.exit(0)
 
             if choice == "A":
                 console.print("[yellow]Commit aborted to protect sensitive information.[/yellow]")
@@ -133,7 +142,7 @@ def main(
                     try:
                         run_git_command(["reset", "HEAD", file_path])
                         console.print(f"[green]Unstaged: {file_path}[/green]")
-                    except Exception as e:
+                    except GitError as e:
                         console.print(f"[red]Failed to unstage {file_path}: {e}[/red]")
 
                 # Check if there are still staged files
@@ -143,7 +152,8 @@ def main(
                     sys.exit(0)
 
                 console.print(f"[green]Continuing with {len(remaining_staged)} staged file(s)...[/green]")
-                # Refresh diff after removing files
+                # Refresh all git state variables after removing files
+                status = run_git_command(["status"])
                 diff = run_git_command(["diff", "--staged"])
                 diff_stat = " " + run_git_command(["diff", "--stat", "--cached"])
         else:

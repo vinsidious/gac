@@ -145,7 +145,7 @@ class TestFalsePositiveFiltering:
         ]
 
         for text in false_positives:
-            assert is_false_positive(text), f"Should filter as false positive: {text}"
+            assert is_false_positive(text, ""), f"Should filter as false positive: {text}"
 
     def test_is_false_positive_with_real_secrets(self):
         """Test that real-looking secrets are not filtered."""
@@ -156,14 +156,25 @@ class TestFalsePositiveFiltering:
         ]
 
         for text in real_secrets:
-            assert not is_false_positive(text), f"Should not filter as false positive: {text}"
+            assert not is_false_positive(text, ""), f"Should not filter as false positive: {text}"
 
     def test_is_false_positive_all_same_chars(self):
         """Test that strings with all same characters are filtered."""
         all_same_char_strings = ["XXXXXXXXXXXXXXXX", "AAAAAAAAAAAAAAAA", "1111111111111111", "zzzzzzzzzzzzzzzz"]
 
         for text in all_same_char_strings:
-            assert is_false_positive(text), f"Should filter all-same-char string: {text}"
+            assert is_false_positive(text, ""), f"Should filter all-same-char string: {text}"
+
+    def test_is_false_positive_env_example_files(self):
+        """Test that secrets in .env.example files are filtered as false positives."""
+        example_file_paths = [".env.example", ".env.template", ".env.sample"]
+        test_passwords = ["mypassword123", "secretkey", "admin123"]
+
+        for file_path in example_file_paths:
+            for password in test_passwords:
+                assert is_false_positive(password, file_path), (
+                    f"Should filter as false positive in {file_path}: {password}"
+                )
 
 
 class TestDiffParsingFunctions:
@@ -239,7 +250,7 @@ index 1234567..abcdefg 100644
         # Should find at least one secret (might be more depending on pattern matching)
         assert len(secrets) >= 1
         assert secrets[0].file_path == "src/secret.py"
-        assert secrets[0].line_number == 6  # Line number starts counting from the hunk header
+        assert secrets[0].line_number == 6  # Secret is on line 6 in the new file
         # The matched text should be truncated to avoid showing full secrets
         assert len(secrets[0].matched_text) <= 50 or secrets[0].matched_text.endswith("...")
 
@@ -403,8 +414,6 @@ index abcdefg..1234567 100644
  3. Configure environment variables
  4. Run the application
 """
-
-        # Scan the diff
         secrets = scan_staged_diff(diff)
 
         # Should find some secrets (the exact number depends on pattern matching and false positive filtering)
@@ -415,6 +424,27 @@ index abcdefg..1234567 100644
         assert len(affected_files) >= 1
         # Should include config.py where the real secrets are
         assert "src/config.py" in affected_files
+
+    def test_line_number_accuracy_with_mixed_lines(self):
+        """Test line number accuracy with mixed added and context lines."""
+        diff_section = """diff --git a/test.py b/test.py
+index 1234567..abcdefg 100644
+--- a/test.py
++++ b/test.py
+@@ -1,3 +1,5 @@
+ def func():
+     # Context line
++    AWS_ACCESS_KEY_ID = "AKIAIOSFODNN7SECR3T1"  # Secret on line 3
+     # More context
++    OPENAI_KEY = "sk-aBcDeFgHiJkLmNoPqRsTuVwXyZ12345678901"  # Secret on line 5
+"""
+        secrets = scan_diff_section(diff_section)
+        # Should find both secrets
+        assert len(secrets) == 2
+        # First secret should be on line 3 (after the context line)
+        assert secrets[0].line_number == 3
+        # Second secret should be on line 5
+        assert secrets[1].line_number == 5
 
     def test_false_positive_filtering_integration(self):
         """Test that false positives are properly filtered in realistic scenarios."""
