@@ -39,7 +39,7 @@ class TestProviderErrorHandling:
         try:
             with pytest.raises(AIError) as exc_info:
                 messages = [{"role": "user", "content": "test prompt"}]
-                call_anthropic_api(model="claude-3-haiku", messages=messages, temperature=0.7, max_tokens=100)
+                call_anthropic_api(model="claude-3-haiku", messages=messages, temperature=1.0, max_tokens=100)
             assert "ANTHROPIC_API_KEY not found in environment variables" in str(exc_info.value)
         finally:
             if original_key:
@@ -54,7 +54,7 @@ class TestProviderErrorHandling:
         try:
             with pytest.raises(AIError) as exc_info:
                 messages = [{"role": "user", "content": "test prompt"}]
-                call_cerebras_api(model="llama3.1-8b", messages=messages, temperature=0.7, max_tokens=100)
+                call_cerebras_api(model="llama3.1-8b", messages=messages, temperature=1.0, max_tokens=100)
             assert "CEREBRAS_API_KEY not found in environment variables" in str(exc_info.value)
         finally:
             if original_key:
@@ -69,7 +69,7 @@ class TestProviderErrorHandling:
         try:
             with pytest.raises(AIError) as exc_info:
                 messages = [{"role": "user", "content": "test prompt"}]
-                call_groq_api(model="llama-3.3-70b-versatile", messages=messages, temperature=0.7, max_tokens=100)
+                call_groq_api(model="llama-3.3-70b-versatile", messages=messages, temperature=1.0, max_tokens=100)
             assert "GROQ_API_KEY not found in environment variables" in str(exc_info.value)
         finally:
             if original_key:
@@ -84,7 +84,7 @@ class TestProviderErrorHandling:
         try:
             with pytest.raises(AIError) as exc_info:
                 messages = [{"role": "user", "content": "test prompt"}]
-                call_openai_api(model="gpt-4", messages=messages, temperature=0.7, max_tokens=100)
+                call_openai_api(model="gpt-4.1-mini", messages=messages, temperature=1.0, max_tokens=100)
             assert "OPENAI_API_KEY not found in environment variables" in str(exc_info.value)
         finally:
             if original_key:
@@ -99,7 +99,7 @@ class TestProviderErrorHandling:
         try:
             with pytest.raises(AIError) as exc_info:
                 messages = [{"role": "user", "content": "test prompt"}]
-                call_openrouter_api(model="openrouter/auto", messages=messages, temperature=0.7, max_tokens=100)
+                call_openrouter_api(model="openrouter/auto", messages=messages, temperature=1.0, max_tokens=100)
             assert "OPENROUTER_API_KEY environment variable not set" in str(exc_info.value)
         finally:
             if original_key:
@@ -114,7 +114,7 @@ class TestProviderErrorHandling:
         try:
             with pytest.raises(AIError) as exc_info:
                 messages = [{"role": "user", "content": "test prompt"}]
-                call_zai_api(model="glm-4.5-air", messages=messages, temperature=0.7, max_tokens=100)
+                call_zai_api(model="glm-4.5-air", messages=messages, temperature=1.0, max_tokens=100)
             assert "ZAI_API_KEY not found in environment variables" in str(exc_info.value)
         finally:
             if original_key:
@@ -133,7 +133,7 @@ class TestRealAPICallsAnthropic:
 
         messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
         response = call_anthropic_api(
-            model="claude-3-haiku-20240307", messages=messages, temperature=0.7, max_tokens=50
+            model="claude-3-haiku-20240307", messages=messages, temperature=1.0, max_tokens=50
         )
 
         assert response is not None
@@ -153,7 +153,7 @@ class TestRealAPICallsCerebras:
 
         messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
         try:
-            response = call_cerebras_api(model="qwen-3-coder-480b", messages=messages, temperature=0.7, max_tokens=50)
+            response = call_cerebras_api(model="qwen-3-coder-480b", messages=messages, temperature=1.0, max_tokens=50)
 
             assert response is not None
             assert isinstance(response, str)
@@ -177,7 +177,7 @@ class TestRealAPICallsGroq:
             pytest.skip("GROQ_API_KEY not set - skipping real API test")
 
         messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
-        response = call_groq_api(model="llama-3.3-70b-versatile", messages=messages, temperature=0.7, max_tokens=50)
+        response = call_groq_api(model="llama-3.3-70b-versatile", messages=messages, temperature=1.0, max_tokens=50)
 
         assert response is not None
         assert isinstance(response, str)
@@ -203,7 +203,7 @@ class TestRealAPICallsOllama:
 
         try:
             messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
-            response = call_ollama_api(model="gpt-oss:20b", messages=messages, temperature=0.7, max_tokens=50)
+            response = call_ollama_api(model="gpt-oss:20b", messages=messages, temperature=1.0, max_tokens=50)
 
             assert response is not None
             assert isinstance(response, str)
@@ -226,7 +226,7 @@ class TestRealAPICallsOpenAI:
             pytest.skip("OPENAI_API_KEY not set - skipping real API test")
 
         messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
-        response = call_openai_api(model="gpt-4.1-nano", messages=messages, temperature=0.7, max_tokens=50)
+        response = call_openai_api(model="gpt-4.1-nano", messages=messages, temperature=1.0, max_tokens=50)
 
         assert response is not None
         assert isinstance(response, str)
@@ -245,7 +245,7 @@ class TestRealAPICallsOpenRouter:
 
         messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
         try:
-            response = call_openrouter_api(model="openrouter/auto", messages=messages, temperature=0.7, max_tokens=50)
+            response = call_openrouter_api(model="openrouter/auto", messages=messages, temperature=1.0, max_tokens=50)
 
             assert response is not None
             assert isinstance(response, str)
@@ -270,7 +270,7 @@ class TestRealAPICallsZAI:
 
         messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
         try:
-            response = call_zai_api(model="glm-4.5-air", messages=messages, temperature=0.7, max_tokens=50)
+            response = call_zai_api(model="glm-4.5-air", messages=messages, temperature=1.0, max_tokens=50)
 
             assert response is not None
             assert isinstance(response, str)
