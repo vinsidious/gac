@@ -216,7 +216,7 @@ class TestGenerateCommitMessage:
         ]
 
         # Test with retries
-        result = generate_commit_message(model="openai:gpt-4", prompt="test", max_retries=3, quiet=True)
+        result = generate_commit_message(model="openai:gpt-4.1-mini", prompt="test", max_retries=3, quiet=True)
 
         assert result == "feat: Success after retries"
         assert mock_openai_api.call_count == 3
@@ -235,7 +235,7 @@ class TestGenerateCommitMessage:
 
         # Test max retries exceeded
         with pytest.raises(AIError) as exc_info:
-            generate_commit_message(model="openai:gpt-4", prompt="test", max_retries=2, quiet=True)
+            generate_commit_message(model="openai:gpt-4.1-mini", prompt="test", max_retries=2, quiet=True)
 
         assert "Failed to generate commit message after 2 attempts" in str(exc_info.value)
         assert mock_openai_api.call_count == 2
@@ -247,7 +247,7 @@ class TestGenerateCommitMessage:
 
         # Test authentication error
         with pytest.raises(AIError) as exc_info:
-            generate_commit_message(model="openai:gpt-4", prompt="test", max_retries=1, quiet=True)
+            generate_commit_message(model="openai:gpt-4.1-mini", prompt="test", max_retries=1, quiet=True)
 
         assert exc_info.value.error_type == "authentication"
 
@@ -258,7 +258,7 @@ class TestGenerateCommitMessage:
 
         # Test rate limit error
         with pytest.raises(AIError) as exc_info:
-            generate_commit_message(model="openai:gpt-4", prompt="test", max_retries=1, quiet=True)
+            generate_commit_message(model="openai:gpt-4.1-mini", prompt="test", max_retries=1, quiet=True)
 
         assert exc_info.value.error_type == "rate_limit"
 
@@ -269,7 +269,7 @@ class TestGenerateCommitMessage:
 
         # Test timeout error
         with pytest.raises(AIError) as exc_info:
-            generate_commit_message(model="openai:gpt-4", prompt="test", max_retries=1, quiet=True)
+            generate_commit_message(model="openai:gpt-4.1-mini", prompt="test", max_retries=1, quiet=True)
 
         assert exc_info.value.error_type == "timeout"
 
@@ -280,7 +280,7 @@ class TestGenerateCommitMessage:
 
         # Test connection error
         with pytest.raises(AIError) as exc_info:
-            generate_commit_message(model="openai:gpt-4", prompt="test", max_retries=1, quiet=True)
+            generate_commit_message(model="openai:gpt-4.1-mini", prompt="test", max_retries=1, quiet=True)
 
         assert exc_info.value.error_type == "connection"
 
@@ -291,7 +291,7 @@ class TestGenerateCommitMessage:
 
         # Test model error
         with pytest.raises(AIError) as exc_info:
-            generate_commit_message(model="openai:gpt-4", prompt="test", max_retries=1, quiet=True)
+            generate_commit_message(model="openai:gpt-4.1-mini", prompt="test", max_retries=1, quiet=True)
 
         assert exc_info.value.error_type == "model"
 
@@ -302,7 +302,7 @@ class TestGenerateCommitMessage:
 
         # Test unknown error
         with pytest.raises(AIError) as exc_info:
-            generate_commit_message(model="openai:gpt-4", prompt="test", max_retries=1, quiet=True)
+            generate_commit_message(model="openai:gpt-4.1-mini", prompt="test", max_retries=1, quiet=True)
 
         assert exc_info.value.error_type == "unknown"
 
@@ -311,7 +311,7 @@ class TestGenerateCommitMessage:
         """Test handling of normal response format."""
         mock_openai_api.return_value = "Alternative response format"
 
-        result = generate_commit_message(model="openai:gpt-4", prompt="test", quiet=True)
+        result = generate_commit_message(model="openai:gpt-4.1-mini", prompt="test", quiet=True)
 
         assert result == "Alternative response format"
 
@@ -331,7 +331,7 @@ class TestGenerateCommitMessage:
         ]
 
         # Test with spinner and retry
-        result = generate_commit_message(model="openai:gpt-4", prompt="test", max_retries=2, quiet=False)
+        result = generate_commit_message(model="openai:gpt-4.1-mini", prompt="test", max_retries=2, quiet=False)
 
         assert result == "Success"
 
@@ -355,7 +355,7 @@ class TestGenerateCommitMessage:
 
         # Test failure with spinner
         with pytest.raises(AIError):
-            generate_commit_message(model="openai:gpt-4", prompt="test", max_retries=1, quiet=False)
+            generate_commit_message(model="openai:gpt-4.1-mini", prompt="test", max_retries=1, quiet=False)
 
         # Verify spinner showed failure
-        mock_spinner.fail.assert_called_once_with("Failed to generate commit message with openai gpt-4")
+        mock_spinner.fail.assert_called_once_with("Failed to generate commit message with openai gpt-4.1-mini")
