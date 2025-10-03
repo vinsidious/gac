@@ -99,7 +99,9 @@ class TestProviderErrorHandling:
         try:
             with pytest.raises(AIError) as exc_info:
                 messages = [{"role": "user", "content": "test prompt"}]
-                call_openrouter_api(model="openrouter/auto", messages=messages, temperature=1.0, max_tokens=100)
+                call_openrouter_api(
+                    model="mistralai/mistral-7b-instruct", messages=messages, temperature=1.0, max_tokens=100
+                )
             assert "OPENROUTER_API_KEY environment variable not set" in str(exc_info.value)
         finally:
             if original_key:
@@ -245,16 +247,27 @@ class TestRealAPICallsOpenRouter:
 
         messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
         try:
-            response = call_openrouter_api(model="openrouter/auto", messages=messages, temperature=1.0, max_tokens=50)
+            response = call_openrouter_api(
+                model="mistralai/mistral-7b-instruct", messages=messages, temperature=1.0, max_tokens=50
+            )
 
             assert response is not None
             assert isinstance(response, str)
             assert len(response) > 0
         except AIError as e:
-            # If we get an auth error, skip the test rather than fail
+            # If we get an auth error, rate limit error, or service unavailable error, skip the test rather than fail
             error_str = str(e).lower()
             if "401" in error_str or "unauthorized" in error_str or "auth" in error_str:
                 pytest.skip(f"OpenRouter API authentication failed - skipping real API test: {e}")
+            elif "429" in error_str or "rate limit" in error_str:
+                pytest.skip(f"OpenRouter API rate limit exceeded - skipping real API test: {e}")
+            elif (
+                "502" in error_str
+                or "503" in error_str
+                or "service unavailable" in error_str
+                or "connection error" in error_str
+            ):
+                pytest.skip(f"OpenRouter API service unavailable - skipping real API test: {e}")
             raise
 
 

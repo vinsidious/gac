@@ -32,6 +32,20 @@ def call_openrouter_api(model: str, messages: list[dict], temperature: float, ma
         response_data = response.json()
         return response_data["choices"][0]["message"]["content"]
     except httpx.HTTPStatusError as e:
-        raise AIError.model_error(f"OpenRouter API error: {e.response.status_code} - {e.response.text}") from e
+        # Handle specific HTTP status codes
+        status_code = e.response.status_code
+        error_text = e.response.text
+
+        # Rate limiting
+        if status_code == 429:
+            raise AIError.rate_limit_error(f"OpenRouter API rate limit exceeded: {error_text}") from e
+        # Service unavailable
+        elif status_code in (502, 503):
+            raise AIError.connection_error(f"OpenRouter API service unavailable: {status_code} - {error_text}") from e
+        # Other HTTP errors
+        else:
+            raise AIError.model_error(f"OpenRouter API error: {status_code} - {error_text}") from e
+    except httpx.ConnectError as e:
+        raise AIError.connection_error(f"OpenRouter API connection error: {str(e)}") from e
     except Exception as e:
         raise AIError.model_error(f"Error calling OpenRouter API: {str(e)}") from e

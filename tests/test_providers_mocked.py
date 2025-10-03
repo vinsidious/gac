@@ -114,7 +114,9 @@ class TestProviderHttpxCalls:
 
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
             messages = [{"role": "user", "content": "Generate a commit message"}]
-            result = call_openrouter_api(model="openrouter/auto", messages=messages, temperature=0.7, max_tokens=100)
+            result = call_openrouter_api(
+                model="mistralai/mistral-7b-instruct", messages=messages, temperature=0.7, max_tokens=100
+            )
 
             assert result == "feat: Add new feature"
             mock_post.assert_called_once()
