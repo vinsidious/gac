@@ -35,6 +35,8 @@ def load_config() -> dict[str, str | int | float | bool]:
         "warning_limit_tokens": int(os.getenv("GAC_WARNING_LIMIT_TOKENS", EnvDefaults.WARNING_LIMIT_TOKENS)),
         "always_include_scope": os.getenv("GAC_ALWAYS_INCLUDE_SCOPE", str(EnvDefaults.ALWAYS_INCLUDE_SCOPE)).lower()
         in ("true", "1", "yes", "on"),
+        "skip_secret_scan": os.getenv("GAC_SKIP_SECRET_SCAN", str(EnvDefaults.SKIP_SECRET_SCAN)).lower()
+        in ("true", "1", "yes", "on"),
     }
 
     return config

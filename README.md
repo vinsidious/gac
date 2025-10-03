@@ -20,6 +20,7 @@
 - **Streamlined Workflow Commands:** Boost your productivity with convenient options to stage all changes (`-a`), auto-confirm commits (`-y`), and push to your remote repository (`-p`) in a single step.
 - **Interactive Reroll with Feedback:** Not satisfied with the generated commit message? Use `r` for a simple regeneration, or `r <feedback>` to provide specific improvement suggestions (e.g., `r make it shorter`, `r focus on the bug fix`).
 - **Token Usage Tracking:** Display token consumption statistics (prompt, completion, and total tokens).
+- **Security Scanner:** Built-in detection of secrets and API keys in staged changes to prevent accidental commits of sensitive information.
 
 ## How It Works
 
@@ -158,6 +159,30 @@ Once installed and configured, using `gac` is straightforward:
 - Add a hint for the AI: `gac -h "Fixed the authentication bug"`
 - Push the commit (requires accepting the commit message): `gac -p`
 - Advanced usage: Add all, auto-confirm, push a one-liner with a hint: `gac -aypo -h "update for release"`
+- Skip security scan: `gac --skip-secret-scan` (use with caution)
+
+### Security Features
+
+GAC includes a built-in security scanner to prevent accidental commits of sensitive information:
+
+- **Automatic Scanning**: By default, scans all staged changes for potential secrets and API keys
+- **Interactive Protection**: When secrets are detected, you can:
+  - Abort the commit (recommended)
+  - Continue anyway (not recommended)
+  - Remove affected files and continue
+- **Wide Coverage**: Detects AWS keys, GitHub tokens, OpenAI API keys, database URLs, private keys, and more
+- **Smart Filtering**: Ignores example keys, placeholders, and test values to reduce false positives
+
+To disable the security scan (not recommended unless you know what you're doing):
+
+```sh
+# Skip scan for one command
+gac --skip-secret-scan
+
+# Or disable via environment variable
+export GAC_SKIP_SECRET_SCAN=true
+gac
+```
 
 For a full list of CLI flags, advanced options, and example workflows, see [USAGE.md](USAGE.md).
 

@@ -23,6 +23,7 @@ from gac.git import (
 )
 from gac.preprocess import preprocess_diff
 from gac.prompt import build_prompt, clean_commit_message
+from gac.security import get_affected_files, scan_staged_diff
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,7 @@ def main(
     quiet: bool = False,
     dry_run: bool = False,
     no_verify: bool = False,
+    skip_secret_scan: bool = False,
 ) -> None:
     """Main application logic for gac."""
     try:
@@ -89,6 +91,63 @@ def main(
     status = run_git_command(["status"])
     diff = run_git_command(["diff", "--staged"])
     diff_stat = " " + run_git_command(["diff", "--stat", "--cached"])
+
+    # Security scan for secrets
+    if not skip_secret_scan:
+        logger.info("Scanning staged changes for potential secrets...")
+        secrets = scan_staged_diff(diff)
+        if secrets:
+            console = Console()
+            console.print("\n[red bold]⚠️  SECURITY WARNING: Potential secrets detected![/red bold]")
+            console.print("[red]The following sensitive information was found in your staged changes:[/red]\n")
+
+            for secret in secrets:
+                location = f"{secret.file_path}:{secret.line_number}" if secret.line_number else secret.file_path
+                console.print(f"  • [yellow]{secret.secret_type}[/yellow] in [cyan]{location}[/cyan]")
+                console.print(f"    Match: [dim]{secret.matched_text}[/dim]\n")
+
+            console.print("[bold]Options:[/bold]")
+            console.print("  [A] Abort commit (recommended)")
+            console.print("  [C] Continue anyway (not recommended)")
+            console.print("  [R] Remove affected file(s) and continue")
+
+            while True:
+                try:
+                    choice = input("\nChoose an option [A/C/R]: ").strip().upper()
+                    if choice in ("A", "C", "R"):
+                        break
+                    console.print("[red]Invalid choice. Please enter A, C, or R.[/red]")
+                except (EOFError, KeyboardInterrupt):
+                    console.print("\n[red]Aborted by user.[/red]")
+                    sys.exit(0)
+
+            if choice == "A":
+                console.print("[yellow]Commit aborted to protect sensitive information.[/yellow]")
+                sys.exit(0)
+            elif choice == "C":
+                console.print("[yellow]⚠️  Continuing with potential secrets in commit...[/yellow]")
+                logger.warning("User chose to continue despite detected secrets")
+            elif choice == "R":
+                affected_files = get_affected_files(secrets)
+                for file_path in affected_files:
+                    try:
+                        run_git_command(["reset", "HEAD", file_path])
+                        console.print(f"[green]Unstaged: {file_path}[/green]")
+                    except Exception as e:
+                        console.print(f"[red]Failed to unstage {file_path}: {e}[/red]")
+
+                # Check if there are still staged files
+                remaining_staged = get_staged_files(existing_only=False)
+                if not remaining_staged:
+                    console.print("[yellow]No files remain staged. Commit aborted.[/yellow]")
+                    sys.exit(0)
+
+                console.print(f"[green]Continuing with {len(remaining_staged)} staged file(s)...[/green]")
+                # Refresh diff after removing files
+                diff = run_git_command(["diff", "--staged"])
+                diff_stat = " " + run_git_command(["diff", "--stat", "--cached"])
+        else:
+            logger.info("No secrets detected in staged changes")
 
     # Preprocess the diff before passing to build_prompt
     logger.debug(f"Preprocessing diff ({len(diff)} characters)")

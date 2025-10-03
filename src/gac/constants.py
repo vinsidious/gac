@@ -24,6 +24,7 @@ class EnvDefaults:
     MAX_OUTPUT_TOKENS: int = 512
     WARNING_LIMIT_TOKENS: int = 16384
     ALWAYS_INCLUDE_SCOPE: bool = False
+    SKIP_SECRET_SCAN: bool = False
 
 
 class Logging:

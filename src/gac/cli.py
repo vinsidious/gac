@@ -54,6 +54,7 @@ logger = logging.getLogger(__name__)
 )
 # Advanced options
 @click.option("--no-verify", is_flag=True, help="Skip pre-commit hooks when committing")
+@click.option("--skip-secret-scan", is_flag=True, help="Skip security scan for secrets in staged changes")
 # Other options
 @click.option("--version", is_flag=True, help="Show the version of the Git Auto Commit (gac) tool")
 @click.pass_context
@@ -73,6 +74,7 @@ def cli(
     dry_run: bool = False,
     verbose: bool = False,
     no_verify: bool = False,
+    skip_secret_scan: bool = False,
 ) -> None:
     """Git Auto Commit - Generate commit messages with AI."""
     if ctx.invoked_subcommand is None:
@@ -103,6 +105,7 @@ def cli(
                 quiet=quiet,
                 dry_run=dry_run,
                 no_verify=no_verify,
+                skip_secret_scan=skip_secret_scan or bool(config.get("skip_secret_scan", False)),
             )
         except Exception as e:
             handle_error(e, exit_program=True)
@@ -125,6 +128,7 @@ def cli(
             "dry_run": dry_run,
             "verbose": verbose,
             "no_verify": no_verify,
+            "skip_secret_scan": skip_secret_scan,
         }
 
 

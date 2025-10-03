@@ -107,6 +107,12 @@ class FormattingError(GacError):
     exit_code = 5
 
 
+class SecurityError(GacError):
+    """Error related to security issues (e.g., detected secrets)."""
+
+    exit_code = 6
+
+
 # Simplified error hierarchy - we use a single AIError class with error codes
 # instead of multiple subclasses for better maintainability
 
@@ -135,6 +141,8 @@ def handle_error(error: Exception, exit_program: bool = False, quiet: bool = Fal
         logger.error("Git operation failed. Please check your repository status.")
     elif isinstance(error, AIError):
         logger.error("AI operation failed. Please check your configuration and API keys.")
+    elif isinstance(error, SecurityError):
+        logger.error("Security scan detected potential secrets in staged changes.")
     else:
         logger.error("An unexpected error occurred.")
 
@@ -175,6 +183,7 @@ def format_error_for_user(error: Exception) -> str:
         ConfigError: "Please check your configuration settings.",
         GitError: "Please ensure Git is installed and you're in a valid Git repository.",
         FormattingError: "Please check that required formatters are installed.",
+        SecurityError: "Please remove or secure any detected secrets before committing.",
     }
 
     # Generic remediation for unexpected errors
