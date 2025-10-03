@@ -97,9 +97,8 @@ def main(
         logger.info("Scanning staged changes for potential secrets...")
         secrets = scan_staged_diff(diff)
         if secrets:
-            console = Console()
             if not quiet:
-                console.print("\n[red bold]⚠️  SECURITY WARNING: Potential secrets detected![/red bold]")
+                console.print("\n[bold red]⚠️  SECURITY WARNING: Potential secrets detected![/bold red]")
                 console.print("[red]The following sensitive information was found in your staged changes:[/red]\n")
 
             for secret in secrets:
@@ -110,33 +109,33 @@ def main(
 
             if not quiet:
                 console.print("[bold]Options:[/bold]")
-                console.print("  [A] Abort commit (recommended)")
-                console.print("  [C] Continue anyway (not recommended)")
-                console.print("  [R] Remove affected file(s) and continue")
+                console.print("  [a] Abort commit (recommended)")
+                console.print("  [c] Continue anyway (not recommended)")
+                console.print("  [r] Remove affected file(s) and continue")
 
             try:
                 choice = (
                     click.prompt(
                         "\nChoose an option",
-                        type=click.Choice(["A", "C", "R"], case_sensitive=False),
-                        default="A",
+                        type=click.Choice(["a", "c", "r"], case_sensitive=False),
+                        default="a",
                         show_choices=True,
                         show_default=True,
                     )
                     .strip()
-                    .upper()
+                    .lower()
                 )
             except (EOFError, KeyboardInterrupt):
                 console.print("\n[red]Aborted by user.[/red]")
                 sys.exit(0)
 
-            if choice == "A":
-                console.print("[yellow]Commit aborted to protect sensitive information.[/yellow]")
+            if choice == "a":
+                console.print("[yellow]Commit aborted.[/yellow]")
                 sys.exit(0)
-            elif choice == "C":
-                console.print("[yellow]⚠️  Continuing with potential secrets in commit...[/yellow]")
+            elif choice == "c":
+                console.print("[bold yellow]⚠️  Continuing with potential secrets in commit...[/bold yellow]")
                 logger.warning("User chose to continue despite detected secrets")
-            elif choice == "R":
+            elif choice == "r":
                 affected_files = get_affected_files(secrets)
                 for file_path in affected_files:
                     try:
