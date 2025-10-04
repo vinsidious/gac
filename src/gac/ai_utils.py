@@ -93,7 +93,7 @@ def generate_with_retries(
     provider, model_name = model.split(":", 1)
 
     # Validate provider
-    supported_providers = ["anthropic", "openai", "groq", "cerebras", "ollama", "openrouter"]
+    supported_providers = ["anthropic", "openai", "groq", "cerebras", "ollama", "openrouter", "zai"]
     if provider not in supported_providers:
         raise AIError.model_error(f"Unsupported provider: {provider}. Supported providers: {supported_providers}")
 
