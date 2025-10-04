@@ -45,4 +45,14 @@ def init() -> None:
         set_key(str(GAC_ENV_PATH), f"{provider_key.upper()}_API_KEY", api_key)
         click.echo(f"Set {provider_key.upper()}_API_KEY (hidden)")
 
+    # Ask about ZAI coding plan if Z.AI provider was selected
+    if provider_key == "zai":
+        use_coding_api = questionary.confirm(
+            "Are you using a Z.AI coding plan? (uses different API endpoint)",
+            default=False,
+        ).ask()
+        if use_coding_api:
+            set_key(str(GAC_ENV_PATH), "GAC_ZAI_USE_CODING_PLAN", "true")
+            click.echo("Set GAC_ZAI_USE_CODING_PLAN=true")
+
     click.echo(f"\ngac environment setup complete. You can edit {GAC_ENV_PATH} to update values later.")

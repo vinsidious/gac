@@ -13,7 +13,13 @@ def call_zai_api(model: str, messages: list[dict], temperature: float, max_token
     if not api_key:
         raise AIError.model_error("ZAI_API_KEY not found in environment variables")
 
-    url = "https://api.z.ai/api/paas/v4/chat/completions"
+    # Support both regular and coding API endpoints
+    use_coding_api = os.getenv("GAC_ZAI_USE_CODING_PLAN", "false").lower() in ("true", "1", "yes", "on")
+    if use_coding_api:
+        url = "https://api.z.ai/api/coding/paas/v4/chat/completions"
+    else:
+        url = "https://api.z.ai/api/paas/v4/chat/completions"
+
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
     data = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}

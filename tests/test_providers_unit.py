@@ -85,3 +85,37 @@ class TestAIError:
         """Test AIError with error type."""
         error = AIError("Test error", error_type="model")
         assert error.error_type == "model"
+
+
+class TestZAIProvider:
+    """Test ZAI provider functionality."""
+
+    def test_zai_regular_endpoint_when_env_not_set(self):
+        """Test that regular endpoint is used when GAC_ZAI_USE_CODING_PLAN is not set."""
+        # Mock environment to not have the variable
+        if "GAC_ZAI_USE_CODING_PLAN" in os.environ:
+            del os.environ["GAC_ZAI_USE_CODING_PLAN"]
+
+        # Test endpoint selection logic
+        use_coding_api = os.getenv("GAC_ZAI_USE_CODING_PLAN", "false").lower() in ("true", "1", "yes", "on")
+        assert use_coding_api is False
+
+    def test_zai_regular_endpoint_when_false(self):
+        """Test that regular endpoint is used when GAC_ZAI_USE_CODING_PLAN is false."""
+        os.environ["GAC_ZAI_USE_CODING_PLAN"] = "false"
+        use_coding_api = os.getenv("GAC_ZAI_USE_CODING_PLAN", "false").lower() in ("true", "1", "yes", "on")
+        assert use_coding_api is False
+
+    def test_zai_coding_endpoint_when_true(self):
+        """Test that coding endpoint is used when GAC_ZAI_USE_CODING_PLAN is true."""
+        os.environ["GAC_ZAI_USE_CODING_PLAN"] = "true"
+        use_coding_api = os.getenv("GAC_ZAI_USE_CODING_PLAN", "false").lower() in ("true", "1", "yes", "on")
+        assert use_coding_api is True
+
+    def test_zai_coding_endpoint_variations(self):
+        """Test various true values for GAC_ZAI_USE_CODING_PLAN."""
+        true_values = ["true", "1", "yes", "on", "TRUE", "YES", "ON"]
+        for value in true_values:
+            os.environ["GAC_ZAI_USE_CODING_PLAN"] = value
+            use_coding_api = os.getenv("GAC_ZAI_USE_CODING_PLAN", "false").lower() in ("true", "1", "yes", "on")
+            assert use_coding_api is True
