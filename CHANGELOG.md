@@ -7,31 +7,186 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
 ## [1.3.0] - 2025-10-03
+
+### Added
+
+- Support for Z.AI coding API endpoint with new environment variable configuration
+- Built-in security scanner to detect secrets and API keys in staged changes
+- CLI option to skip security scanning (--skip-secret-scan)
+- Enhanced secret pattern matching including access_key and secret_key detection
+
+### Changed
+
+- Refactor core console initialization to global level and improve option display formatting
+- Update OpenRouter provider with better error handling for rate limits and service unavailability
+- Modify security scanning to use click.prompt for improved CLI interaction
+- Improve diff section parsing with proper git diff structure validation
+
+### Fixed
+
+- Security warning styling and user choice handling for better readability
+- Line number tracking accuracy in diff parsing by handling context lines properly
+
+### Security
+
+- Enhance staged file security scanning with AI-powered secret detection
+- Expand false positive filtering to include example environment files and documentation
+- Add configurable blocking or warning options for secret detection
+- Implement interactive remediation choices when secrets are detected
 
 ## [1.2.6] - 2025-10-01
 
+### Changed
+
+- Refactor provider test suite into three distinct categories: unit, mocked HTTP, and integration tests
+- Update Makefile with new targets for running specific provider test categories
+- Revise AGENTS.md documentation to reflect new provider testing organization
+
+### Removed
+
+- Obsolete test files `test_ai_providers_simple.py` and `test_ai_providers_unit.py` after test reorganization
+
 ## [1.2.5] - 2025-10-01
+
+### Added
+
+- Add Z.AI as a new AI provider for commit message generation
+- Support ZAI_API_KEY environment variable in .gac.env.example
+- Include Z.AI in the list of supported AI providers in README.md
+- Implement call_zai_api function for Z.AI model integration
 
 ## [1.2.4] - 2025-09-29
 
+### Added
+
+- Comprehensive AI provider integration tests for OpenAI, Anthropic, OpenRouter, Groq, Cerebras, and Ollama
+- New Makefile targets: `test-providers` and `test-all` for running provider integration tests
+- Pytest markers and configuration to manage provider integration test execution
+
+### Changed
+
+- Default test execution now excludes provider integration tests to avoid API usage during development
+- Contribution documentation updated with instructions for running provider integration tests
+- Test suite configuration to skip provider tests unless explicitly requested
+
 ## [1.2.3] - 2025-09-28
+
+### Fixed
+
+- Correct OpenAI API parameter name from `max_tokens` to `max_completion_tokens` to resolve token limit issues
 
 ## [1.2.2] - 2025-09-28
 
+### Removed
+
+- Remove optional OpenRouter site URL and name headers (BREAKING: drops support for OPENROUTER_SITE_URL and OPENROUTER_SITE_NAME environment variables)
+- Remove commented configuration examples for OpenRouter site-specific headers from README
+
+### Changed
+
+- Refactor OpenRouter API call to simplify header handling by removing conditional logic for optional headers
+- Update test case to reflect simplified OpenRouter API call without optional headers
+
 ## [1.2.1] - 2025-09-28
+
+### Changed
+
+- Refactor AI generation logic to improve reliability and error handling
+- Enhance token counting with better fallback mechanisms and remove provider-specific implementations
+- Improve error classification and propagation in AI generation retries
+- Update test suite to align with unified AI generation API approach
+
+### Removed
+
+- Deprecated Anthropic token counting implementation and associated API calls
+- Legacy AI provider test functions in favor of new call\_\*\_api methods
+
+### Fixed
+
+- Resolve issue where AIError exceptions were not properly re-raised during commit message generation
+- Address empty or None content responses from AI models with clearer error messaging
+- Correct httpx mocking approach in provider tests to patch direct post calls
 
 ## [1.2.0] - 2025-09-28
 
-## [1.1.0] - 2025-09-26
+### Changed
+
+- Refactor AI provider architecture to consolidate calls and centralize retry logic
+- Update all AI provider modules to expose unified `call_*_api` functions
+- Replace individual provider retry and spinner implementations with centralized `generate_with_retries` utility
+- Modify `ai.generate_commit_message` to support both tuple and string prompt formats
+- Simplify imports across provider modules and `ai.py` to use new call functions interface
+- Adjust tests to import `AIError` directly from errors module
+
+### Removed
+
+- Legacy retry and spinner code duplicated across individual AI provider implementations
+- Direct generate function imports from provider modules in main `__init__.py` file
+
+## [1.1.0] - 2025-09-27
+
+### Added
+
+- Support for OpenRouter provider in commit message generation
+- New AI error handling class (AIError) in errors module
+
+### Changed
+
+- Refactor AI providers into modular architecture with individual provider modules
+- Centralize prettier command version in Makefile for consistent usage
+- Update README documentation to include OpenRouter configuration details
+
+### Removed
+
+- Monolithic ai_providers.py file in favor of provider-specific modules
 
 ## [1.0.1] - 2025-09-26
 
+### Added
+
+- Implement Anthropic token counting via HTTP API with fallback to heuristic estimation
+- Add new helper function `anthropic_count_tokens` for API-based token counting
+- Include comprehensive tests for Anthropic token counting scenarios
+- Use httpx for HTTP requests instead of direct anthropic SDK usage
+
+### Changed
+
+- Update `count_tokens` to delegate Anthropic counting to helper function
+- Add proper error handling and logging for Anthropic API failures
+
 ## [1.0.0] - 2025-09-26
 
+### Added
+
+- Implement direct API calls to AI providers (OpenAI, Anthropic, Groq, Cerebras, Ollama) using httpx
+- Add Anthropic SDK dependency for token counting functionality
+- Introduce repository guidelines document (AGENTS.md) covering project structure, development workflow, coding style, testing, and commit conventions
+
+### Changed
+
+- Replace aisuite library abstraction with direct HTTP API calls for improved reliability and reduced dependencies
+- Refactor test structure to validate API key handling per AI provider and improve validation coverage
+- Update markdownlint configuration to disable line length enforcement
+- Modify generate_commit_message tests to use httpx client mocks
+- Adjust parameter passing in AI tests to match new positional arguments
+- Consolidate error classification tests into ai_providers_unit module
+
+### Removed
+
+- Remove aisuite dependency and all associated abstraction layer code
+- Remove redundant mock setup and streamline test dependencies in AI provider tests
+- Remove unused helper function tests from ai_providers_simple module
+- Remove monolithic provider file structure in favor of direct API implementations
+
 ## [0.19.1] - 2025-09-22
+
+### Changed
+
+- Upgrade all AI provider SDKs to latest stable versions for improved functionality and performance
+- Pin cerebras_cloud_sdk to v1.49.0 for enhanced stability
+- Update pydantic to v2.11.9 for better data validation capabilities
+- Refresh core dependencies including click, rich, and python-dotenv for improved CLI experience and formatting
 
 ## [0.19.0] - 2025-05-15
 
@@ -82,12 +237,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 
 - **Token Counting for Anthropic Models**: Improved accuracy and reliability
+
   - Updated to use Anthropic's new beta token counting API for precise token counts
   - Added proper model name extraction from provider-prefixed model strings
   - Implemented fallback estimation when API is unavailable
   - Fixed deprecated `Client().count_tokens()` usage
-
-### Added
 
 - **Comprehensive Test Coverage**: Expanded test suite for AI module
   - Added extensive tests for `generate_commit_message()` function
@@ -96,6 +250,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Added tests for both string and tuple prompt formats
   - Added tests for spinner integration in non-quiet mode
   - Improved test coverage for edge cases and error scenarios
+
+## [0.17.7] - 2025-09-15
+
+### Added
+
+- Improve Anthropic token counting with dynamic model detection and beta API integration
+
+## [0.17.6] - 2025-09-15
+
+### Fixed
+
+- Update Anthropic token counting method to use the correct client initialization and provide rough estimates for newer models
+
+## [0.17.5] - 2025-09-14
+
+### Added
+
+- Support for dual-prompt system architecture with separate system and user prompt components
+- Comprehensive AI module tests including error handling and various content type validation
+- Enhanced CI/CD workflows with matrix strategy for multi-version Python testing
+
+### Changed
+
+- Refactor AI generation to handle new prompt tuple format while maintaining backward compatibility
+- Modernize CI/CD workflows by splitting quality job into lint/test jobs and using uv for dependency management
+- Update bumpversion configuration from cfg to toml format
+- Improve version bump safety checks with robust git status validation
+- Replace grep/cut version extraction with python regex for reliability
+- Modify token counting to account for both system and user prompts with fallback character-based estimation
+
+### Removed
+
+- Monolithic prompt generation file structure
+- Redundant test uploads and coverage reports for Python versions other than 3.11
+- Legacy pip-based dependency installation in CI/CD workflows
+- .bumpversion.cfg configuration file
 
 ## [0.17.4] - 2025-09-14
 
@@ -220,6 +410,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Works correctly with any git merge strategy (squash, merge commit, rebase)
   - Ensures version consistency across both configuration files
 
+## [0.16.1] - 2025-09-14
+
+### Changed
+
+- Bump version to 0.16.1 for minor release updates
+
 ## [v0.16.0] - 2025-09-14
 
 ### Added
@@ -256,6 +452,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Error Handling**: Fixed console initialization in AIError exception handler
   - Console is now properly initialized when catching AIError exceptions
   - Prevents "console not defined" errors during error handling
+
+## [0.15.4] - 2025-09-14
+
+### Added
+
+- Quick try instructions using uvx for testing gac without permanent installation
+
+### Changed
+
+- Simplify installation command to use 'pipx install gac' instead of GitHub repository URL
+- Update README title to "Git Auto Commit (gac)" for improved readability
+- Reorder README badges to prioritize build status and code coverage metrics
+- Modify pyproject.toml build configuration to properly include source files
+
+## [0.15.1] - 2025-09-14
+
+### Changed
+
+- Bump version to 0.15.1 for minor release update
 
 ## [v0.15.0] - 2025-06-08
 
@@ -487,6 +702,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Corrected links to documentation files in README.md
 - Enhanced error handling in preview functionality for invalid git refs
 
+## [0.12.0] - 2025-05-07
+
+### Added
+
+- Add `preview` CLI command for generating commit message previews based on git diffs
+- Implement diff comparison logic for commit message generation
+- Create `preview_cli.py` module to handle preview command functionality
+- Add `test_gac_preview.sh` integration test script for GAC preview feature
+
+### Changed
+
+- Refactor documentation files into dedicated `docs/` directory for better organization
+- Update README.md links to point to new documentation file locations
+- Improve installation instructions with direct pipx install commands and verification steps
+- Enhance CLI test coverage to include preview command error handling scenarios
+
+### Removed
+
+- Remove codecov configuration file to declutter repository
+- Eliminate redundant documentation files from root directory after reorganization
+
 ## [v0.11.0] - 2025-04-18
 
 ### Added
@@ -624,6 +860,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Improved lint and format commands with silent logging and check modes
 
+## [0.7.5] - 2025-04-14
+
+### Added
+
+- Confirmation prompt before committing to ensure user intent
+- Enhanced dry run mode with detailed commit information including file count
+
+### Changed
+
+- Improve display format of generated commit messages using Console and Panel classes
+- Refactor commit process code for better readability and maintainability
+- Update logging messages to be more informative throughout the commit workflow
+
+### Fixed
+
+- Handle cases where no changes are staged or unstaged by providing clear feedback and exiting early
+
+## [0.7.4] - 2025-04-13
+
+### Added
+
+- Branch coverage configuration for more accurate code coverage reporting
+
+### Changed
+
+- Update code coverage settings to include subdirectories and exclude specific lines
+- Modify Flake8 configuration to allow longer line lengths
+
+### Removed
+
+- Redundant bump-my-version configuration from pyproject.toml
+- Unnecessary version update configuration for pyproject.toml file
+
+## [0.7.3] - 2025-04-13
+
+### Changed
+
+- Standardize error handling and logging across the application
+- Remove redundant quiet mode in favor of logging levels
+- Update version configuration to use `__version__.py` instead of `__about__.py`
+
+### Removed
+
+- `src/gac/__about__.py` file in favor of centralized version management
+
+### Fixed
+
+- Update default Groq model identifier in example environment file
+- Improve error messages and user feedback for Git and AI operations
+
 ## [0.7.2] - 2025-04-13
 
 ### Added
@@ -685,6 +971,62 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Enhanced error handling
 - Improved input validation
+
+## [0.7.1] - 2025-04-07
+
+### Added
+
+- Add configuration environment file with default model settings
+- Include detailed configuration documentation in installation guide
+- Support fallback model configuration in README
+
+### Changed
+
+- Refactor configuration loading to use functional approach
+- Update project configuration files to enforce 120 character line length
+- Modify release workflow to use semantic versioning and github.ref_name
+- Improve error handling and validation in configuration management
+- Update README documentation with new features and configurations
+- Migrate from markdownlint.yaml to markdownlint-cli2.yaml
+
+### Removed
+
+- Remove complex configuration management logic
+- Delete non-existent config wizard references
+- Remove unnecessary documentation and test files
+- Remove mocking for get_encoding and count_tokens functions in tests
+- Delete old markdownlint configuration file
+
+## [0.7.0] - 2025-04-06
+
+### Added
+
+- Support for Ollama AI provider with environment variable management through python-dotenv integration
+- Multi-level configuration system supporting environment variables, project-level, user-level, and package-level config files
+- Backup AI model functionality with configurable fallback models
+- Example model configuration files for major AI providers (Anthropic, OpenAI, Groq, Mistral, Ollama)
+
+### Changed
+
+- Refactor AI-related functionality into consolidated modules with improved error handling
+- Simplify main application logic by separating CLI argument parsing from core workflow
+- Update line length limit for code formatting from 100 to 120 characters
+- Replace multiple AI error subclasses with unified AIError class using error codes
+- Enhance configuration wizard to support manual model input and selectable save locations
+- Improve commit message generation retry logic and error propagation
+
+### Removed
+
+- Obsolete documentation files (CHANGES.md, DEVELOPMENT.md, REFACTORING.md)
+- Deprecated model update script and related README documentation
+- Unused demo script and redundant test files
+- get_staged_diff() function from git module
+- Test mode simulation logic from subprocess handling
+
+### Fixed
+
+- Resolve issue preventing staging when in dry run mode
+- Improve remote push validation to prevent false positive status reports
 
 ## [0.6.1]
 
@@ -789,6 +1131,73 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Enhanced git integration
   - Better error handling
 
+## [0.4.2] - 2025-03-30
+
+### Added
+
+- Support for advanced token counting using tiktoken library
+- Automated nightly release workflow via GitHub Actions
+- Max input tokens configuration option with validation
+- Comprehensive test fixtures and mocking configurations
+
+### Changed
+
+- Git diff processing logic to handle large files more effectively
+- AI utility functions for more robust token estimation
+- Default maximum input token limit increased to 4096
+- Subprocess handling and error management in core functionality
+- Logging behavior and print statement usage for prompts
+- Configuration validation with improved error reporting
+
+### Removed
+
+- File counting logic from formatting functions
+- Redundant mock setup code in core tests
+
+## [0.4.1] - 2025-03-29
+
+### Changed
+
+- Update release workflow to install development dependencies and use editable pip installation mode
+
+## [0.4.0] - 2025-03-29
+
+### Added
+
+- Optional hint context support for commit message generation
+- New formatting module with dedicated code formatting functions
+- GitHub release workflow with automated version bumping and tagging
+- Changelog preparation script for release management
+- Project description feature to improve commit message context
+- Codecov test results upload to CI workflow
+
+### Changed
+
+- Refactored AI provider configuration to use fully qualified model format
+- Improved config and core module code quality and structure
+- Enhanced git staged files detection to include added, deleted, and renamed files
+- Updated version bumping process in Makefile with integrated changelog preparation
+- Replaced bumpversion with bump-my-version for version management
+- Modified core logic to support one-liner commit messages
+
+### Removed
+
+- run_tests.sh and run_tests.py scripts
+- Redundant provider-specific configuration comments from .env.example
+- Separate provider and model name configuration options
+- Auto changelog generation script call from Makefile bump target
+
+### Fixed
+
+- GAC_MAX_TOKENS validation and error handling with more descriptive messages
+- Git staging process to properly handle all file operations and check success
+- Commit prompt formatting by removing unnecessary trailing colons
+- Default max output tokens reduced from 8192 to 256 for better performance
+
+### Security
+
+- Updated CI workflow to use Python 3.13 environment
+
 ## [0.3.0]
 
 ### Added
@@ -832,5 +1241,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Improved module organization
   - Better test structure
   - Enhanced README
+
+## [0.1.0a1] - 2024-12-12
+
+### Added
+
+- Add .windsurfrules to .gitignore
+- Add .gac.env.example configuration file
+- Add .githooks/check-upstream git hook for upstream change verification
+- Add version management system with bumpversion configuration
+- Add codecov.yml for code coverage settings
+
+### Changed
+
+- Refactor subprocess handling and logging for improved clarity
+- Update pyproject.toml to include gac CLI entry point
+- Move hatch configuration from pyproject.toml to hatch.toml
+- Update VSCode settings for virtual environment path
+- Simplify logging level handling using dynamic logger.log()
+- Make verbose output the default and add --quiet flag
+
+### Removed
+
+- Remove redundant git command functions (git_status, git_diff_staged)
+- Remove .codeiumignore file
+
+### Fixed
+
+- Fix return type default in run_process() function
 
 ## [0.1.0] - Initial Release
