@@ -7,9 +7,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.1] - 2025-10-03
+## [1.4.0] - 2025-10-04
 
 ### Added
+
+- Add dedicated `zai-coding` AI provider for direct access to Z.AI coding API
+
+### Changed
+
+- Refactor Z.AI provider implementation to use shared API call logic
+- Update CLI setup flow to support explicit "Z.AI Coding" provider selection
+- Improve error messaging and test coverage for Z.AI providers
+- Simplify `call_zai_api` function to only handle regular Z.AI endpoint
+
+### Removed
+
+- Remove environment variable `GAC_ZAI_USE_CODING_PLAN` dependency for API endpoint selection
+
+## [1.3.1] - 2025-10-03
+
+### Fixed
 
 - Support for zai AI provider in the generation utilities
 
