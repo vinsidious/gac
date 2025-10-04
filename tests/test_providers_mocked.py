@@ -16,7 +16,7 @@ from gac.providers.groq import call_groq_api  # noqa: E402
 from gac.providers.ollama import call_ollama_api  # noqa: E402
 from gac.providers.openai import call_openai_api  # noqa: E402
 from gac.providers.openrouter import call_openrouter_api  # noqa: E402
-from gac.providers.zai import call_zai_api  # noqa: E402
+from gac.providers.zai import call_zai_api, call_zai_coding_api  # noqa: E402
 
 
 class TestProviderHttpxCalls:
@@ -153,3 +153,28 @@ class TestProviderHttpxCalls:
                 raise AssertionError("Should have raised an AIError")
             except Exception as e:
                 assert "empty content" in str(e)
+
+    @patch("gac.providers.zai.httpx.post")
+    def test_zai_coding_generate_with_httpx(self, mock_post):
+        """Test call_zai_coding_api makes correct HTTP request."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"choices": [{"message": {"content": "feat: add new feature"}}]}
+        mock_response.raise_for_status.return_value = None
+        mock_post.return_value = mock_response
+
+        with patch.dict(os.environ, {"ZAI_API_KEY": "test-key"}):
+            messages = [{"role": "user", "content": "Generate a commit message"}]
+            result = call_zai_coding_api(model="glm-4.5-air", messages=messages, temperature=0.7, max_tokens=100)
+
+            # Verify the correct endpoint was called
+            mock_post.assert_called_once()
+            call_args = mock_post.call_args
+            assert "coding" in call_args[0][0]  # URL should contain "coding"
+            assert call_args[1]["headers"]["Authorization"] == "Bearer test-key"
+            assert call_args[1]["json"]["model"] == "glm-4.5-air"
+            assert call_args[1]["json"]["messages"] == messages
+            assert call_args[1]["json"]["temperature"] == 0.7
+            assert call_args[1]["json"]["max_tokens"] == 100
+
+            assert result == "feat: add new feature"

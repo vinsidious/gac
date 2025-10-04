@@ -9,6 +9,8 @@ import sys
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
+import pytest  # noqa: E402
+
 import gac.ai_utils as ai_providers  # noqa: E402
 from gac.errors import AIError  # noqa: E402
 
@@ -90,32 +92,48 @@ class TestAIError:
 class TestZAIProvider:
     """Test ZAI provider functionality."""
 
-    def test_zai_regular_endpoint_when_env_not_set(self):
-        """Test that regular endpoint is used when GAC_ZAI_USE_CODING_PLAN is not set."""
-        # Mock environment to not have the variable
-        if "GAC_ZAI_USE_CODING_PLAN" in os.environ:
-            del os.environ["GAC_ZAI_USE_CODING_PLAN"]
+    def test_zai_api_import(self):
+        """Test that call_zai_api can be imported."""
+        try:
+            from gac.providers.zai import call_zai_api
 
-        # Test endpoint selection logic
-        use_coding_api = os.getenv("GAC_ZAI_USE_CODING_PLAN", "false").lower() in ("true", "1", "yes", "on")
-        assert use_coding_api is False
+            assert callable(call_zai_api)
+        except ImportError:
+            self.fail("Could not import call_zai_api")
 
-    def test_zai_regular_endpoint_when_false(self):
-        """Test that regular endpoint is used when GAC_ZAI_USE_CODING_PLAN is false."""
-        os.environ["GAC_ZAI_USE_CODING_PLAN"] = "false"
-        use_coding_api = os.getenv("GAC_ZAI_USE_CODING_PLAN", "false").lower() in ("true", "1", "yes", "on")
-        assert use_coding_api is False
+    def test_zai_api_missing_key(self):
+        """Test that zai provider raises error when API key is missing."""
+        # Mock environment to not have the API key
+        if "ZAI_API_KEY" in os.environ:
+            del os.environ["ZAI_API_KEY"]
 
-    def test_zai_coding_endpoint_when_true(self):
-        """Test that coding endpoint is used when GAC_ZAI_USE_CODING_PLAN is true."""
-        os.environ["GAC_ZAI_USE_CODING_PLAN"] = "true"
-        use_coding_api = os.getenv("GAC_ZAI_USE_CODING_PLAN", "false").lower() in ("true", "1", "yes", "on")
-        assert use_coding_api is True
+        from gac.errors import AIError
+        from gac.providers.zai import call_zai_api
 
-    def test_zai_coding_endpoint_variations(self):
-        """Test various true values for GAC_ZAI_USE_CODING_PLAN."""
-        true_values = ["true", "1", "yes", "on", "TRUE", "YES", "ON"]
-        for value in true_values:
-            os.environ["GAC_ZAI_USE_CODING_PLAN"] = value
-            use_coding_api = os.getenv("GAC_ZAI_USE_CODING_PLAN", "false").lower() in ("true", "1", "yes", "on")
-            assert use_coding_api is True
+        with pytest.raises(AIError) as exc_info:
+            call_zai_api("model", [], 0.7, 1000)
+
+        assert "ZAI_API_KEY not found in environment variables" in str(exc_info.value)
+
+    def test_zai_coding_api_import(self):
+        """Test that call_zai_coding_api can be imported."""
+        try:
+            from gac.providers.zai import call_zai_coding_api
+
+            assert callable(call_zai_coding_api)
+        except ImportError:
+            self.fail("Could not import call_zai_coding_api")
+
+    def test_zai_coding_api_missing_key(self):
+        """Test that zai-coding provider raises error when API key is missing."""
+        # Mock environment to not have the API key
+        if "ZAI_API_KEY" in os.environ:
+            del os.environ["ZAI_API_KEY"]
+
+        from gac.errors import AIError
+        from gac.providers.zai import call_zai_coding_api
+
+        with pytest.raises(AIError) as exc_info:
+            call_zai_coding_api("model", [], 0.7, 1000)
+
+        assert "ZAI_API_KEY not found in environment variables" in str(exc_info.value)
