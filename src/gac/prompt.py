@@ -235,12 +235,7 @@ def build_prompt(
     except Exception as e:
         logger.error(f"Error processing scope parameter: {e}")
         # Fallback to no scope if there's an error
-        template = re.sub(
-            r"<conventions_scope_provided>.*?</conventions_scope_provided>\n", "", template, flags=re.DOTALL
-        )
-        template = re.sub(
-            r"<conventions_scope_inferred>.*?</conventions_scope_inferred>\n", "", template, flags=re.DOTALL
-        )
+        template = re.sub(r"<conventions_with_scope>.*?</conventions_with_scope>\n", "", template, flags=re.DOTALL)
         template = template.replace("<conventions_no_scope>", "<conventions>")
         template = template.replace("</conventions_no_scope>", "</conventions>")
 

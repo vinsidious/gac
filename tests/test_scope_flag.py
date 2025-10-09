@@ -62,10 +62,9 @@ class TestScopeFlag:
 
         # Mock load_prompt_template to return a simpler template for testing that matches new structure
         mock_template = """<conventions_no_scope>no scope</conventions_no_scope>
-<conventions_scope_provided>provided scope '{scope}'</conventions_scope_provided>
-<conventions_scope_inferred>inferred scope</conventions_scope_inferred>
-<status></status>
-<diff></diff>"""
+<conventions_with_scope>inferred scope</conventions_with_scope>
+<git_status><status></status></git_status>
+<git_diff><diff></diff></git_diff>"""
         # Mock the load_prompt_template function to return our template
         monkeypatch.setattr("gac.prompt.load_prompt_template", lambda: mock_template)
 
