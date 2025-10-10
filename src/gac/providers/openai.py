@@ -29,6 +29,8 @@ def call_openai_api(model: str, messages: list[dict], temperature: float, max_to
             raise AIError.model_error("OpenAI API returned empty content")
         return content
     except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            raise AIError.rate_limit_error(f"OpenAI API rate limit exceeded: {e.response.text}") from e
         raise AIError.model_error(f"OpenAI API error: {e.response.status_code} - {e.response.text}") from e
     except httpx.TimeoutException as e:
         raise AIError.timeout_error(f"OpenAI API request timed out: {str(e)}") from e

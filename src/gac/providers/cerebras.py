@@ -29,6 +29,8 @@ def call_cerebras_api(model: str, messages: list[dict], temperature: float, max_
             raise AIError.model_error("Cerebras API returned empty content")
         return content
     except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            raise AIError.rate_limit_error(f"Cerebras API rate limit exceeded: {e.response.text}") from e
         raise AIError.model_error(f"Cerebras API error: {e.response.status_code} - {e.response.text}") from e
     except httpx.TimeoutException as e:
         raise AIError.timeout_error(f"Cerebras API request timed out: {str(e)}") from e

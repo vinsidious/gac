@@ -50,6 +50,8 @@ def call_lmstudio_api(model: str, messages: list[dict[str, Any]], temperature: f
     except httpx.ConnectError as e:
         raise AIError.connection_error(f"LM Studio connection failed: {str(e)}") from e
     except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            raise AIError.rate_limit_error(f"LM Studio API rate limit exceeded: {e.response.text}") from e
         raise AIError.model_error(f"LM Studio API error: {e.response.status_code} - {e.response.text}") from e
     except httpx.TimeoutException as e:
         raise AIError.timeout_error(f"LM Studio API request timed out: {str(e)}") from e

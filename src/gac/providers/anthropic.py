@@ -42,6 +42,8 @@ def call_anthropic_api(model: str, messages: list[dict], temperature: float, max
             raise AIError.model_error("Anthropic API returned empty content")
         return content
     except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            raise AIError.rate_limit_error(f"Anthropic API rate limit exceeded: {e.response.text}") from e
         raise AIError.model_error(f"Anthropic API error: {e.response.status_code} - {e.response.text}") from e
     except httpx.TimeoutException as e:
         raise AIError.timeout_error(f"Anthropic API request timed out: {str(e)}") from e
