@@ -14,7 +14,7 @@
 
 - **LLM-Powered Commit Messages:** Automatically generates clear, concise, and context-aware commit messages using large language models.
 - **Deep Contextual Analysis:** Understands your code by analyzing staged changes, repository structure, and recent commit history to provide highly relevant suggestions.
-- **Multi-Provider & Model Support:** Flexibly works with leading AI providers (Anthropic, Cerebras, Groq, Ollama, OpenAI, OpenRouter, Z.AI) and models, easily configured through an interactive setup or environment variables.
+- **Multi-Provider & Model Support:** Flexibly works with leading AI providers (Anthropic, Cerebras, Gemini, Groq, OpenAI, OpenRouter, Streamlake/Vanchin, Z.AI) and local providers (LM Studio, Ollama), easily configured through an interactive setup or environment variables.
 - **Seamless Git Workflow:** Integrates smoothly into your existing Git routine as a simple drop-in replacement for `git commit`.
 - **Extensive Customization:** Tailor commit messages to your needs with a rich set of flags, including one-liners (`-o`), AI hints (`-h`), scope inference (`-s`), and specific model selection (`-m`).
 - **Streamlined Workflow Commands:** Boost your productivity with convenient options to stage all changes (`-a`), auto-confirm commits (`-y`), and push to your remote repository (`-p`) in a single step.
@@ -95,9 +95,6 @@ Example `$HOME/.gac.env` output:
 ```env
 GAC_MODEL=anthropic:claude-3-5-haiku-latest
 ANTHROPIC_API_KEY=your_anthropic_key_here
-# Optional: configure OpenRouter
-# GAC_MODEL=openrouter:openrouter/auto
-# OPENROUTER_API_KEY=your_openrouter_key_here
 ```
 
 Alternatively, you can configure `gac` using environment variables or by manually creating/editing the configuration file.
@@ -105,6 +102,9 @@ Alternatively, you can configure `gac` using environment variables or by manuall
 #### Managing Configuration with `gac config`
 
 You can manage settings in your `$HOME/.gac.env` file using `gac config` commands:
+
+- Streamlake uses inference endpoint IDs instead of model names. When prompted, paste the exact endpoint ID from the Streamlake console.
+- For local providers like Ollama and LM Studio, gac will ask for the base API URL. API keys are optional for these providers unless your instance requires authentication.
 
 - Show config: `gac config show`
 - Set a value: `gac config set GAC_MODEL groq:meta-llama/llama-4-scout-17b-16e-instruct`

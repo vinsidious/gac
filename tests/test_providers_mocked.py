@@ -25,6 +25,7 @@ from gac.providers.lmstudio import call_lmstudio_api  # noqa: E402
 from gac.providers.ollama import call_ollama_api  # noqa: E402
 from gac.providers.openai import call_openai_api  # noqa: E402
 from gac.providers.openrouter import call_openrouter_api  # noqa: E402
+from gac.providers.streamlake import call_streamlake_api  # noqa: E402
 from gac.providers.zai import call_zai_api, call_zai_coding_api  # noqa: E402
 
 
@@ -410,7 +411,7 @@ class TestOllamaProvider(BaseProviderTest):
 
     @property
     def api_key_env_var(self) -> str | None:
-        return "OLLAMA_API_KEY"
+        return "OLLAMA_API_KEY"  # Optional for remote Ollama
 
     @property
     def model_name(self) -> str:
@@ -455,6 +456,49 @@ class TestOpenRouterProvider(BaseProviderTest):
     @property
     def empty_content_response(self) -> dict[str, Any]:
         return {"choices": [{"message": {"content": ""}}]}
+
+
+class TestStreamLakeProvider(BaseProviderTest):
+    """Standard tests for StreamLake provider."""
+
+    @property
+    def provider_name(self) -> str:
+        return "streamlake"
+
+    @property
+    def provider_module(self) -> str:
+        return "gac.providers.streamlake"
+
+    @property
+    def api_function(self) -> Callable:
+        return call_streamlake_api
+
+    @property
+    def api_key_env_var(self) -> str | None:
+        return "STREAMLAKE_API_KEY"
+
+    @property
+    def model_name(self) -> str:
+        return "streamlake-test-model"
+
+    @property
+    def success_response(self) -> dict[str, Any]:
+        return {"choices": [{"message": {"content": "feat: Add new feature"}}]}
+
+    @property
+    def empty_content_response(self) -> dict[str, Any]:
+        return {"choices": [{"message": {"content": ""}}]}
+
+    def test_supports_streamlake_api_key_alias(self):
+        """Ensure VC_API_KEY alias works when STREAMLAKE_API_KEY is absent."""
+        with patch("gac.providers.streamlake.httpx.post") as mock_post:
+            mock_post.return_value = self._create_mock_response(self.success_response)
+            messages = [{"role": "user", "content": "Generate a commit message"}]
+            with patch.dict(os.environ, {"VC_API_KEY": "alias-key"}, clear=True):
+                result = self.api_function(model=self.model_name, messages=messages, temperature=0.7, max_tokens=100)
+        assert result == "feat: Add new feature"
+        headers = mock_post.call_args.kwargs.get("headers", {})
+        assert headers.get("Authorization") == "Bearer alias-key"
 
 
 class TestGeminiProvider(BaseProviderTest):
@@ -506,7 +550,7 @@ class TestLMStudioProvider(BaseProviderTest):
 
     @property
     def api_key_env_var(self) -> str | None:
-        return "LMSTUDIO_API_KEY"
+        return "LMSTUDIO_API_KEY"  # Optional for remote LM Studio
 
     @property
     def model_name(self) -> str:
@@ -708,12 +752,14 @@ class TestProviderHttpxCalls:
             assert result == "feat: Add new feature"
             mock_post.assert_called_once()
             call_args = mock_post.call_args
-            assert call_args[1]["params"]["key"] == "test-key"
+            assert call_args[1]["headers"]["x-goog-api-key"] == "test-key"
             payload = call_args[1]["json"]
             assert payload["generationConfig"]["maxOutputTokens"] == 100
             assert payload["generationConfig"]["temperature"] == 0.7
-            assert payload["contents"][0]["role"] == "user"
-            assert payload["systemInstruction"]["parts"][0]["text"].startswith("You are a helpful assistant")
+            assert payload["contents"][0]["role"] == "system"
+            assert payload["contents"][0]["parts"][0]["text"] == "You are a helpful assistant."
+            assert payload["contents"][1]["role"] == "user"
+            assert payload["contents"][1]["parts"][0]["text"] == "Generate a commit message"
 
     @patch("gac.providers.gemini.httpx.post")
     def test_gemini_empty_content_handling(self, mock_post):

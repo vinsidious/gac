@@ -8,6 +8,7 @@ from .lmstudio import call_lmstudio_api
 from .ollama import call_ollama_api
 from .openai import call_openai_api
 from .openrouter import call_openrouter_api
+from .streamlake import call_streamlake_api
 from .zai import call_zai_api, call_zai_coding_api
 
 __all__ = [
@@ -19,6 +20,7 @@ __all__ = [
     "call_ollama_api",
     "call_openai_api",
     "call_openrouter_api",
+    "call_streamlake_api",
     "call_zai_api",
     "call_zai_coding_api",
 ]

@@ -9,10 +9,16 @@ make the process smooth for everyone.
   - [Table of Contents](#table-of-contents)
   - [How to Contribute](#how-to-contribute)
   - [Version Bumping](#version-bumping)
+    - [How to bump the version](#how-to-bump-the-version)
+    - [Release Process](#release-process)
+    - [Using bump-my-version (optional)](#using-bump-my-version-optional)
   - [Coding Standards](#coding-standards)
   - [Pre-commit Hooks](#pre-commit-hooks)
+    - [Setup](#setup)
+    - [Skipping Pre-commit Hooks](#skipping-pre-commit-hooks)
   - [Testing Guidelines](#testing-guidelines)
     - [Running Tests](#running-tests)
+      - [Provider Integration Tests](#provider-integration-tests)
   - [Code of Conduct](#code-of-conduct)
   - [License](#license)
   - [Where to Get Help](#where-to-get-help)
@@ -173,12 +179,16 @@ To run provider integration tests:
 1. **Set up API keys** for the providers you want to test:
 
    ```sh
-   export OPENAI_API_KEY="your-key"
    export ANTHROPIC_API_KEY="your-key"
-   export OPENROUTER_API_KEY="your-key"
-   export GROQ_API_KEY="your-key"
    export CEREBRAS_API_KEY="your-key"
-   # Ollama requires a local instance running
+   export GEMINI_API_KEY="your-key"
+   export GROQ_API_KEY="your-key"
+   export OPENAI_API_KEY="your-key"
+   export OPENROUTER_API_KEY="your-key"
+   export STREAMLAKE_API_KEY="your-key"
+   export ZAI_API_KEY="your-key"
+   # LM Studio and Ollama require a local instance running
+   # API keys for LM Studio and Ollama are optional unless your deployment enforces authentication
    ```
 
 2. **Run provider tests**:

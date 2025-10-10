@@ -14,6 +14,7 @@ from gac.providers.cerebras import call_cerebras_api
 from gac.providers.groq import call_groq_api
 from gac.providers.openai import call_openai_api
 from gac.providers.openrouter import call_openrouter_api
+from gac.providers.streamlake import call_streamlake_api
 
 
 class TestAPIKeyValidation:
@@ -76,3 +77,15 @@ class TestAPIKeyValidation:
                     max_tokens=100,
                 )
             assert "OPENROUTER_API_KEY environment variable not set" in str(exc_info.value)
+
+    def test_streamlake_generate_missing_api_key(self):
+        """Test that AIError is raised when API key is missing."""
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(AIError) as exc_info:
+                call_streamlake_api(
+                    model="ep-gmlysa-1760118602179985967",
+                    messages=[{"role": "user", "content": "test"}],
+                    temperature=0.7,
+                    max_tokens=100,
+                )
+            assert "STREAMLAKE_API_KEY not found in environment variables" in str(exc_info.value)

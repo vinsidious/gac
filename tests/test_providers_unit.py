@@ -3,15 +3,16 @@
 These tests run without any external dependencies and test core logic.
 """
 
-import os
-import sys
+import pytest
 
-# Add src directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-
-import pytest  # noqa: E402
-
-from gac.errors import AIError  # noqa: E402
+from gac.errors import AIError
+from tests.provider_test_utils import (
+    assert_import_success,
+    assert_missing_api_key_error,
+    get_api_key_providers,
+    get_local_providers,
+    temporarily_remove_env_var,
+)
 
 
 class TestProviderImports:
@@ -28,6 +29,7 @@ class TestProviderImports:
             ollama,
             openai,
             openrouter,
+            streamlake,
             zai,
         )
 
@@ -41,200 +43,39 @@ class TestProviderImports:
         from gac.providers.ollama import call_ollama_api  # noqa: F401
         from gac.providers.openai import call_openai_api  # noqa: F401
         from gac.providers.openrouter import call_openrouter_api  # noqa: F401
-        from gac.providers.zai import call_zai_api  # noqa: F401
+        from gac.providers.streamlake import call_streamlake_api  # noqa: F401
+        from gac.providers.zai import call_zai_api, call_zai_coding_api  # noqa: F401
 
 
-class TestOpenAIProvider:
-    """Test OpenAI provider functionality."""
+class TestProviderAPIKeyValidation:
+    """Parameterized tests for API key validation across all providers."""
 
-    def test_openai_api_missing_key(self):
-        """Test that OpenAI provider raises error when API key is missing."""
-        original_key = os.getenv("OPENAI_API_KEY")
-        if original_key:
-            del os.environ["OPENAI_API_KEY"]
-
-        try:
-            from gac.providers.openai import call_openai_api
-
+    @pytest.mark.parametrize("test_case", get_api_key_providers(), ids=lambda tc: tc.name)
+    def test_missing_api_key_error(self, test_case):
+        """Test that providers raise appropriate errors when API key is missing."""
+        with temporarily_remove_env_var(test_case.env_var):
             with pytest.raises(AIError) as exc_info:
-                call_openai_api("gpt-4", [], 0.7, 1000)
+                test_case.api_function(test_case.test_model, [], 0.7, 1000)
 
-            assert "OPENAI_API_KEY not found in environment variables" in str(exc_info.value)
-        finally:
-            if original_key:
-                os.environ["OPENAI_API_KEY"] = original_key
+            assert_missing_api_key_error(exc_info, test_case.name, test_case.env_var)
 
+    @pytest.mark.parametrize("test_case", get_api_key_providers(), ids=lambda tc: tc.name)
+    def test_zai_secondary_function_missing_api_key(self, test_case):
+        """Test ZAI's secondary function also raises error when API key is missing."""
+        if test_case.name != "zai" or not test_case.secondary_api_function:
+            pytest.skip("Only applicable to ZAI provider with secondary function")
 
-class TestAnthropicProvider:
-    """Test Anthropic provider functionality."""
-
-    def test_anthropic_api_missing_key(self):
-        """Test that Anthropic provider raises error when API key is missing."""
-        original_key = os.getenv("ANTHROPIC_API_KEY")
-        if original_key:
-            del os.environ["ANTHROPIC_API_KEY"]
-
-        try:
-            from gac.providers.anthropic import call_anthropic_api
-
+        with temporarily_remove_env_var(test_case.env_var):
             with pytest.raises(AIError) as exc_info:
-                call_anthropic_api("claude-3", [], 0.7, 1000)
+                test_case.secondary_api_function(test_case.test_model, [], 0.7, 1000)
 
-            assert "ANTHROPIC_API_KEY not found in environment variables" in str(exc_info.value)
-        finally:
-            if original_key:
-                os.environ["ANTHROPIC_API_KEY"] = original_key
+            assert_missing_api_key_error(exc_info, test_case.name, test_case.env_var)
 
 
-class TestGroqProvider:
-    """Test Groq provider functionality."""
+class TestLocalProviderImports:
+    """Tests for local providers that don't require API keys."""
 
-    def test_groq_api_missing_key(self):
-        """Test that Groq provider raises error when API key is missing."""
-        original_key = os.getenv("GROQ_API_KEY")
-        if original_key:
-            del os.environ["GROQ_API_KEY"]
-
-        try:
-            from gac.providers.groq import call_groq_api
-
-            with pytest.raises(AIError) as exc_info:
-                call_groq_api("llama-3.1-70b", [], 0.7, 1000)
-
-            assert "GROQ_API_KEY not found in environment variables" in str(exc_info.value)
-        finally:
-            if original_key:
-                os.environ["GROQ_API_KEY"] = original_key
-
-
-class TestCerebrasProvider:
-    """Test Cerebras provider functionality."""
-
-    def test_cerebras_api_missing_key(self):
-        """Test that Cerebras provider raises error when API key is missing."""
-        original_key = os.getenv("CEREBRAS_API_KEY")
-        if original_key:
-            del os.environ["CEREBRAS_API_KEY"]
-
-        try:
-            from gac.providers.cerebras import call_cerebras_api
-
-            with pytest.raises(AIError) as exc_info:
-                call_cerebras_api("llama3.1-8b", [], 0.7, 1000)
-
-            assert "CEREBRAS_API_KEY not found in environment variables" in str(exc_info.value)
-        finally:
-            if original_key:
-                os.environ["CEREBRAS_API_KEY"] = original_key
-
-
-class TestOllamaProvider:
-    """Test Ollama provider functionality."""
-
-    def test_ollama_api_import(self):
-        """Test that call_ollama_api can be imported."""
-        from gac.providers.ollama import call_ollama_api
-
-        assert callable(call_ollama_api)
-
-
-class TestOpenRouterProvider:
-    """Test OpenRouter provider functionality."""
-
-    def test_openrouter_api_missing_key(self):
-        """Test that OpenRouter provider raises error when API key is missing."""
-        original_key = os.getenv("OPENROUTER_API_KEY")
-        if original_key:
-            del os.environ["OPENROUTER_API_KEY"]
-
-        try:
-            from gac.providers.openrouter import call_openrouter_api
-
-            with pytest.raises(AIError) as exc_info:
-                call_openrouter_api("mistralai/mistral-7b-instruct", [], 0.7, 1000)
-
-            assert "OPENROUTER_API_KEY environment variable not set" in str(exc_info.value)
-        finally:
-            if original_key:
-                os.environ["OPENROUTER_API_KEY"] = original_key
-
-
-class TestGeminiProvider:
-    """Test Gemini provider functionality."""
-
-    def test_gemini_api_missing_key(self):
-        """Test that Gemini provider raises error when API key is missing."""
-        original_key = os.getenv("GEMINI_API_KEY")
-        if original_key:
-            del os.environ["GEMINI_API_KEY"]
-
-        try:
-            from gac.providers.gemini import call_gemini_api
-
-            with pytest.raises(AIError) as exc_info:
-                call_gemini_api("gemini-1.5-pro", [], 0.7, 1000)
-
-            assert "GEMINI_API_KEY not found in environment variables" in str(exc_info.value)
-        finally:
-            if original_key:
-                os.environ["GEMINI_API_KEY"] = original_key
-
-
-class TestLMStudioProvider:
-    """Test LM Studio provider functionality."""
-
-    def test_lmstudio_api_import(self):
-        """Test that call_lmstudio_api can be imported."""
-        from gac.providers.lmstudio import call_lmstudio_api
-
-        assert callable(call_lmstudio_api)
-
-
-class TestZAIProvider:
-    """Test ZAI provider functionality."""
-
-    def test_zai_api_import(self):
-        """Test that call_zai_api can be imported."""
-        from gac.providers.zai import call_zai_api
-
-        assert callable(call_zai_api)
-
-    def test_zai_api_missing_key(self):
-        """Test that ZAI provider raises error when API key is missing."""
-        original_key = os.getenv("ZAI_API_KEY")
-        if original_key:
-            del os.environ["ZAI_API_KEY"]
-
-        try:
-            from gac.providers.zai import call_zai_api
-
-            with pytest.raises(AIError) as exc_info:
-                call_zai_api("model", [], 0.7, 1000)
-
-            assert "ZAI_API_KEY not found in environment variables" in str(exc_info.value)
-        finally:
-            if original_key:
-                os.environ["ZAI_API_KEY"] = original_key
-
-    def test_zai_coding_api_import(self):
-        """Test that call_zai_coding_api can be imported."""
-        from gac.providers.zai import call_zai_coding_api
-
-        assert callable(call_zai_coding_api)
-
-    def test_zai_coding_api_missing_key(self):
-        """Test that ZAI-coding provider raises error when API key is missing."""
-        original_key = os.getenv("ZAI_API_KEY")
-        if original_key:
-            del os.environ["ZAI_API_KEY"]
-
-        try:
-            from gac.providers.zai import call_zai_coding_api
-
-            with pytest.raises(AIError) as exc_info:
-                call_zai_coding_api("model", [], 0.7, 1000)
-
-            assert "ZAI_API_KEY not found in environment variables" in str(exc_info.value)
-        finally:
-            if original_key:
-                os.environ["ZAI_API_KEY"] = original_key
+    @pytest.mark.parametrize("test_case", get_local_providers(), ids=lambda tc: tc.name)
+    def test_local_provider_import(self, test_case):
+        """Test that local provider functions can be imported and are callable."""
+        assert_import_success(test_case.import_function)

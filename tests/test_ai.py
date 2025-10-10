@@ -204,6 +204,25 @@ class TestGenerateCommitMessage:
         assert call_args[1]["temperature"] == 0.7
         assert call_args[1]["max_tokens"] == 256
 
+    @patch("gac.ai.call_streamlake_api")
+    def test_generate_commit_message_streamlake_provider(self, mock_streamlake_api):
+        """Test that generate_commit_message routes streamlake provider correctly using unified API."""
+        mock_streamlake_api.return_value = "feat: summarize planets"
+
+        result = generate_commit_message(
+            model="streamlake:mock-endpoint-id",
+            prompt="Generate",
+            temperature=0.6,
+            max_tokens=200,
+            quiet=True,
+        )
+
+        assert result == "feat: summarize planets"
+        call_args = mock_streamlake_api.call_args
+        assert call_args[1]["model"] == "mock-endpoint-id"
+        assert call_args[1]["temperature"] == 0.6
+        assert call_args[1]["max_tokens"] == 200
+
     @patch("gac.ai_utils.time.sleep")
     @patch("gac.ai.call_openai_api")
     def test_generate_commit_message_retry_logic(self, mock_openai_api, mock_sleep):

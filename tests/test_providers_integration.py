@@ -10,150 +10,72 @@ Run with:
 
 import os
 import sys
+from contextlib import contextmanager
 
 import pytest
 
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from gac.errors import AIError  # noqa: E402
+from gac.errors import AIError
 from gac.providers.anthropic import call_anthropic_api
 from gac.providers.cerebras import call_cerebras_api
-from gac.providers.gemini import call_gemini_api
 from gac.providers.groq import call_groq_api
 from gac.providers.lmstudio import call_lmstudio_api
 from gac.providers.ollama import call_ollama_api
 from gac.providers.openai import call_openai_api
 from gac.providers.openrouter import call_openrouter_api
+from gac.providers.streamlake import call_streamlake_api
 from gac.providers.zai import call_zai_api
+from tests.provider_test_utils import (
+    assert_missing_api_key_error,
+    get_api_key_providers,
+    temporarily_remove_env_var,
+)
+
+
+@contextmanager
+def temporarily_set_env_var(env_var: str, value: str):
+    """Temporarily set an environment variable and restore it after the test.
+
+    Args:
+        env_var: The environment variable name to set
+        value: The value to set
+    """
+    original_value = os.getenv(env_var)
+    os.environ[env_var] = value
+
+    try:
+        yield
+    finally:
+        if original_value is not None:
+            os.environ[env_var] = original_value
+        else:
+            del os.environ[env_var]
 
 
 @pytest.mark.providers
 class TestProviderErrorHandling:
     """Integration tests for provider error handling."""
 
-    def test_anthropic_generate_missing_api_key(self):
-        """Test that call_anthropic_api raises AIError when API key is missing."""
-        original_key = os.getenv("ANTHROPIC_API_KEY")
-        if original_key:
-            del os.environ["ANTHROPIC_API_KEY"]
+    @pytest.mark.parametrize("test_case", get_api_key_providers(), ids=lambda tc: tc.name)
+    def test_missing_api_key_error(self, test_case):
+        """Test that providers raise appropriate errors when API key is missing."""
+        messages = [{"role": "user", "content": "test prompt"}]
 
-        try:
+        with temporarily_remove_env_var(test_case.env_var):
             with pytest.raises(AIError) as exc_info:
-                messages = [{"role": "user", "content": "test prompt"}]
-                call_anthropic_api(model="claude-3-haiku", messages=messages, temperature=1.0, max_tokens=100)
-            assert "ANTHROPIC_API_KEY not found in environment variables" in str(exc_info.value)
-        finally:
-            if original_key:
-                os.environ["ANTHROPIC_API_KEY"] = original_key
+                test_case.api_function(model=test_case.test_model, messages=messages, temperature=1.0, max_tokens=100)
 
-    def test_cerebras_generate_missing_api_key(self):
-        """Test that call_cerebras_api raises AIError when API key is missing."""
-        original_key = os.getenv("CEREBRAS_API_KEY")
-        if original_key:
-            del os.environ["CEREBRAS_API_KEY"]
-
-        try:
-            with pytest.raises(AIError) as exc_info:
-                messages = [{"role": "user", "content": "test prompt"}]
-                call_cerebras_api(model="llama3.1-8b", messages=messages, temperature=1.0, max_tokens=100)
-            assert "CEREBRAS_API_KEY not found in environment variables" in str(exc_info.value)
-        finally:
-            if original_key:
-                os.environ["CEREBRAS_API_KEY"] = original_key
-
-    def test_groq_generate_missing_api_key(self):
-        """Test that call_groq_api raises AIError when API key is missing."""
-        original_key = os.getenv("GROQ_API_KEY")
-        if original_key:
-            del os.environ["GROQ_API_KEY"]
-
-        try:
-            with pytest.raises(AIError) as exc_info:
-                messages = [{"role": "user", "content": "test prompt"}]
-                call_groq_api(model="llama-3.3-70b-versatile", messages=messages, temperature=1.0, max_tokens=100)
-            assert "GROQ_API_KEY not found in environment variables" in str(exc_info.value)
-        finally:
-            if original_key:
-                os.environ["GROQ_API_KEY"] = original_key
-
-    def test_openai_generate_missing_api_key(self):
-        """Test that call_openai_api raises AIError when API key is missing."""
-        original_key = os.getenv("OPENAI_API_KEY")
-        if original_key:
-            del os.environ["OPENAI_API_KEY"]
-
-        try:
-            with pytest.raises(AIError) as exc_info:
-                messages = [{"role": "user", "content": "test prompt"}]
-                call_openai_api(model="gpt-4.1-mini", messages=messages, temperature=1.0, max_tokens=100)
-            assert "OPENAI_API_KEY not found in environment variables" in str(exc_info.value)
-        finally:
-            if original_key:
-                os.environ["OPENAI_API_KEY"] = original_key
-
-    def test_openrouter_generate_missing_api_key(self):
-        """Test that call_openrouter_api raises AIError when API key is missing."""
-        original_key = os.getenv("OPENROUTER_API_KEY")
-        if original_key:
-            del os.environ["OPENROUTER_API_KEY"]
-
-        try:
-            with pytest.raises(AIError) as exc_info:
-                messages = [{"role": "user", "content": "test prompt"}]
-                call_openrouter_api(
-                    model="mistralai/mistral-7b-instruct", messages=messages, temperature=1.0, max_tokens=100
-                )
-            assert "OPENROUTER_API_KEY environment variable not set" in str(exc_info.value)
-        finally:
-            if original_key:
-                os.environ["OPENROUTER_API_KEY"] = original_key
-
-    def test_gemini_generate_missing_api_key(self):
-        """Test that call_gemini_api raises AIError when API key is missing."""
-        original_key = os.getenv("GEMINI_API_KEY")
-        if original_key:
-            del os.environ["GEMINI_API_KEY"]
-
-        try:
-            with pytest.raises(AIError) as exc_info:
-                messages = [{"role": "user", "content": "test prompt"}]
-                call_gemini_api(model="gemini-1.5-pro", messages=messages, temperature=1.0, max_tokens=100)
-            assert "GEMINI_API_KEY not found in environment variables" in str(exc_info.value)
-        finally:
-            if original_key:
-                os.environ["GEMINI_API_KEY"] = original_key
-
-    def test_zai_generate_missing_api_key(self):
-        """Test that call_zai_api raises AIError when API key is missing."""
-        original_key = os.getenv("ZAI_API_KEY")
-        if original_key:
-            del os.environ["ZAI_API_KEY"]
-
-        try:
-            with pytest.raises(AIError) as exc_info:
-                messages = [{"role": "user", "content": "test prompt"}]
-                call_zai_api(model="glm-4.5-air", messages=messages, temperature=1.0, max_tokens=100)
-            assert "ZAI_API_KEY not found in environment variables" in str(exc_info.value)
-        finally:
-            if original_key:
-                os.environ["ZAI_API_KEY"] = original_key
+            assert_missing_api_key_error(exc_info, test_case.name, test_case.env_var)
 
     def test_lmstudio_connection_error(self):
         """Test that call_lmstudio_api raises connection error when server is unreachable."""
-        original_url = os.getenv("LMSTUDIO_API_URL")
-        os.environ["LMSTUDIO_API_URL"] = "http://127.0.0.1:9"
-
-        try:
+        with temporarily_set_env_var("LMSTUDIO_API_URL", "http://127.0.0.1:9"):
             with pytest.raises(AIError) as exc_info:
                 messages = [{"role": "user", "content": "test prompt"}]
                 call_lmstudio_api(model="local-model", messages=messages, temperature=1.0, max_tokens=20)
             assert "LM Studio connection failed" in str(exc_info.value)
-        finally:
-            if original_url is not None:
-                os.environ["LMSTUDIO_API_URL"] = original_url
-            else:
-                del os.environ["LMSTUDIO_API_URL"]
 
 
 @pytest.mark.providers
@@ -301,6 +223,37 @@ class TestRealAPICallsOpenRouter:
                 or "connection error" in error_str
             ):
                 pytest.skip(f"OpenRouter API service unavailable - skipping real API test: {e}")
+            raise
+
+
+@pytest.mark.providers
+class TestRealAPICallsStreamLake:
+    """Real API call tests for StreamLake (Vanchin)."""
+
+    def test_streamlake_real_api_call(self):
+        """Test actual StreamLake API call with valid credentials."""
+        api_key = os.getenv("STREAMLAKE_API_KEY") or os.getenv("VC_API_KEY")
+        if not api_key:
+            pytest.skip("STREAMLAKE_API_KEY not set - skipping real API test (VC_API_KEY alias also missing)")
+
+        messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
+        try:
+            response = call_streamlake_api(
+                model="ep-gmlysa-1760118602179985967",
+                messages=messages,
+                temperature=1.0,
+                max_tokens=50,
+            )
+
+            assert response is not None
+            assert isinstance(response, str)
+            assert len(response) > 0
+        except AIError as e:
+            error_str = str(e).lower()
+            if "429" in error_str or "rate limit" in error_str or "quota" in error_str:
+                pytest.skip(f"StreamLake API rate limit exceeded - skipping real API test: {e}")
+            elif "401" in error_str or "unauthorized" in error_str or "auth" in error_str:
+                pytest.skip(f"StreamLake API authentication failed - skipping real API test: {e}")
             raise
 
 

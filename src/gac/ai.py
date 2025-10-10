@@ -18,6 +18,7 @@ from gac.providers import (
     call_ollama_api,
     call_openai_api,
     call_openrouter_api,
+    call_streamlake_api,
     call_zai_api,
     call_zai_coding_api,
 )
@@ -71,6 +72,7 @@ def generate_commit_message(
         "cerebras": call_cerebras_api,
         "ollama": call_ollama_api,
         "openrouter": call_openrouter_api,
+        "streamlake": call_streamlake_api,
         "zai": call_zai_api,
         "zai-coding": call_zai_coding_api,
         "gemini": call_gemini_api,

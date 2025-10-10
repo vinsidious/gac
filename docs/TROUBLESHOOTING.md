@@ -58,11 +58,11 @@ This guide covers common issues and solutions for installing, configuring, and r
 
 - Ensure you have set the correct API keys for your chosen model (e.g., `ANTHROPIC_API_KEY`, `GROQ_API_KEY`)
 - Double-check your API key and provider account status
-- Ensure your key has sufficient quota and is not expired
-- Check for provider outages
+- For Ollama and LM Studio, confirm the API URL matches your local instance. API keys are only needed if you enabled authentication.
 
 **Problem:** Model not available or unsupported
 
+- Streamlake uses inference endpoint IDs instead of model names. Make sure you supply the endpoint ID from their console.
 - Verify the model name is correct and supported by your provider
 - Check provider documentation for available models
 
