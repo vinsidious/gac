@@ -14,8 +14,7 @@ def call_gemini_api(model: str, messages: list[dict[str, Any]], temperature: flo
     if not api_key:
         raise AIError.model_error("GEMINI_API_KEY not found in environment variables")
 
-    base_url = os.getenv("GEMINI_API_URL", "https://generativelanguage.googleapis.com")
-    url = f"{base_url.rstrip('/')}/v1beta/models/{model}:generateContent"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
     system_content = ""
     user_content = ""
