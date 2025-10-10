@@ -11,7 +11,7 @@ def call_anthropic_api(model: str, messages: list[dict], temperature: float, max
     """Call Anthropic API directly."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
-        raise AIError.model_error("ANTHROPIC_API_KEY not found in environment variables")
+        raise AIError.authentication_error("ANTHROPIC_API_KEY not found in environment variables")
 
     url = "https://api.anthropic.com/v1/messages"
     headers = {"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
@@ -43,5 +43,7 @@ def call_anthropic_api(model: str, messages: list[dict], temperature: float, max
         return content
     except httpx.HTTPStatusError as e:
         raise AIError.model_error(f"Anthropic API error: {e.response.status_code} - {e.response.text}") from e
+    except httpx.TimeoutException as e:
+        raise AIError.timeout_error(f"Anthropic API request timed out: {str(e)}") from e
     except Exception as e:
         raise AIError.model_error(f"Error calling Anthropic API: {str(e)}") from e

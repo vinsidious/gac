@@ -11,7 +11,7 @@ def call_openrouter_api(model: str, messages: list[dict], temperature: float, ma
     """Call OpenRouter API directly."""
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
-        raise AIError.model_error("OPENROUTER_API_KEY environment variable not set")
+        raise AIError.authentication_error("OPENROUTER_API_KEY environment variable not set")
 
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
@@ -52,5 +52,7 @@ def call_openrouter_api(model: str, messages: list[dict], temperature: float, ma
             raise AIError.model_error(f"OpenRouter API error: {status_code} - {error_text}") from e
     except httpx.ConnectError as e:
         raise AIError.connection_error(f"OpenRouter API connection error: {str(e)}") from e
+    except httpx.TimeoutException as e:
+        raise AIError.timeout_error(f"OpenRouter API request timed out: {str(e)}") from e
     except Exception as e:
         raise AIError.model_error(f"Error calling OpenRouter API: {str(e)}") from e

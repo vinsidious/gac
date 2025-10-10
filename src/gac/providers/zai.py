@@ -13,7 +13,7 @@ def _call_zai_api_impl(
     """Internal implementation for Z.AI API calls."""
     api_key = os.getenv("ZAI_API_KEY")
     if not api_key:
-        raise AIError.model_error("ZAI_API_KEY not found in environment variables")
+        raise AIError.authentication_error("ZAI_API_KEY not found in environment variables")
 
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     data = {"model": model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
@@ -39,6 +39,8 @@ def _call_zai_api_impl(
             raise AIError.model_error(f"{api_name} API unexpected response structure: {response_data}")
     except httpx.HTTPStatusError as e:
         raise AIError.model_error(f"{api_name} API error: {e.response.status_code} - {e.response.text}") from e
+    except httpx.TimeoutException as e:
+        raise AIError.timeout_error(f"{api_name} API request timed out: {str(e)}") from e
     except Exception as e:
         raise AIError.model_error(f"Error calling {api_name} API: {str(e)}") from e
 

@@ -11,7 +11,7 @@ def call_streamlake_api(model: str, messages: list[dict], temperature: float, ma
     """Call StreamLake (Vanchin) chat completions API."""
     api_key = os.getenv("STREAMLAKE_API_KEY") or os.getenv("VC_API_KEY")
     if not api_key:
-        raise AIError.model_error(
+        raise AIError.authentication_error(
             "STREAMLAKE_API_KEY not found in environment variables (VC_API_KEY alias also not set)"
         )
 
@@ -43,5 +43,7 @@ def call_streamlake_api(model: str, messages: list[dict], temperature: float, ma
         return content
     except httpx.HTTPStatusError as e:
         raise AIError.model_error(f"StreamLake API error: {e.response.status_code} - {e.response.text}") from e
+    except httpx.TimeoutException as e:
+        raise AIError.timeout_error(f"StreamLake API request timed out: {str(e)}") from e
     except Exception as e:  # noqa: BLE001 - convert to AIError
         raise AIError.model_error(f"Error calling StreamLake API: {str(e)}") from e

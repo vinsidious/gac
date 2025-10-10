@@ -79,10 +79,8 @@ def assert_missing_api_key_error(exc_info: pytest.ExceptionInfo, provider_name: 
         env_var: Environment variable name for error message
     """
     assert exc_info.type is AIError
-    error_str = str(exc_info.value)
-    expected_patterns = [f"{env_var} not found in environment variables", f"{env_var} environment variable not set"]
-    assert any(pattern in error_str for pattern in expected_patterns), (
-        f"Expected missing API key error for {provider_name}, got: {error_str}"
+    assert exc_info.value.error_type == "authentication", (
+        f"Expected authentication error for {provider_name}, got {exc_info.value.error_type} error"
     )
 
 
@@ -154,7 +152,6 @@ def create_provider_test_cases() -> list[ProviderTestCase]:
             test_model="mistralai/mistral-7b-instruct",
             import_function=call_openrouter_api,
             api_function=call_openrouter_api,
-            error_message_pattern="OPENROUTER_API_KEY environment variable not set",
         ),
         ProviderTestCase(
             name="streamlake",

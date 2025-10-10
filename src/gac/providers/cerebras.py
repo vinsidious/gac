@@ -11,7 +11,7 @@ def call_cerebras_api(model: str, messages: list[dict], temperature: float, max_
     """Call Cerebras API directly."""
     api_key = os.getenv("CEREBRAS_API_KEY")
     if not api_key:
-        raise AIError.model_error("CEREBRAS_API_KEY not found in environment variables")
+        raise AIError.authentication_error("CEREBRAS_API_KEY not found in environment variables")
 
     url = "https://api.cerebras.ai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
@@ -30,5 +30,7 @@ def call_cerebras_api(model: str, messages: list[dict], temperature: float, max_
         return content
     except httpx.HTTPStatusError as e:
         raise AIError.model_error(f"Cerebras API error: {e.response.status_code} - {e.response.text}") from e
+    except httpx.TimeoutException as e:
+        raise AIError.timeout_error(f"Cerebras API request timed out: {str(e)}") from e
     except Exception as e:
         raise AIError.model_error(f"Error calling Cerebras API: {str(e)}") from e

@@ -14,7 +14,7 @@ def call_groq_api(model: str, messages: list[dict], temperature: float, max_toke
     """Call Groq API directly."""
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        raise AIError.model_error("GROQ_API_KEY not found in environment variables")
+        raise AIError.authentication_error("GROQ_API_KEY not found in environment variables")
 
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
@@ -55,5 +55,7 @@ def call_groq_api(model: str, messages: list[dict], temperature: float, max_toke
         raise AIError.model_error(f"Unexpected response format from Groq API: {response_data}")
     except httpx.HTTPStatusError as e:
         raise AIError.model_error(f"Groq API error: {e.response.status_code} - {e.response.text}") from e
+    except httpx.TimeoutException as e:
+        raise AIError.timeout_error(f"Groq API request timed out: {str(e)}") from e
     except Exception as e:
         raise AIError.model_error(f"Error calling Groq API: {str(e)}") from e
