@@ -16,30 +16,51 @@ def call_gemini_api(model: str, messages: list[dict[str, Any]], temperature: flo
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
-    system_content = ""
-    user_content = ""
+    # Build contents array following 2025 Gemini API format
+    contents = []
 
+    # Add system instruction as first content with role "system" (2025 format)
     for msg in messages:
         if msg["role"] == "system":
-            system_content = msg["content"]
-        elif msg["role"] == "user":
-            user_content = msg["content"]
+            contents.append({"role": "system", "parts": [{"text": msg["content"]}]})
+            break
+
+    # Add user and assistant messages
+    for msg in messages:
+        if msg["role"] == "user":
+            contents.append({"role": "user", "parts": [{"text": msg["content"]}]})
+        elif msg["role"] == "assistant":
+            contents.append(
+                {
+                    "role": "model",  # Gemini uses "model" instead of "assistant"
+                    "parts": [{"text": msg["content"]}],
+                }
+            )
 
     payload: dict[str, Any] = {
-        "contents": [{"role": "user", "parts": [{"text": user_content}]}],
+        "contents": contents,
         "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
     }
 
-    if system_content:
-        payload["systemInstruction"] = {"parts": [{"text": system_content}]}
+    headers = {"x-goog-api-key": api_key, "Content-Type": "application/json"}
 
     try:
-        response = httpx.post(url, params={"key": api_key}, json=payload, timeout=120)
+        response = httpx.post(url, headers=headers, json=payload, timeout=120)
         response.raise_for_status()
         response_data = response.json()
-        content = response_data["candidates"][0]["content"]["parts"][0]["text"]
+
+        # Check for candidates and proper response structure
+        if not response_data.get("candidates"):
+            raise AIError.model_error("Gemini API response missing candidates")
+
+        candidate = response_data["candidates"][0]
+        if "content" not in candidate or "parts" not in candidate["content"] or not candidate["content"]["parts"]:
+            raise AIError.model_error("Gemini API response has invalid content structure")
+
+        content = candidate["content"]["parts"][0].get("text")
         if content is None or content == "":
             raise AIError.model_error("Gemini API response missing text content")
+
         return content
     except AIError:
         raise
