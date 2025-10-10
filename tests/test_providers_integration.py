@@ -9,13 +9,8 @@ Run with:
 """
 
 import os
-import sys
-from contextlib import contextmanager
 
 import pytest
-
-# Add src directory to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from gac.errors import AIError
 from gac.providers.anthropic import call_anthropic_api
@@ -31,27 +26,8 @@ from tests.provider_test_utils import (
     assert_missing_api_key_error,
     get_api_key_providers,
     temporarily_remove_env_var,
+    temporarily_set_env_var,
 )
-
-
-@contextmanager
-def temporarily_set_env_var(env_var: str, value: str):
-    """Temporarily set an environment variable and restore it after the test.
-
-    Args:
-        env_var: The environment variable name to set
-        value: The value to set
-    """
-    original_value = os.getenv(env_var)
-    os.environ[env_var] = value
-
-    try:
-        yield
-    finally:
-        if original_value is not None:
-            os.environ[env_var] = original_value
-        else:
-            del os.environ[env_var]
 
 
 @pytest.mark.providers

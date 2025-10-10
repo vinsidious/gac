@@ -59,17 +59,15 @@ class TestProviderAPIKeyValidation:
 
             assert_missing_api_key_error(exc_info, test_case.name, test_case.env_var)
 
-    @pytest.mark.parametrize("test_case", get_api_key_providers(), ids=lambda tc: tc.name)
-    def test_zai_secondary_function_missing_api_key(self, test_case):
-        """Test ZAI's secondary function also raises error when API key is missing."""
-        if test_case.name != "zai" or not test_case.secondary_api_function:
-            pytest.skip("Only applicable to ZAI provider with secondary function")
+    def test_zai_coding_function_missing_api_key(self):
+        """Test that ZAI's coding function raises error when API key is missing."""
+        from gac.providers.zai import call_zai_coding_api
 
-        with temporarily_remove_env_var(test_case.env_var):
+        with temporarily_remove_env_var("ZAI_API_KEY"):
             with pytest.raises(AIError) as exc_info:
-                test_case.secondary_api_function(test_case.test_model, [], 0.7, 1000)
+                call_zai_coding_api("glm-4.5-air", [], 0.7, 1000)
 
-            assert_missing_api_key_error(exc_info, test_case.name, test_case.env_var)
+            assert_missing_api_key_error(exc_info, "zai", "ZAI_API_KEY")
 
 
 class TestLocalProviderImports:

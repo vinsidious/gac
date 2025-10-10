@@ -50,6 +50,26 @@ def temporarily_remove_env_var(env_var: str):
             os.environ[env_var] = original_key
 
 
+@contextmanager
+def temporarily_set_env_var(env_var: str, value: str):
+    """Temporarily set an environment variable and restore it after the test.
+
+    Args:
+        env_var: The environment variable name to set
+        value: The value to set
+    """
+    original_value = os.getenv(env_var)
+    os.environ[env_var] = value
+
+    try:
+        yield
+    finally:
+        if original_value is not None:
+            os.environ[env_var] = original_value
+        else:
+            del os.environ[env_var]
+
+
 def assert_missing_api_key_error(exc_info: pytest.ExceptionInfo, provider_name: str, env_var: str):
     """Assert that the exception is a missing API key error.
 
