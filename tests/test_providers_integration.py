@@ -19,7 +19,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from gac.errors import AIError  # noqa: E402
 from gac.providers.anthropic import call_anthropic_api
 from gac.providers.cerebras import call_cerebras_api
+from gac.providers.gemini import call_gemini_api
 from gac.providers.groq import call_groq_api
+from gac.providers.lmstudio import call_lmstudio_api
 from gac.providers.ollama import call_ollama_api
 from gac.providers.openai import call_openai_api
 from gac.providers.openrouter import call_openrouter_api
@@ -107,6 +109,21 @@ class TestProviderErrorHandling:
             if original_key:
                 os.environ["OPENROUTER_API_KEY"] = original_key
 
+    def test_gemini_generate_missing_api_key(self):
+        """Test that call_gemini_api raises AIError when API key is missing."""
+        original_key = os.getenv("GEMINI_API_KEY")
+        if original_key:
+            del os.environ["GEMINI_API_KEY"]
+
+        try:
+            with pytest.raises(AIError) as exc_info:
+                messages = [{"role": "user", "content": "test prompt"}]
+                call_gemini_api(model="gemini-1.5-pro", messages=messages, temperature=1.0, max_tokens=100)
+            assert "GEMINI_API_KEY not found in environment variables" in str(exc_info.value)
+        finally:
+            if original_key:
+                os.environ["GEMINI_API_KEY"] = original_key
+
     def test_zai_generate_missing_api_key(self):
         """Test that call_zai_api raises AIError when API key is missing."""
         original_key = os.getenv("ZAI_API_KEY")
@@ -121,6 +138,22 @@ class TestProviderErrorHandling:
         finally:
             if original_key:
                 os.environ["ZAI_API_KEY"] = original_key
+
+    def test_lmstudio_connection_error(self):
+        """Test that call_lmstudio_api raises connection error when server is unreachable."""
+        original_url = os.getenv("LMSTUDIO_API_URL")
+        os.environ["LMSTUDIO_API_URL"] = "http://127.0.0.1:9"
+
+        try:
+            with pytest.raises(AIError) as exc_info:
+                messages = [{"role": "user", "content": "test prompt"}]
+                call_lmstudio_api(model="local-model", messages=messages, temperature=1.0, max_tokens=20)
+            assert "LM Studio connection failed" in str(exc_info.value)
+        finally:
+            if original_url is not None:
+                os.environ["LMSTUDIO_API_URL"] = original_url
+            else:
+                del os.environ["LMSTUDIO_API_URL"]
 
 
 @pytest.mark.providers

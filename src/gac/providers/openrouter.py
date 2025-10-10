@@ -30,7 +30,12 @@ def call_openrouter_api(model: str, messages: list[dict], temperature: float, ma
         response = httpx.post(url, headers=headers, json=data, timeout=120)
         response.raise_for_status()
         response_data = response.json()
-        return response_data["choices"][0]["message"]["content"]
+        content = response_data["choices"][0]["message"]["content"]
+        if content is None:
+            raise AIError.model_error("OpenRouter API returned null content")
+        if content == "":
+            raise AIError.model_error("OpenRouter API returned empty content")
+        return content
     except httpx.HTTPStatusError as e:
         # Handle specific HTTP status codes
         status_code = e.response.status_code

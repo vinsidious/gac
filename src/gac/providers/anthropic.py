@@ -35,7 +35,12 @@ def call_anthropic_api(model: str, messages: list[dict], temperature: float, max
         response = httpx.post(url, headers=headers, json=data, timeout=120)
         response.raise_for_status()
         response_data = response.json()
-        return response_data["content"][0]["text"]
+        content = response_data["content"][0]["text"]
+        if content is None:
+            raise AIError.model_error("Anthropic API returned null content")
+        if content == "":
+            raise AIError.model_error("Anthropic API returned empty content")
+        return content
     except httpx.HTTPStatusError as e:
         raise AIError.model_error(f"Anthropic API error: {e.response.status_code} - {e.response.text}") from e
     except Exception as e:

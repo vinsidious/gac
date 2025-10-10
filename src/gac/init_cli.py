@@ -22,7 +22,9 @@ def init() -> None:
     providers = [
         ("Anthropic", "claude-3-5-haiku-latest"),
         ("Cerebras", "qwen-3-coder-480b"),
+        ("Gemini", "gemini-2.5-flash"),
         ("Groq", "meta-llama/llama-4-maverick-17b-128e-instruct"),
+        ("LM Studio", "deepseek-r1-distill-qwen-7b"),
         ("Ollama", "gemma3"),
         ("OpenAI", "gpt-4.1-mini"),
         ("OpenRouter", "openrouter/auto"),

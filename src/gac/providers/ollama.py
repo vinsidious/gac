@@ -10,23 +10,34 @@ from gac.errors import AIError
 def call_ollama_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
     """Call Ollama API directly."""
     api_url = os.getenv("OLLAMA_API_URL", "http://localhost:11434")
+    api_key = os.getenv("OLLAMA_API_KEY")
 
     url = f"{api_url.rstrip('/')}/api/chat"
     data = {"model": model, "messages": messages, "temperature": temperature, "stream": False}
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
 
     try:
-        response = httpx.post(url, json=data, timeout=120)
+        response = httpx.post(url, headers=headers, json=data, timeout=120)
         response.raise_for_status()
         response_data = response.json()
 
+        content = None
         # Handle different response formats from Ollama
         if "message" in response_data and "content" in response_data["message"]:
-            return response_data["message"]["content"]
+            content = response_data["message"]["content"]
         elif "response" in response_data:
-            return response_data["response"]
+            content = response_data["response"]
         else:
             # Fallback: return the full response as string
-            return str(response_data)
+            content = str(response_data)
+
+        if content is None:
+            raise AIError.model_error("Ollama API returned null content")
+        if content == "":
+            raise AIError.model_error("Ollama API returned empty content")
+        return content
     except httpx.ConnectError as e:
         raise AIError.connection_error(f"Ollama connection failed. Make sure Ollama is running: {str(e)}") from e
     except httpx.HTTPStatusError as e:

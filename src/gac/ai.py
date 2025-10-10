@@ -12,7 +12,9 @@ from gac.errors import AIError
 from gac.providers import (
     call_anthropic_api,
     call_cerebras_api,
+    call_gemini_api,
     call_groq_api,
+    call_lmstudio_api,
     call_ollama_api,
     call_openai_api,
     call_openrouter_api,
@@ -71,6 +73,8 @@ def generate_commit_message(
         "openrouter": call_openrouter_api,
         "zai": call_zai_api,
         "zai-coding": call_zai_coding_api,
+        "gemini": call_gemini_api,
+        "lmstudio": call_lmstudio_api,
     }
 
     # Generate the commit message using centralized retry logic

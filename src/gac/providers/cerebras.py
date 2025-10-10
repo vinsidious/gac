@@ -22,7 +22,12 @@ def call_cerebras_api(model: str, messages: list[dict], temperature: float, max_
         response = httpx.post(url, headers=headers, json=data, timeout=120)
         response.raise_for_status()
         response_data = response.json()
-        return response_data["choices"][0]["message"]["content"]
+        content = response_data["choices"][0]["message"]["content"]
+        if content is None:
+            raise AIError.model_error("Cerebras API returned null content")
+        if content == "":
+            raise AIError.model_error("Cerebras API returned empty content")
+        return content
     except httpx.HTTPStatusError as e:
         raise AIError.model_error(f"Cerebras API error: {e.response.status_code} - {e.response.text}") from e
     except Exception as e:
