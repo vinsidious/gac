@@ -1,29 +1,213 @@
 # Repository Guidelines
 
+This file provides guidance to AI coding agents when working with code in this repository.
+
 ## Project Structure & Module Organization
 
-The Python package lives in `src/gac`, with CLI entrypoints in `cli.py` and orchestration logic split across modules such as `ai_providers.py`, `prompt.py`, and `git.py`. Unit and integration tests mirror that layout in `tests/`, using `test_*.py` files and shared fixtures in `conftest.py`. Reference material and process docs sit under `docs/`, UI assets and screenshots in `assets/`, and automation helpers in `scripts/` (release prep, changelog tooling). Build artifacts (`dist/`) and coverage reports (`htmlcov/`) are disposable outputs; regenerate rather than commit them.
+```text
+gac/
+├── src/gac/              # Main package
+│   ├── cli.py            # CLI entrypoint
+│   ├── main.py           # Commit workflow orchestration
+│   ├── ai.py             # AI provider integration
+│   ├── prompt.py         # Prompt building and formatting
+│   ├── git.py            # Git operations
+│   ├── config.py         # Configuration management
+│   ├── preprocess.py     # Diff preprocessing
+│   ├── security.py       # Secret detection
+│   ├── errors.py         # Custom exceptions
+│   ├── utils.py          # Utility functions
+│   └── providers/        # AI provider implementations (~10 providers)
+│       ├── openai.py
+│       ├── anthropic.py
+│       ├── gemini.py
+│       └── ...
+├── tests/                # Test suite (mirrors src/gac structure)
+│   ├── conftest.py       # Shared test fixtures
+│   ├── test_*.py         # Core module tests
+│   └── providers/        # Provider tests (one file per provider)
+│       ├── conftest.py   # BaseProviderTest framework
+│       ├── test_openai.py
+│       └── ...
+├── docs/                 # Documentation
+├── scripts/              # Automation helpers (release prep, changelog)
+└── assets/               # UI screenshots and assets
+```
+
+**Key Points:**
+
+- Python package lives in `src/gac`
+- Tests mirror source structure in `tests/`
+- Each provider has its own implementation file in `src/gac/providers/`
+- Each provider has its own test file in `tests/providers/`
+- Build artifacts (`dist/`, `htmlcov/`) are disposable - regenerate, don't commit
 
 ## Build, Test, and Development Commands
 
-Create a development environment with `make setup` (uses `uv venv` and installs `[dev]` extras). Day-to-day, `make install-dev` refreshes dependencies, `make test` runs the full pytest suite through `uv run -- pytest`, and `make test-cov` emits terminal and HTML coverage. Linting lives behind `make lint`, which chains `ruff`, `prettier`, and `markdownlint-cli2`; `make format` applies the same tools in write mode. Use targeted invocations such as `uv run -- pytest tests/test_cli.py::test_basic_flow` when iterating on a single case.
+### Environment Setup
 
-## Coding Style & Naming Conventions
+```bash
+# Create development environment
+make setup                          # Creates venv and installs dev dependencies
+# OR manually:
+uv venv && uv pip install -e ".[dev]"
+```
 
-Target Python 3.10+ and keep modules fully type annotated. Formatting is enforced by Ruff (`ruff format`) with 120-character lines, double quotes, and space indentation. Follow snake_case for modules, functions, and variables; reserve CapWords for classes and UPPER_CASE for constants in `constants.py`. Prefer structured logging over `print`, keep CLI options defined through Click decorators, and store user-facing strings near their command implementations for translation ease.
+### Daily Development
+
+```bash
+make install-dev                    # Refresh dependencies
+make test                           # Run all tests (excludes integration)
+make test-cov                       # Run tests with coverage (outputs to htmlcov/)
+```
+
+### Running Tests
+
+```bash
+# Default: All tests excluding integration
+make test                           # Fast, for local development
+
+# Integration tests only (requires API keys)
+make test-integration               # Tests that make real API calls
+
+# All tests including integration
+make test-all                       # Complete test suite
+
+# Targeted test runs
+uv run -- pytest tests/test_cli.py                    # Single file
+uv run -- pytest tests/test_cli.py::test_basic_flow   # Single test
+uv run -- pytest tests/providers/test_openai.py       # Provider-specific
+```
+
+### Code Quality
+
+```bash
+make lint                           # Check with ruff, prettier, markdownlint
+make format                         # Auto-fix with ruff, prettier, markdownlint
+make clean                          # Remove build artifacts and caches
+```
 
 ## Testing Guidelines
 
-Write pytest coverage alongside features and place integration scenarios under the same `tests/` tree. Name new files `test_<module>.py` and individual tests `test_<behavior>`, mirroring existing suites.
+### Test Organization
 
-Organize provider tests into three distinct categories for better maintainability:
+Tests mirror the source structure. Name files as `test_<module>.py` and individual tests as `test_<behavior>`.
 
-- **Unit tests** (`test_providers_unit.py`): Pure unit tests with no external dependencies
-- **Mocked tests** (`test_providers_mocked.py`): Tests with mocked HTTP calls that verify internal logic
-- **Integration tests** (`test_providers_integration.py`): Tests that make real API calls (marked with pytest markers)
+### Provider Test Structure
 
-Aim to maintain coverage parity by running `make test-cov`; HTML output lands in `htmlcov/index.html` for inspection. When shell-based repro steps are needed, add helper scripts under `scripts/` instead of mixing shell logic into pytest.
+Each provider has its own test file in `tests/providers/` containing three types of tests:
+
+**1. Unit Tests** - No external dependencies
+
+```python
+class TestOpenAIImports:
+    """Test imports and basic validation."""
+    def test_import_provider(self): ...
+    def test_import_api_function(self): ...
+
+class TestOpenAIAPIKeyValidation:
+    """Test API key error handling."""
+    def test_missing_api_key_error(self): ...
+```
+
+**2. Mocked Tests** - HTTP calls mocked, using BaseProviderTest
+
+```python
+class TestOpenAIProviderMocked(BaseProviderTest):
+    """Mocked HTTP tests inheriting standard test suite."""
+
+    @property
+    def provider_name(self) -> str:
+        return "openai"
+
+    # Inherits 9 standard tests:
+    # - test_successful_api_call
+    # - test_empty_content_handling
+    # - test_http_401_authentication_error
+    # - test_http_429_rate_limit_error
+    # - test_http_500_server_error
+    # - test_http_503_service_unavailable
+    # - test_connection_error
+    # - test_timeout_error
+    # - test_malformed_json_response
+```
+
+**3. Integration Tests** - Real API calls, marked with `@pytest.mark.integration`
+
+```python
+@pytest.mark.integration
+class TestOpenAIIntegration:
+    """Integration tests with real API."""
+    def test_real_api_call(self):
+        """Test actual OpenAI API call with valid credentials."""
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            pytest.skip("OPENAI_API_KEY not set")
+        # Make real API call...
+```
+
+**Integration Test Behavior:**
+
+- Skipped by default (don't consume API credits during development)
+- Run explicitly with `make test-integration` or `make test-all`
+- Skip gracefully when API keys not configured
+- Use pytest marker: `@pytest.mark.integration`
+
+### Coverage
+
+```bash
+make test-cov                       # Generates terminal + HTML report
+open htmlcov/index.html             # View detailed coverage
+```
+
+Aim to maintain coverage parity. When shell-based tests are needed, add scripts under `scripts/` rather than mixing shell logic into pytest.
+
+## Coding Style & Naming Conventions
+
+**Python Version:** 3.10+
+
+**Formatting:** Ruff with 120-character lines, double quotes, space indentation
+
+**Naming Conventions:**
+
+- `snake_case`: modules, functions, variables
+- `CapWords`: classes
+- `UPPER_CASE`: constants (in `constants.py`)
+
+**Best Practices:**
+
+- Full type annotations on all modules
+- Use structured logging, not `print`
+- Define CLI options through Click decorators
+- Keep user-facing strings near command implementations
 
 ## Commit & Pull Request Guidelines
 
-History follows Conventional Commits with optional scopes (for example, `feat(ai): implement streaming support`). Keep summary lines imperative, under 72 characters, and describe notable side effects in the body. We dogfood `gac`: craft commit messages with the local `gac` CLI, or fall back to `uvx gac` if the local fails. Release-worthy work must bump `src/gac/__version__.py` and update `CHANGELOG.md`. Pull requests should link related issues, explain testing performed, and include screenshots or recordings when CLI UX changes. Run `make lint` and `make test` before requesting review to avoid CI churn.
+**Commit Format:** Conventional Commits with optional scopes
+
+```bash
+feat(ai): implement streaming support
+fix(providers): handle rate limit retries
+docs: update testing guidelines
+```
+
+**Commit Message Rules:**
+
+- Summary line: imperative mood, under 72 characters
+- Describe notable side effects in body
+- Use `gac` to create commits (dogfooding): `gac -s <scope> -y`
+
+**Pull Request Checklist:**
+
+- [ ] Version bumped in `src/gac/__version__.py` (if releasable)
+- [ ] `CHANGELOG.md` updated with changes
+- [ ] Tests added/updated for changes
+- [ ] `make lint` and `make test` passing
+- [ ] Related issues linked
+- [ ] Screenshots/recordings included for CLI UX changes
+
+**Release Process:**
+
+1. Merge PR with version bump to main
+2. Create and push tag: `git tag v1.2.3 && git push origin v1.2.3`
+3. GitHub Actions automatically publishes to PyPI

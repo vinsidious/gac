@@ -151,7 +151,7 @@ using the standard pytest framework.
 make test
 
 # Run only provider integration tests (requires API keys)
-make test-providers
+make test-integration
 
 # Run all tests including provider integration tests
 make test-all
@@ -168,7 +168,7 @@ python -m pytest tests/test_prompt.py::TestExtractRepositoryContext::test_extrac
 
 #### Provider Integration Tests
 
-Provider integration tests make real API calls to verify that provider implementations work correctly with actual APIs. These tests are marked with `@pytest.mark.providers` and are skipped by default to:
+Provider integration tests make real API calls to verify that provider implementations work correctly with actual APIs. These tests are marked with `@pytest.mark.integration` and are skipped by default to:
 
 - Avoid consuming API credits during regular development
 - Prevent test failures when API keys are not configured
@@ -194,7 +194,7 @@ To run provider integration tests:
 2. **Run provider tests**:
 
    ```sh
-   make test-providers
+   make test-integration
    ```
 
 Tests will skip providers where API keys are not configured. These tests help detect API changes early and ensure compatibility with provider APIs.
