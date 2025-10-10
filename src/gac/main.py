@@ -59,7 +59,7 @@ def main(
         if model is None:
             handle_error(
                 AIError.model_error(
-                    "No model specified. Please set the GAC_MODEL environment variable or use --model."
+                    "gac init hasn't been run yet. Please run 'gac init' to set up your configuration, then try again."
                 ),
                 exit_program=True,
             )
