@@ -108,7 +108,7 @@ class TestZAICodingProviderMocked(BaseProviderTest):
         return {"choices": [{"message": {"content": ""}}]}
 
 
-@pytest.mark.providers
+@pytest.mark.integration
 class TestZAIIntegration:
     """Integration tests for ZAI provider."""
 

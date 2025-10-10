@@ -68,7 +68,7 @@ class TestOpenRouterProviderMocked(BaseProviderTest):
         return {"choices": [{"message": {"content": ""}}]}
 
 
-@pytest.mark.providers
+@pytest.mark.integration
 class TestOpenRouterIntegration:
     """Integration tests for OpenRouter provider."""
 

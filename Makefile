@@ -1,4 +1,4 @@
-.PHONY: setup install install-dev test test-providers test-all lint format clean bump bump-patch bump-minor bump-major bump-alpha bump-beta bump-rc coverage
+.PHONY: setup install install-dev test test-integration test-all lint format clean bump bump-patch bump-minor bump-major coverage
 
 PRETTIER_VERSION := npx prettier@3.1.0
 
@@ -22,20 +22,11 @@ install-dev:
 test:
 	uv run -- pytest
 
-test-providers:
-	uv run -- pytest -m providers -v
+test-integration:
+	uv run -- pytest -m integration -v
 
 test-all:
 	uv run -- pytest -m ""
-
-test-unit:
-	uv run -- pytest tests/test_providers_unit.py
-
-test-mocked:
-	uv run -- pytest tests/test_providers_mocked.py
-
-test-integration:
-	uv run -- pytest -m providers
 
 test-cov:
 	uv run -- python -m pytest --cov=src --cov-report=term --cov-report=html

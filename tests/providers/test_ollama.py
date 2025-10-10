@@ -59,7 +59,7 @@ class TestOllamaProviderMocked(BaseProviderTest):
         return {"response": ""}
 
 
-@pytest.mark.providers
+@pytest.mark.integration
 class TestOllamaIntegration:
     """Integration tests for Ollama provider."""
 

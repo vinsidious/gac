@@ -68,7 +68,7 @@ class TestAnthropicProviderMocked(BaseProviderTest):
         return {"content": [{"text": ""}]}
 
 
-@pytest.mark.providers
+@pytest.mark.integration
 class TestAnthropicIntegration:
     """Integration tests for Anthropic provider."""
 

@@ -68,7 +68,7 @@ class TestCerebrasProviderMocked(BaseProviderTest):
         return {"choices": [{"message": {"content": ""}}]}
 
 
-@pytest.mark.providers
+@pytest.mark.integration
 class TestCerebrasIntegration:
     """Integration tests for Cerebras provider."""
 

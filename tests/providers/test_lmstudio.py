@@ -57,7 +57,7 @@ class TestLMStudioProviderMocked(BaseProviderTest):
         return {"choices": [{"message": {"content": ""}}]}
 
 
-@pytest.mark.providers
+@pytest.mark.integration
 class TestLMStudioIntegration:
     """Integration tests for LM Studio provider."""
 

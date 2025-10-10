@@ -195,9 +195,9 @@ line-ending = "auto"
 
 [tool.pytest.ini_options]
 markers = [
-    "providers: marks tests that make real API calls to AI providers (deselect with '-m \"not providers\"')",
+    "integration: marks tests that make real API calls to external services (deselect with '-m \"not integration\"')",
 ]
-addopts = "-m 'not providers'"
+addopts = "-m 'not integration'"
 
 [template.plugins.default]
 tests = true

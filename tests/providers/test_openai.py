@@ -68,7 +68,7 @@ class TestOpenAIProviderMocked(BaseProviderTest):
         return {"choices": [{"message": {"content": ""}}]}
 
 
-@pytest.mark.providers
+@pytest.mark.integration
 class TestOpenAIIntegration:
     """Integration tests for OpenAI provider."""
 

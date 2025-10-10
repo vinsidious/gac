@@ -81,7 +81,7 @@ class TestStreamLakeProviderMocked(BaseProviderTest):
         assert headers.get("Authorization") == "Bearer alias-key"
 
 
-@pytest.mark.providers
+@pytest.mark.integration
 class TestStreamLakeIntegration:
     """Integration tests for StreamLake provider."""
 

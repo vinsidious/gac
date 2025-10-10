@@ -68,7 +68,7 @@ class TestGroqProviderMocked(BaseProviderTest):
         return {"choices": [{"message": {"content": ""}}]}
 
 
-@pytest.mark.providers
+@pytest.mark.integration
 class TestGroqIntegration:
     """Integration tests for Groq provider."""
 
