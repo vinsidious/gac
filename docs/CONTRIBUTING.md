@@ -85,7 +85,7 @@ bump-my-version bump major
 
 ## Coding Standards
 
-- Target Python 3.13
+- Target Python 3.14
 - Use type hints for all function parameters and return values
 - Keep code clean, compact, and readable
 - Avoid unnecessary complexity
