@@ -103,6 +103,7 @@ def generate_with_retries(
         "openai",
         "openrouter",
         "streamlake",
+        "synthetic",
         "zai",
         "zai-coding",
     ]

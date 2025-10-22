@@ -19,6 +19,7 @@ from gac.providers import (
     call_openai_api,
     call_openrouter_api,
     call_streamlake_api,
+    call_synthetic_api,
     call_zai_api,
     call_zai_coding_api,
 )
@@ -67,16 +68,17 @@ def generate_commit_message(
     # Provider functions mapping
     provider_funcs = {
         "anthropic": call_anthropic_api,
-        "openai": call_openai_api,
-        "groq": call_groq_api,
         "cerebras": call_cerebras_api,
+        "gemini": call_gemini_api,
+        "groq": call_groq_api,
+        "lmstudio": call_lmstudio_api,
         "ollama": call_ollama_api,
+        "openai": call_openai_api,
         "openrouter": call_openrouter_api,
         "streamlake": call_streamlake_api,
+        "synthetic": call_synthetic_api,
         "zai": call_zai_api,
         "zai-coding": call_zai_coding_api,
-        "gemini": call_gemini_api,
-        "lmstudio": call_lmstudio_api,
     }
 
     # Generate the commit message using centralized retry logic

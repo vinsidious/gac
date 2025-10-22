@@ -41,6 +41,7 @@ def init() -> None:
         ("OpenAI", "gpt-4.1-mini"),
         ("OpenRouter", "openrouter/auto"),
         ("Streamlake", ""),
+        ("Synthetic", "hf:zai-org/GLM-4.6"),
         ("Z.AI", "glm-4.5-air"),
         ("Z.AI Coding", "glm-4.6"),
     ]
@@ -49,7 +50,7 @@ def init() -> None:
     if not provider:
         click.echo("Provider selection cancelled. Exiting.")
         return
-    provider_key = provider.lower().replace(".", "").replace(" ", "-")
+    provider_key = provider.lower().replace(".", "").replace(" ", "-").replace("syntheticnew", "synthetic")
 
     is_ollama = provider_key == "ollama"
     is_lmstudio = provider_key == "lm-studio"
@@ -104,8 +105,6 @@ def init() -> None:
     if api_key:
         if is_zai:
             api_key_name = "ZAI_API_KEY"
-        elif is_lmstudio:
-            api_key_name = "LMSTUDIO_API_KEY"
         else:
             api_key_name = f"{provider_key.upper()}_API_KEY"
         set_key(str(GAC_ENV_PATH), api_key_name, api_key)
