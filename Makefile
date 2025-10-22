@@ -1,4 +1,4 @@
-.PHONY: setup install install-dev test test-integration test-all lint format clean bump bump-patch bump-minor bump-major coverage
+.PHONY: setup install install-dev dev test test-integration test-all lint format clean bump bump-patch bump-minor bump-major coverage
 
 PRETTIER_VERSION := npx prettier@3.1.0
 
@@ -9,15 +9,21 @@ setup:
 
 # Install only runtime dependencies
 install:
+	uv venv
 	uv pip install -e .
 
 # Update dependencies
 update:
 	uv pip install -U -e ".[dev]"
 
-# Install with development dependencies
-install-dev:
+# Set up development environment
+dev:
+	@echo "Installing development dependencies..."
+	uv venv
 	uv pip install -e ".[dev]"
+	@echo "Installing git hooks..."
+	pre-commit install
+	@echo "✅ Development environment ready!"
 
 test:
 	uv run -- pytest
