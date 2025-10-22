@@ -7,7 +7,10 @@ make the process smooth for everyone.
 
 - [Contributing to gac](#contributing-to-gac)
   - [Table of Contents](#table-of-contents)
-  - [How to Contribute](#how-to-contribute)
+  - [Development Environment Setup](#development-environment-setup)
+    - [Quick Setup](#quick-setup)
+    - [Alternative Setup (if you prefer step-by-step)](#alternative-setup-if-you-prefer-step-by-step)
+    - [Available Commands](#available-commands)
   - [Version Bumping](#version-bumping)
     - [How to bump the version](#how-to-bump-the-version)
     - [Release Process](#release-process)
@@ -23,22 +26,48 @@ make the process smooth for everyone.
   - [License](#license)
   - [Where to Get Help](#where-to-get-help)
 
-## How to Contribute
+## Development Environment Setup
 
-- **Report Bugs**: Use GitHub Issues to report bugs. Please provide clear steps to reproduce and relevant logs or
-  screenshots.
-- **Suggest Features**: Open an Issue to propose new features. Describe your idea and its use case.
-- **Submit Pull Requests**:
-  1. Fork the repository and create your branch from `main`.
-  2. Make your changes following the coding standards below.
-  3. Add or update tests as needed.
-  4. Ensure all tests pass (`pytest`).
-  5. Bump the version in `src/gac/__version__.py` if this is a releasable change.
-  6. Update `CHANGELOG.md` with your changes.
-  7. Submit a pull request with a clear description of your changes.
+This project uses `uv` for dependency management and provides a Makefile for common development tasks:
 
-If you have questions or want to discuss ideas before contributing, please open an issue or start a discussion on
-GitHub.
+### Quick Setup
+
+```bash
+# One command to set up everything including pre-commit hooks
+make dev
+```
+
+This command will:
+
+- Install development dependencies
+- Install git hooks
+- Run pre-commit against all files to fix any existing issues
+
+### Alternative Setup (if you prefer step-by-step)
+
+```bash
+# Create virtual environment and install dependencies
+make setup
+
+# Install development dependencies
+make dev
+
+# Install pre-commit hooks
+pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+```
+
+### Available Commands
+
+- `make setup` - Create virtual environment and install all dependencies
+- `make dev` - **Complete development setup** - includes pre-commit hooks
+- `make test` - Run standard tests (excludes integration tests)
+- `make test-integration` - Run only integration tests (requires API keys)
+- `make test-all` - Run all tests
+- `make test-cov` - Run tests with coverage report
+- `make lint` - Check code quality (ruff, prettier, markdownlint)
+- `make format` - Auto-fix code formatting issues
 
 ## Version Bumping
 
@@ -48,8 +77,8 @@ GitHub.
 
 1. Edit `src/gac/__version__.py` and increment the version number
 2. Follow [Semantic Versioning](https://semver.org/):
-   - **Patch** (0.0.X): Bug fixes, small improvements
-   - **Minor** (0.X.0): New features, backwards-compatible changes
+   - **Patch** (1.6.X): Bug fixes, small improvements
+   - **Minor** (1.X.0): New features, backwards-compatible changes
    - **Major** (X.0.0): Breaking changes
 
 ### Release Process
@@ -57,15 +86,15 @@ GitHub.
 Releases are triggered by pushing version tags:
 
 1. Merge PR(s) with version bumps to main
-2. Create a tag: `git tag v0.17.3`
-3. Push the tag: `git push origin v0.17.3`
+2. Create a tag: `git tag v1.6.1`
+3. Push the tag: `git push origin v1.6.1`
 4. GitHub Actions automatically publishes to PyPI
 
 Example:
 
 ```python
 # src/gac/__version__.py
-__version__ = "0.17.3"  # Bumped from 0.17.2
+__version__ = "1.6.1"  # Bumped from 1.6.0
 ```
 
 ### Using bump-my-version (optional)
@@ -85,30 +114,39 @@ bump-my-version bump major
 
 ## Coding Standards
 
-- Target Python 3.14
+- Target Python 3.10+ (3.10, 3.11, 3.12, 3.13, 3.14)
 - Use type hints for all function parameters and return values
 - Keep code clean, compact, and readable
 - Avoid unnecessary complexity
 - Use logging instead of print statements
-- Formatting is handled by `black`, `isort`, and `flake8` (max line length: 120)
+- Formatting is handled by `ruff` (linting, formatting, and import sorting in one tool; max line length: 120)
 - Write minimal, effective tests with `pytest`
 
 ## Pre-commit Hooks
 
 This project uses pre-commit to ensure code quality and consistency. The following hooks are configured:
 
-- `black` - Code formatting
-- `isort` - Import sorting
-- `flake8` - Linting
+- `ruff` - Python linting and formatting (replaces black, isort, and flake8)
 - `markdownlint-cli2` - Markdown linting
 - `prettier` - File formatting (markdown, yaml, json)
+- `check-upstream` - Custom hook to check for upstream changes
 
 ### Setup
 
-1. Install pre-commit:
+**Recommended approach:**
+
+```bash
+make dev
+```
+
+**Manual setup (if you prefer step-by-step):**
+
+1. Install pre-commit (if not already available):
 
    ```sh
    pip install pre-commit
+   # or if using uv:
+   uv add --dev pre-commit
    ```
 
 2. Install the git hooks:
@@ -160,10 +198,10 @@ make test-all
 make test-cov
 
 # Run specific test file
-python -m pytest tests/test_prompt.py
+uv run -- pytest tests/test_prompt.py
 
 # Run specific test
-python -m pytest tests/test_prompt.py::TestExtractRepositoryContext::test_extract_repository_context_with_docstring
+uv run -- pytest tests/test_prompt.py::TestExtractRepositoryContext::test_extract_repository_context_with_docstring
 ```
 
 #### Provider Integration Tests
@@ -213,7 +251,6 @@ By contributing, you agree that your contributions will be licensed under the sa
 
 - For troubleshooting, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 - For usage and CLI options, see [USAGE.md](USAGE.md)
-- For installation, see [INSTALLATION.md](INSTALLATION.md)
 - For license details, see [LICENSE](LICENSE)
 
 Thank you for helping improve gac!
