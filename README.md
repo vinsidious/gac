@@ -16,7 +16,7 @@
 - **Deep Contextual Analysis:** Understands your code by analyzing staged changes, repository structure, and recent commit history to provide highly relevant suggestions.
 - **Multi-Provider & Model Support:** Flexibly works with leading AI providers (Anthropic, Cerebras, Chutes.ai, Gemini, Groq, OpenAI, OpenRouter, Streamlake/Vanchin, Synthetic.new, & Z.AI) and local providers (LM Studio & Ollama), easily configured through an interactive setup or environment variables.
 - **Seamless Git Workflow:** Integrates smoothly into your existing Git routine as a simple drop-in replacement for `git commit`.
-- **Extensive Customization:** Tailor commit messages to your needs with a rich set of flags, including one-liners (`-o`), AI hints (`-h`), scope inference (`-s`), and specific model selection (`-m`).
+- **Extensive Customization:** Tailor commit messages to your needs with a rich set of flags, including one-liners (`-o`), detailed verbose messages (`-v`), AI hints (`-h`), scope inference (`-s`), and specific model selection (`-m`).
 - **Streamlined Workflow Commands:** Boost your productivity with convenient options to stage all changes (`-a`), auto-confirm commits (`-y`), and push to your remote repository (`-p`) in a single step.
 - **Interactive Reroll with Feedback:** Not satisfied with the generated commit message? Use `r` for a simple regeneration, or `r <feedback>` to provide specific improvement suggestions (e.g., `r make it shorter`, `r focus on the bug fix`).
 - **Token Usage Tracking:** Display token consumption statistics (prompt, completion, and total tokens).
