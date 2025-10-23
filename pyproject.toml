@@ -27,6 +27,7 @@ classifiers = [
 dependencies = [
     # HTTP client for AI provider APIs
     "httpx>=0.28.0",
+    "httpcore>=1.0.9",  # Required for Python 3.14 compatibility
 
     # Anthropic SDK (token counting)
     "anthropic>=0.68.0",
