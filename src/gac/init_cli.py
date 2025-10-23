@@ -32,7 +32,7 @@ def init() -> None:
         click.echo(f"Created $HOME/.gac.env at {GAC_ENV_PATH}.")
 
     providers = [
-        ("Anthropic", "claude-3-5-haiku-latest"),
+        ("Anthropic", "claude-haiku-4-5"),
         ("Cerebras", "qwen-3-coder-480b"),
         ("Gemini", "gemini-2.5-flash"),
         ("Groq", "meta-llama/llama-4-maverick-17b-128e-instruct"),
