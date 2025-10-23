@@ -55,7 +55,9 @@ gac = "gac.cli:cli"
 [project.optional-dependencies]
 dev = [
     # Version management
-    "bump-my-version",
+    # Note: bump-my-version has Python 3.14 compatibility issues
+    # Use manual version bumping for now
+    # "bump-my-version",
     
     # Testing
     "pytest",
