@@ -14,7 +14,7 @@
 
 - **LLM-Powered Commit Messages:** Automatically generates clear, concise, and context-aware commit messages using large language models.
 - **Deep Contextual Analysis:** Understands your code by analyzing staged changes, repository structure, and recent commit history to provide highly relevant suggestions.
-- **Multi-Provider & Model Support:** Flexibly works with leading AI providers (Anthropic, Cerebras, Gemini, Groq, OpenAI, OpenRouter, Streamlake/Vanchin, Z.AI) and local providers (LM Studio, Ollama), easily configured through an interactive setup or environment variables.
+- **Multi-Provider & Model Support:** Flexibly works with leading AI providers (Anthropic, Cerebras, Chutes.ai, Gemini, Groq, OpenAI, OpenRouter, Streamlake/Vanchin, Synthetic.new, & Z.AI) and local providers (LM Studio & Ollama), easily configured through an interactive setup or environment variables.
 - **Seamless Git Workflow:** Integrates smoothly into your existing Git routine as a simple drop-in replacement for `git commit`.
 - **Extensive Customization:** Tailor commit messages to your needs with a rich set of flags, including one-liners (`-o`), AI hints (`-h`), scope inference (`-s`), and specific model selection (`-m`).
 - **Streamlined Workflow Commands:** Boost your productivity with convenient options to stage all changes (`-a`), auto-confirm commits (`-y`), and push to your remote repository (`-p`) in a single step.
@@ -25,12 +25,6 @@
 ## How It Works
 
 gac analyzes your staged changes to generate high-quality commit messages with the help of large language models. The tool uses a sophisticated prompt architecture that separates system instructions from user data, enabling better AI understanding and more consistent results.
-
-### Technical Architecture
-
-- **Dual-Prompt System**: GAC uses a separated prompt architecture where system instructions (role definition, conventions, examples) are sent as system messages, while git data (diffs, status) are sent as user messages. This follows AI best practices for improved model performance.
-- **Smart Context Analysis**: The tool examines your repository structure, recent commit history, and README files to understand the broader context of your changes.
-- **Intelligent Diff Processing**: Large diffs are automatically preprocessed to focus on the most important changes while staying within token limits.
 
 ## How to Use
 

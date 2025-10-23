@@ -12,6 +12,7 @@ from gac.errors import AIError
 from gac.providers import (
     call_anthropic_api,
     call_cerebras_api,
+    call_chutes_api,
     call_gemini_api,
     call_groq_api,
     call_lmstudio_api,
@@ -69,6 +70,7 @@ def generate_commit_message(
     provider_funcs = {
         "anthropic": call_anthropic_api,
         "cerebras": call_cerebras_api,
+        "chutes": call_chutes_api,
         "gemini": call_gemini_api,
         "groq": call_groq_api,
         "lmstudio": call_lmstudio_api,

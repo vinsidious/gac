@@ -34,6 +34,7 @@ def init() -> None:
     providers = [
         ("Anthropic", "claude-haiku-4-5"),
         ("Cerebras", "qwen-3-coder-480b"),
+        ("Chutes.ai", "zai-org/GLM-4.6-FP8"),
         ("Gemini", "gemini-2.5-flash"),
         ("Groq", "meta-llama/llama-4-maverick-17b-128e-instruct"),
         ("LM Studio", "gemma3"),

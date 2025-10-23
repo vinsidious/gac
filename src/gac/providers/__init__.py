@@ -2,6 +2,7 @@
 
 from .anthropic import call_anthropic_api
 from .cerebras import call_cerebras_api
+from .chutes import call_chutes_api
 from .gemini import call_gemini_api
 from .groq import call_groq_api
 from .lmstudio import call_lmstudio_api
@@ -15,6 +16,7 @@ from .zai import call_zai_api, call_zai_coding_api
 __all__ = [
     "call_anthropic_api",
     "call_cerebras_api",
+    "call_chutes_api",
     "call_gemini_api",
     "call_groq_api",
     "call_lmstudio_api",
