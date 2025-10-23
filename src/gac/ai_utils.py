@@ -96,6 +96,7 @@ def generate_with_retries(
     supported_providers = [
         "anthropic",
         "cerebras",
+        "chutes",
         "gemini",
         "groq",
         "lm-studio",
