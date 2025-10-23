@@ -95,6 +95,9 @@ def cli(
         # Determine if we should infer scope based on -s flag or always_include_scope setting
         infer_scope = bool(scope or config.get("always_include_scope", False))
 
+        # Determine if verbose mode should be enabled based on -v flag or verbose config setting
+        use_verbose = bool(verbose or config.get("verbose", False))
+
         try:
             main(
                 stage_all=add_all,
@@ -107,7 +110,7 @@ def cli(
                 push=push,
                 quiet=quiet,
                 dry_run=dry_run,
-                verbose=verbose,
+                verbose=use_verbose,
                 no_verify=no_verify,
                 skip_secret_scan=skip_secret_scan or bool(config.get("skip_secret_scan", False)),
             )

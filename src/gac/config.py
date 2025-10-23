@@ -37,6 +37,7 @@ def load_config() -> dict[str, str | int | float | bool]:
         in ("true", "1", "yes", "on"),
         "skip_secret_scan": os.getenv("GAC_SKIP_SECRET_SCAN", str(EnvDefaults.SKIP_SECRET_SCAN)).lower()
         in ("true", "1", "yes", "on"),
+        "verbose": os.getenv("GAC_VERBOSE", str(EnvDefaults.VERBOSE)).lower() in ("true", "1", "yes", "on"),
     }
 
     return config

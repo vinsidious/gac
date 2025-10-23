@@ -84,3 +84,37 @@ def test_load_config_precedence(tmp_path, monkeypatch):
         config = load_config()
         # .gac.env should take precedence
         assert config["model"] == "gac-env-model"
+
+
+def test_load_config_verbose(tmp_path, monkeypatch):
+    """Test that GAC_VERBOSE config option works correctly."""
+    # Change to tmp directory
+    monkeypatch.chdir(tmp_path)
+
+    # Mock home directory to ensure it doesn't interfere
+    with patch("gac.config.Path.home") as mock_home:
+        mock_home.return_value = tmp_path / "nonexistent_home"
+
+        # Test default (should be False)
+        config = load_config()
+        assert config["verbose"] is False
+
+        # Test with verbose=true
+        monkeypatch.setenv("GAC_VERBOSE", "true")
+        config = load_config()
+        assert config["verbose"] is True
+
+        # Test with verbose=false
+        monkeypatch.setenv("GAC_VERBOSE", "false")
+        config = load_config()
+        assert config["verbose"] is False
+
+        # Test with verbose=1
+        monkeypatch.setenv("GAC_VERBOSE", "1")
+        config = load_config()
+        assert config["verbose"] is True
+
+        # Test with verbose=yes
+        monkeypatch.setenv("GAC_VERBOSE", "yes")
+        config = load_config()
+        assert config["verbose"] is True
