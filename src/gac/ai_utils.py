@@ -98,7 +98,7 @@ def generate_with_retries(
         "cerebras",
         "gemini",
         "groq",
-        "lmstudio",
+        "lm-studio",
         "ollama",
         "openai",
         "openrouter",
