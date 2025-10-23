@@ -43,7 +43,43 @@ When changes span multiple areas:
   - Detailed body with multiple bullet points explaining the key changes
   - Focus on WHY changes were made, not just WHAT was changed
   - Order points from most important to least important
-  </multi_line>
+  </multi_line><verbose>
+  IMPORTANT: You MUST create a MULTI-PARAGRAPH commit message with detailed sections.
+  DO NOT create a single-line commit message.
+
+  Your commit message MUST follow this structure:
+
+  Line 1: A concise summary (up to ~72 characters) with conventional commit prefix
+  Line 2: BLANK LINE (required)
+  Lines 3+: Detailed multi-paragraph body with the following sections:
+
+  ## Motivation
+  Explain why this commit exists in 2-3 sentences. What problem does it solve? What need does it address?
+
+  ## Architecture / Approach
+  Describe how it was implemented in 2-4 sentences. Include key design decisions and any rejected alternatives.
+  Reference specific modules, functions, or classes when relevant.
+
+  ## Affected Components
+  List the main modules, subsystems, or directories impacted by this change.
+
+  OPTIONAL sections (include only if relevant):
+
+  ## Performance / Security Impact
+  Describe any performance improvements, trade-offs, or security considerations.
+  Include concrete data such as benchmark results if available.
+
+  ## Compatibility / Testing
+  Mention any compatibility considerations, known limitations, testing performed, or next steps for validation.
+
+  REQUIREMENTS:
+  - Your response MUST be at least 10 lines long with multiple paragraphs
+  - Use active voice and present tense ("Implements", "Adds", "Refactors")
+  - Provide concrete, specific information rather than vague descriptions
+  - Keep the tone professional and technical
+  - Focus on intent and reasoning, not just code changes
+  - Use markdown headers (##) for section organization
+  </verbose>
 </format>
 
 <conventions_no_scope>
@@ -158,8 +194,50 @@ Bad commit messages:
 [ERROR] Changes
 </examples_no_scope>
 
+<examples_verbose_no_scope>
+Example of a good VERBOSE commit message (without scope):
+
+feat: add verbose mode for detailed commit message generation
+
+## Motivation
+Users need the ability to generate comprehensive commit messages that follow best practices for code review and documentation. The existing one-liner and multi-line modes don't provide sufficient structure for complex changes that require detailed explanations of motivation, architecture decisions, and impact.
+
+## Architecture / Approach
+Adds a new --verbose/-v flag to the CLI that modifies the prompt generation in build_prompt(). When enabled, the prompt instructs the AI to generate commit messages with structured sections including Motivation, Architecture/Approach, Affected Components, and optional Performance/Testing sections. The implementation uses the existing format selection logic with verbose taking priority over one_liner and multi_line modes.
+
+## Affected Components
+- src/gac/cli.py: Added --verbose flag and parameter passing
+- src/gac/main.py: Extended main() to accept and pass verbose parameter
+- src/gac/prompt.py: Added <verbose> template section with detailed instructions
+- tests/test_prompt.py: Added test coverage for verbose mode
+
+## Compatibility / Testing
+Added new test test_build_prompt_verbose_mode to verify the verbose template generation. All existing tests pass. The verbose mode is opt-in via the -v flag, maintaining backward compatibility.
+</examples_verbose_no_scope>
+
+<examples_verbose_with_scope>
+Example of a good VERBOSE commit message (with scope):
+
+feat(cli): add verbose mode for detailed commit message generation
+
+## Motivation
+Users need the ability to generate comprehensive commit messages that follow best practices for code review and documentation. The existing one-liner and multi-line modes don't provide sufficient structure for complex changes that require detailed explanations of motivation, architecture decisions, and impact.
+
+## Architecture / Approach
+Adds a new --verbose/-v flag to the CLI that modifies the prompt generation in build_prompt(). When enabled, the prompt instructs the AI to generate commit messages with structured sections including Motivation, Architecture/Approach, Affected Components, and optional Performance/Testing sections. The implementation uses the existing format selection logic with verbose taking priority over one_liner and multi_line modes.
+
+## Affected Components
+- src/gac/cli.py: Added --verbose flag and parameter passing
+- src/gac/main.py: Extended main() to accept and pass verbose parameter
+- src/gac/prompt.py: Added <verbose> template section with detailed instructions
+- tests/test_prompt.py: Added test coverage for verbose mode
+
+## Compatibility / Testing
+Added new test test_build_prompt_verbose_mode to verify the verbose template generation. All existing tests pass. The verbose mode is opt-in via the -v flag, maintaining backward compatibility.
+</examples_verbose_with_scope>
+
 <examples_with_scope>
-Good commit messages (with scope):
+Good commit message top lines (with scope):
 [OK] feat(auth): add OAuth2 integration with Google and GitHub
 [OK] fix(api): resolve race condition in user session management
 [OK] docs(readme): add troubleshooting section for common installation issues
@@ -201,6 +279,7 @@ def build_prompt(
     one_liner: bool = False,
     infer_scope: bool = False,
     hint: str = "",
+    verbose: bool = False,
 ) -> tuple[str, str]:
     """Build system and user prompts for the AI model using the provided template and git information.
 
@@ -211,6 +290,7 @@ def build_prompt(
         one_liner: Whether to request a one-line commit message
         infer_scope: Whether to infer scope for the commit message
         hint: Optional hint to guide the AI
+        verbose: Whether to generate detailed commit messages with motivation, architecture, and impact sections
 
     Returns:
         Tuple of (system_prompt, user_prompt) ready to be sent to an AI model
@@ -251,21 +331,60 @@ def build_prompt(
         template = re.sub(r"<hint>.*?</hint>", "", template, flags=re.DOTALL)
         logger.debug("No hint provided")
 
-    # Process format options (one-liner vs multi-line)
-    if one_liner:
-        template = re.sub(r"<multi_line>.*?</multi_line>", "", template, flags=re.DOTALL)
-    else:
+    # Process format options (verbose, one-liner, or multi-line)
+    # Priority: verbose > one_liner > multi_line
+    if verbose:
+        # Verbose mode: remove one_liner and multi_line, keep verbose
         template = re.sub(r"<one_liner>.*?</one_liner>", "", template, flags=re.DOTALL)
+        template = re.sub(r"<multi_line>.*?</multi_line>", "", template, flags=re.DOTALL)
+    elif one_liner:
+        # One-liner mode: remove multi_line and verbose
+        template = re.sub(r"<multi_line>.*?</multi_line>", "", template, flags=re.DOTALL)
+        template = re.sub(r"<verbose>.*?</verbose>", "", template, flags=re.DOTALL)
+    else:
+        # Multi-line mode (default): remove one_liner and verbose
+        template = re.sub(r"<one_liner>.*?</one_liner>", "", template, flags=re.DOTALL)
+        template = re.sub(r"<verbose>.*?</verbose>", "", template, flags=re.DOTALL)
 
-    # Clean up examples sections based on infer_scope settings
-    if infer_scope:
-        # With scope (inferred) - keep scope examples, remove no_scope examples
+    # Clean up examples sections based on verbose and infer_scope settings
+    if verbose and infer_scope:
+        # Verbose mode with scope - keep verbose_with_scope examples
         template = re.sub(r"<examples_no_scope>.*?</examples_no_scope>\n?", "", template, flags=re.DOTALL)
+        template = re.sub(r"<examples_with_scope>.*?</examples_with_scope>\n?", "", template, flags=re.DOTALL)
+        template = re.sub(
+            r"<examples_verbose_no_scope>.*?</examples_verbose_no_scope>\n?", "", template, flags=re.DOTALL
+        )
+        template = template.replace("<examples_verbose_with_scope>", "<examples>")
+        template = template.replace("</examples_verbose_with_scope>", "</examples>")
+    elif verbose:
+        # Verbose mode without scope - keep verbose_no_scope examples
+        template = re.sub(r"<examples_no_scope>.*?</examples_no_scope>\n?", "", template, flags=re.DOTALL)
+        template = re.sub(r"<examples_with_scope>.*?</examples_with_scope>\n?", "", template, flags=re.DOTALL)
+        template = re.sub(
+            r"<examples_verbose_with_scope>.*?</examples_verbose_with_scope>\n?", "", template, flags=re.DOTALL
+        )
+        template = template.replace("<examples_verbose_no_scope>", "<examples>")
+        template = template.replace("</examples_verbose_no_scope>", "</examples>")
+    elif infer_scope:
+        # With scope (inferred) - keep scope examples, remove all others
+        template = re.sub(r"<examples_no_scope>.*?</examples_no_scope>\n?", "", template, flags=re.DOTALL)
+        template = re.sub(
+            r"<examples_verbose_no_scope>.*?</examples_verbose_no_scope>\n?", "", template, flags=re.DOTALL
+        )
+        template = re.sub(
+            r"<examples_verbose_with_scope>.*?</examples_verbose_with_scope>\n?", "", template, flags=re.DOTALL
+        )
         template = template.replace("<examples_with_scope>", "<examples>")
         template = template.replace("</examples_with_scope>", "</examples>")
     else:
-        # No scope - keep no_scope examples, remove scope examples
+        # No scope - keep no_scope examples, remove all others
         template = re.sub(r"<examples_with_scope>.*?</examples_with_scope>\n?", "", template, flags=re.DOTALL)
+        template = re.sub(
+            r"<examples_verbose_no_scope>.*?</examples_verbose_no_scope>\n?", "", template, flags=re.DOTALL
+        )
+        template = re.sub(
+            r"<examples_verbose_with_scope>.*?</examples_verbose_with_scope>\n?", "", template, flags=re.DOTALL
+        )
         template = template.replace("<examples_no_scope>", "<examples>")
         template = template.replace("</examples_no_scope>", "</examples>")
 

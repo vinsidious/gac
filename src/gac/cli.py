@@ -45,7 +45,12 @@ logger = logging.getLogger(__name__)
 @click.option("--model", "-m", help="Override the default model (format: 'provider:model_name')")
 # Output options
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
-@click.option("--verbose", "-v", is_flag=True, help="Increase output verbosity to INFO")
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Generate detailed commit messages with motivation, architecture, and impact sections",
+)
 @click.option(
     "--log-level",
     default=config["log_level"],
@@ -82,8 +87,6 @@ def cli(
             print(f"Git Auto Commit (gac) version: {__version__}")
             sys.exit(0)
         effective_log_level = log_level
-        if verbose and log_level not in ("DEBUG", "INFO"):
-            effective_log_level = "INFO"
         if quiet:
             effective_log_level = "ERROR"
         setup_logging(effective_log_level)
@@ -104,6 +107,7 @@ def cli(
                 push=push,
                 quiet=quiet,
                 dry_run=dry_run,
+                verbose=verbose,
                 no_verify=no_verify,
                 skip_secret_scan=skip_secret_scan or bool(config.get("skip_secret_scan", False)),
             )

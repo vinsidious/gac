@@ -43,6 +43,7 @@ def main(
     push: bool = False,
     quiet: bool = False,
     dry_run: bool = False,
+    verbose: bool = False,
     no_verify: bool = False,
     skip_secret_scan: bool = False,
 ) -> None:
@@ -178,6 +179,7 @@ def main(
         one_liner=one_liner,
         hint=hint,
         infer_scope=infer_scope,
+        verbose=verbose,
     )
 
     if show_prompt:
@@ -275,6 +277,7 @@ def main(
                                 one_liner=one_liner,
                                 hint=combined_hint,
                                 infer_scope=infer_scope,
+                                verbose=verbose,
                             )
                         else:
                             # No hint given, just reroll with same prompts

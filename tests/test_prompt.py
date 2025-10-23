@@ -106,6 +106,26 @@ class TestPrompts:
         assert "diff text" in result
         assert "<hint>" not in result
 
+    def test_build_prompt_verbose_mode(self):
+        """Test building a prompt with verbose mode enabled."""
+        # Test verbose mode
+        system_prompt, user_prompt = build_prompt(
+            "status text", processed_diff="diff text", verbose=True, hint="hint text"
+        )
+        result = system_prompt + "\n" + user_prompt
+        assert "status text" in result
+        assert "diff text" in result
+        assert "hint text" in result
+        # Verbose mode should include detailed sections
+        assert "Motivation" in result
+        assert "Architecture / Approach" in result or "Architecture/Approach" in result
+        assert "Performance / Security Impact" in result or "Performance/Security Impact" in result
+        assert "Affected Components" in result
+        assert "Compatibility / Testing" in result or "Compatibility/Testing" in result
+        # Should not include one-liner or multi-line instructions
+        assert "Create a single-line commit message (50-72 characters if possible)." not in result
+        assert "Create a commit message with:" not in result or "Create a comprehensive" in result
+
     def test_clean_commit_message(self):
         """Test cleaning up generated commit messages."""
         # Test basic message
