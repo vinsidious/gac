@@ -47,12 +47,13 @@ Generates an AI-powered commit message for staged changes and prompts for confir
 
 ## Message Customization
 
-| Flag / Option     | Short | Description                               |
-| ----------------- | ----- | ----------------------------------------- |
-| `--one-liner`     | `-o`  | Generate a single-line commit message     |
-| `--hint <text>`   | `-h`  | Add a hint to guide the AI                |
-| `--model <model>` | `-m`  | Specify the model to use for this commit  |
-| `--scope`         | `-s`  | Infer an appropriate scope for the commit |
+| Flag / Option     | Short | Description                                                               |
+| ----------------- | ----- | ------------------------------------------------------------------------- |
+| `--one-liner`     | `-o`  | Generate a single-line commit message                                     |
+| `--verbose`       | `-v`  | Generate detailed commit messages with motivation, architecture, & impact |
+| `--hint <text>`   | `-h`  | Add a hint to guide the AI                                                |
+| `--model <model>` | `-m`  | Specify the model to use for this commit                                  |
+| `--scope`         | `-s`  | Infer an appropriate scope for the commit                                 |
 
 **Note:** You can also provide feedback interactively during the reroll process by typing `r <feedback>` at the prompt.
 
@@ -92,6 +93,12 @@ Generates an AI-powered commit message for staged changes and prompts for confir
 
   ```sh
   gac -o
+  ```
+
+- **Generate a detailed commit message with structured sections:**
+
+  ```sh
+  gac -v
   ```
 
 - **Add a hint for the AI:**
@@ -154,6 +161,7 @@ gac --no-verify  # Skip all pre-commit and lefthook hooks
 You can customize gac's behavior with these optional environment variables:
 
 - `GAC_ALWAYS_INCLUDE_SCOPE=true` - Automatically infer and include scope in commit messages (e.g., `feat(auth):` vs `feat:`)
+- `GAC_VERBOSE=true` - Generate detailed commit messages with motivation, architecture, and impact sections
 - `GAC_TEMPERATURE=0.7` - Control AI creativity (0.0-1.0, lower = more focused)
 - `GAC_MAX_OUTPUT_TOKENS=512` - Maximum tokens for generated messages
 - `GAC_WARNING_LIMIT_TOKENS=4096` - Warn when prompts exceed this token count
