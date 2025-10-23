@@ -9,6 +9,10 @@ from gac.errors import AIError
 
 def call_synthetic_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
     """Call Synthetic API directly."""
+    # Handle model names without hf: prefix
+    if not model.startswith("hf:"):
+        model = f"hf:{model}"
+
     api_key = os.getenv("SYNTHETIC_API_KEY") or os.getenv("SYN_API_KEY")
     if not api_key:
         raise AIError.authentication_error("SYNTHETIC_API_KEY or SYN_API_KEY not found in environment variables")

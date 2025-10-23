@@ -9,6 +9,7 @@ from gac.git import (
     get_repo_root,
     get_staged_files,
     push_changes,
+    run_lefthook_hooks,
     run_pre_commit_hooks,
 )
 
@@ -297,3 +298,134 @@ def test_run_pre_commit_hooks_exception_handling():
         assert result is True  # Should return True on exception
         mock_logger.debug.assert_called_once()
         assert "Error running pre-commit:" in mock_logger.debug.call_args[0][0]
+
+
+def test_run_lefthook_hooks_no_config():
+    """Test when no Lefthook configuration files exist."""
+    with patch("os.path.exists") as mock_exists:
+        mock_exists.return_value = False
+        result = run_lefthook_hooks()
+        assert result is True
+
+
+def test_run_lefthook_hooks_lefthook_not_installed():
+    """Test when lefthook is not installed."""
+    with patch("os.path.exists") as mock_exists, patch("gac.git.run_subprocess") as mock_run:
+        # Mock that .lefthook.yml exists
+        mock_exists.return_value = True
+        mock_run.return_value = ""  # Empty result indicates lefthook not available
+        result = run_lefthook_hooks()
+        assert result is True
+
+
+def test_run_lefthook_hooks_success():
+    """Test when lefthook hooks pass successfully."""
+    with (
+        patch("os.path.exists") as mock_exists,
+        patch("gac.git.run_subprocess") as mock_run,
+        patch("subprocess.run") as mock_subprocess_run,
+    ):
+        # Mock that .lefthook.yml exists
+        mock_exists.return_value = True
+        mock_run.return_value = "lefthook 1.0.0"  # lefthook is available
+
+        # Mock successful lefthook run
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_subprocess_run.return_value = mock_result
+
+        result = run_lefthook_hooks()
+        assert result is True
+
+
+def test_run_lefthook_hooks_failure_with_output():
+    """Test when lefthook hooks fail with detailed output."""
+    with (
+        patch("os.path.exists") as mock_exists,
+        patch("gac.git.run_subprocess") as mock_run,
+        patch("subprocess.run") as mock_subprocess_run,
+        patch("gac.git.logger") as mock_logger,
+    ):
+        # Mock that .lefthook.yml exists
+        mock_exists.return_value = True
+        mock_run.return_value = "lefthook 1.0.0"  # lefthook is available
+
+        # Mock failed lefthook run with output
+        mock_result = MagicMock()
+        mock_result.returncode = 1
+        mock_result.stdout = "hook failed: some error details"
+        mock_result.stderr = "stderr output"
+        mock_subprocess_run.return_value = mock_result
+
+        result = run_lefthook_hooks()
+        assert result is False
+        mock_logger.error.assert_called_once()
+        assert "Lefthook hooks failed:" in mock_logger.error.call_args[0][0]
+        assert "hook failed: some error details" in mock_logger.error.call_args[0][0]
+
+
+def test_run_lefthook_hooks_failure_no_output():
+    """Test when lefthook hooks fail without detailed output."""
+    with (
+        patch("os.path.exists") as mock_exists,
+        patch("gac.git.run_subprocess") as mock_run,
+        patch("subprocess.run") as mock_subprocess_run,
+        patch("gac.git.logger") as mock_logger,
+    ):
+        # Mock that .lefthook.yml exists
+        mock_exists.return_value = True
+        mock_run.return_value = "lefthook 1.0.0"  # lefthook is available
+
+        # Mock failed lefthook run without output
+        mock_result = MagicMock()
+        mock_result.returncode = 1
+        mock_result.stdout = ""
+        mock_result.stderr = ""
+        mock_subprocess_run.return_value = mock_result
+
+        result = run_lefthook_hooks()
+        assert result is False
+        mock_logger.error.assert_called_once()
+        assert "Lefthook hooks failed with exit code 1" in mock_logger.error.call_args[0][0]
+
+
+def test_run_lefthook_hooks_exception_handling():
+    """Test exception handling in run_lefthook_hooks."""
+    with (
+        patch("os.path.exists") as mock_exists,
+        patch("gac.git.run_subprocess") as mock_run,
+        patch("subprocess.run") as mock_subprocess_run,
+        patch("gac.git.logger") as mock_logger,
+    ):
+        # Mock that .lefthook.yml exists
+        mock_exists.return_value = True
+        mock_run.return_value = "lefthook 1.0.0"  # lefthook is available
+        mock_subprocess_run.side_effect = Exception("subprocess error")
+
+        result = run_lefthook_hooks()
+        assert result is True  # Should return True on exception
+        mock_logger.debug.assert_called_once()
+        assert "Error running Lefthook:" in mock_logger.debug.call_args[0][0]
+
+
+def test_run_lefthook_hooks_multiple_config_files():
+    """Test when multiple Lefthook configuration files exist."""
+    with (
+        patch("os.path.exists") as mock_exists,
+        patch("gac.git.run_subprocess") as mock_run,
+        patch("subprocess.run") as mock_subprocess_run,
+    ):
+        # Mock that both .lefthook.yml and lefthook.yml exist
+        def exists_side_effect(path):
+            return path in [".lefthook.yml", "lefthook.yml"]
+
+        mock_exists.side_effect = exists_side_effect
+        mock_run.return_value = "lefthook 1.0.0"  # lefthook is available
+
+        # Mock successful lefthook run
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_subprocess_run.return_value = mock_result
+
+        result = run_lefthook_hooks()
+        assert result is True

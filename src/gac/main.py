@@ -19,6 +19,7 @@ from gac.git import (
     get_staged_files,
     push_changes,
     run_git_command,
+    run_lefthook_hooks,
     run_pre_commit_hooks,
 )
 from gac.preprocess import preprocess_diff
@@ -80,11 +81,18 @@ def main(
         )
         sys.exit(0)
 
-    # Run pre-commit hooks before doing expensive operations
+    # Run pre-commit and lefthook hooks before doing expensive operations
     if not no_verify and not dry_run:
+        # Run lefthook hooks
+        if not run_lefthook_hooks():
+            console.print("[red]Lefthook hooks failed. Please fix the issues and try again.[/red]")
+            console.print("[yellow]You can use --no-verify to skip pre-commit and lefthook hooks.[/yellow]")
+            sys.exit(1)
+
+        # Run pre-commit hooks
         if not run_pre_commit_hooks():
             console.print("[red]Pre-commit hooks failed. Please fix the issues and try again.[/red]")
-            console.print("[yellow]You can use --no-verify to skip pre-commit hooks.[/yellow]")
+            console.print("[yellow]You can use --no-verify to skip pre-commit and lefthook hooks.[/yellow]")
             sys.exit(1)
 
     status = run_git_command(["status"])

@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
     help=f"Set log level (default: {config['log_level']})",
 )
 # Advanced options
-@click.option("--no-verify", is_flag=True, help="Skip pre-commit hooks when committing")
+@click.option("--no-verify", is_flag=True, help="Skip pre-commit and lefthook hooks when committing")
 @click.option("--skip-secret-scan", is_flag=True, help="Skip security scan for secrets in staged changes")
 # Other options
 @click.option("--version", is_flag=True, help="Show the version of the Git Auto Commit (gac) tool")

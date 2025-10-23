@@ -153,6 +153,56 @@ def run_pre_commit_hooks() -> bool:
         return True
 
 
+def run_lefthook_hooks() -> bool:
+    """Run Lefthook hooks if they exist.
+
+    Returns:
+        True if Lefthook hooks passed or don't exist, False if they failed.
+    """
+    # Check for common Lefthook configuration files
+    lefthook_configs = [".lefthook.yml", "lefthook.yml", ".lefthook.yaml", "lefthook.yaml"]
+    config_exists = any(os.path.exists(config) for config in lefthook_configs)
+
+    if not config_exists:
+        logger.debug("No Lefthook configuration found, skipping Lefthook hooks")
+        return True
+
+    # Check if lefthook is installed and configured
+    try:
+        # First check if lefthook is installed
+        result = run_subprocess(["lefthook", "--version"], silent=True, raise_on_error=False)
+        if not result:
+            logger.debug("Lefthook not installed, skipping hooks")
+            return True
+
+        # Run lefthook hooks on staged files
+        logger.info("Running Lefthook hooks...")
+        # Run lefthook and capture both stdout and stderr
+        result = subprocess.run(["lefthook", "run", "pre-commit"], capture_output=True, text=True, check=False)
+
+        if result.returncode == 0:
+            # All hooks passed
+            return True
+        else:
+            # Lefthook hooks failed - show the output
+            output = result.stdout if result.stdout else ""
+            error = result.stderr if result.stderr else ""
+
+            # Combine outputs (lefthook usually outputs to stdout)
+            full_output = output + ("\n" + error if error else "")
+
+            if full_output.strip():
+                # Show which hooks failed and why
+                logger.error(f"Lefthook hooks failed:\n{full_output}")
+            else:
+                logger.error(f"Lefthook hooks failed with exit code {result.returncode}")
+            return False
+    except Exception as e:
+        logger.debug(f"Error running Lefthook: {e}")
+        # If lefthook isn't available, don't block the commit
+        return True
+
+
 def push_changes() -> bool:
     """Push committed changes to the remote repository."""
     remote_exists = run_git_command(["remote"])

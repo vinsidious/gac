@@ -13,7 +13,7 @@ This document describes all available flags and options for the `gac` CLI tool.
   - [Help and Version](#help-and-version)
   - [Example Workflows](#example-workflows)
   - [Advanced](#advanced)
-    - [Skipping Pre-commit Hooks](#skipping-pre-commit-hooks)
+    - [Skipping Pre-commit and Lefthook Hooks](#skipping-pre-commit-and-lefthook-hooks)
   - [Configuration Notes](#configuration-notes)
     - [Configuration Subcommands](#configuration-subcommands)
   - [Getting Help](#getting-help)
@@ -37,13 +37,13 @@ Generates an AI-powered commit message for staged changes and prompts for confir
 
 ## Core Workflow Flags
 
-| Flag / Option | Short | Description                                       |
-| ------------- | ----- | ------------------------------------------------- |
-| `--add-all`   | `-a`  | Stage all changes before committing               |
-| `--push`      | `-p`  | Push changes to remote after committing           |
-| `--yes`       | `-y`  | Automatically confirm commit without prompting    |
-| `--dry-run`   |       | Show what would happen without making any changes |
-| `--no-verify` |       | Skip pre-commit hooks when committing             |
+| Flag / Option | Short | Description                                        |
+| ------------- | ----- | -------------------------------------------------- |
+| `--add-all`   | `-a`  | Stage all changes before committing                |
+| `--push`      | `-p`  | Push changes to remote after committing            |
+| `--yes`       | `-y`  | Automatically confirm commit without prompting     |
+| `--dry-run`   |       | Show what would happen without making any changes  |
+| `--no-verify` |       | Skip pre-commit and lefthook hooks when committing |
 
 ## Message Customization
 
@@ -124,21 +124,21 @@ Generates an AI-powered commit message for staged changes and prompts for confir
 - Use `--show-prompt` to debug or review the prompt sent to the AI
 - Adjust verbosity with `--log-level` or `--quiet`
 
-### Skipping Pre-commit Hooks
+### Skipping Pre-commit and Lefthook Hooks
 
-The `--no-verify` flag allows you to skip any pre-commit hooks configured in your project:
+The `--no-verify` flag allows you to skip any pre-commit or lefthook hooks configured in your project:
 
 ```sh
-gac --no-verify  # Skip all pre-commit hooks
+gac --no-verify  # Skip all pre-commit and lefthook hooks
 ```
 
 **Use `--no-verify` when:**
 
-- Pre-commit hooks are failing temporarily
+- Pre-commit or lefthook hooks are failing temporarily
 - Working with time-consuming hooks
 - Committing work-in-progress code that doesn't pass all checks yet
 
-**Note:** Use with caution as pre-commit hooks maintain code quality standards.
+**Note:** Use with caution as these hooks maintain code quality standards.
 
 ## Configuration Notes
 
