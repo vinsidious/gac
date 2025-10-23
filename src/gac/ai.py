@@ -73,7 +73,7 @@ def generate_commit_message(
         "chutes": call_chutes_api,
         "gemini": call_gemini_api,
         "groq": call_groq_api,
-        "lmstudio": call_lmstudio_api,
+        "lm-studio": call_lmstudio_api,
         "ollama": call_ollama_api,
         "openai": call_openai_api,
         "openrouter": call_openrouter_api,
