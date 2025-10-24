@@ -294,12 +294,17 @@ def main(
                             # No hint given, just reroll with same prompts
                             reroll_system_prompt, reroll_user_prompt = system_prompt, user_prompt
 
+                        # Update prompts and recalculate token count for the next generation
+                        system_prompt = reroll_system_prompt
+                        user_prompt = reroll_user_prompt
+                        prompt_tokens = count_tokens(system_prompt, model) + count_tokens(user_prompt, model)
+
                         console.print()  # Add blank line for readability
 
                         # Generate new message
                         commit_message = generate_commit_message(
                             model=model,
-                            prompt=(reroll_system_prompt, reroll_user_prompt),
+                            prompt=(system_prompt, user_prompt),
                             temperature=temperature,
                             max_tokens=max_output_tokens,
                             max_retries=max_retries,

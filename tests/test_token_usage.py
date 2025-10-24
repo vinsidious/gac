@@ -121,3 +121,47 @@ class TestTokenUsageDisplay:
         # Check that token usage was NOT displayed
         output_text = "\n".join(captured_output)
         assert "Estimated token usage:" not in output_text
+
+    def test_prompt_tokens_recalculated_after_reroll(self, runner, mock_dependencies, monkeypatch):
+        """Ensure prompt token counts are recomputed when rerolling with feedback."""
+        # Track build_prompt calls and return distinct prompts per generation
+        prompt_history: list[tuple[str, str]] = []
+
+        def fake_build_prompt(**kwargs):
+            system_prompt = f"system-prompt-{len(prompt_history)}"
+            user_prompt = f"user-prompt-{len(prompt_history)}"
+            prompt_history.append((system_prompt, user_prompt))
+            return system_prompt, user_prompt
+
+        monkeypatch.setattr("gac.main.build_prompt", fake_build_prompt)
+
+        # Capture count_tokens inputs to verify recomputation happens for reroll prompts
+        counted_inputs: list[str] = []
+
+        def fake_count_tokens(content, model):
+            counted_inputs.append(content)
+            # Return deterministic counts; exact values don't matter for this test
+            return 100 if content.startswith("system") else 110 if content.startswith("user") else 10
+
+        monkeypatch.setattr("gac.main.count_tokens", fake_count_tokens)
+
+        # Provide two commit messages, one for the initial generation and one for the reroll
+        commit_messages = iter(["feat: initial", "feat: rerolled"])
+
+        def fake_generate_commit_message(**kwargs):
+            return next(commit_messages)
+
+        monkeypatch.setattr("gac.main.generate_commit_message", fake_generate_commit_message)
+
+        # Simulate user reroll with feedback followed by acceptance
+        responses = iter(["r needs more detail", "y"])
+        monkeypatch.setattr("click.prompt", lambda *args, **kwargs: next(responses))
+
+        result = runner.invoke(cli, ["--no-verify"])
+
+        assert result.exit_code == 0
+        # We should have built two distinct prompts (initial + reroll)
+        assert prompt_history == [("system-prompt-0", "user-prompt-0"), ("system-prompt-1", "user-prompt-1")]
+        # count_tokens should have been called for the reroll prompts
+        assert "system-prompt-1" in counted_inputs
+        assert "user-prompt-1" in counted_inputs
