@@ -220,6 +220,14 @@ warn_unreachable = true
 strict_equality = true
 show_error_codes = true
 
+[[tool.mypy.overrides]]
+module = "gac.providers.*"
+warn_return_any = false
+
+[[tool.mypy.overrides]]
+module = "halo"
+ignore_missing_imports = true
+
 [template.plugins.default]
 tests = true
 src-layout = true
