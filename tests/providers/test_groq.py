@@ -3,6 +3,7 @@
 import os
 from collections.abc import Callable
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -66,6 +67,61 @@ class TestGroqProviderMocked(BaseProviderTest):
     @property
     def empty_content_response(self) -> dict[str, Any]:
         return {"choices": [{"message": {"content": ""}}]}
+
+
+class TestGroqEdgeCases:
+    """Test edge cases for Groq provider."""
+
+    def test_groq_null_content_in_choice_text(self):
+        """Test handling of null content in choice.text field."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": [{"text": None}]}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            # This should return empty string for None in text field
+            result = call_groq_api("llama-3.1-70b", [], 0.7, 1000)
+            assert result == ""
+
+    def test_groq_unexpected_choice_structure(self):
+        """Test handling of unexpected choice structure without message or text."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": [{"unexpected_field": "value"}]}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            with pytest.raises(AIError) as exc_info:
+                call_groq_api("llama-3.1-70b", [], 0.7, 1000)
+
+            assert "Unexpected response format" in str(exc_info.value)
+
+    def test_groq_missing_choices(self):
+        """Test handling of response without choices field."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"some_other_field": "value"}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            with pytest.raises(AIError) as exc_info:
+                call_groq_api("llama-3.1-70b", [], 0.7, 1000)
+
+            assert "Unexpected response format" in str(exc_info.value)
+
+    def test_groq_empty_choices_array(self):
+        """Test handling of empty choices array."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": []}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            with pytest.raises(AIError) as exc_info:
+                call_groq_api("llama-3.1-70b", [], 0.7, 1000)
+
+            assert "Unexpected response format" in str(exc_info.value)
 
 
 @pytest.mark.integration

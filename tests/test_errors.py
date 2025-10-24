@@ -170,6 +170,52 @@ class TestErrors(unittest.TestCase):
             # Verify the behavior: all error types include remediation steps
             self.assertGreater(len(formatted), len(msg))
 
+    def test_format_error_authentication(self):
+        """Test formatting of authentication errors."""
+        error = AIError.authentication_error("Invalid API key")
+        message = format_error_for_user(error)
+        self.assertIn("Invalid API key", message)
+        self.assertIn("check your API key", message)
+        self.assertIn("ensure it is valid", message)
+
+    def test_format_error_connection(self):
+        """Test formatting of connection errors."""
+        error = AIError.connection_error("Network unreachable")
+        message = format_error_for_user(error)
+        self.assertIn("Network unreachable", message)
+        self.assertIn("check your internet connection", message)
+        self.assertIn("try again", message)
+
+    def test_format_error_rate_limit(self):
+        """Test formatting of rate limit errors."""
+        error = AIError.rate_limit_error("Too many requests")
+        message = format_error_for_user(error)
+        self.assertIn("Too many requests", message)
+        self.assertIn("rate limit", message)
+        self.assertIn("wait", message)
+
+    def test_format_error_timeout(self):
+        """Test formatting of timeout errors."""
+        error = AIError.timeout_error("Request timed out")
+        message = format_error_for_user(error)
+        self.assertIn("Request timed out", message)
+        self.assertIn("timed out", message)
+        self.assertIn("try again", message)
+
+    def test_format_error_model(self):
+        """Test formatting of model errors."""
+        error = AIError.model_error("Model not found")
+        message = format_error_for_user(error)
+        self.assertIn("Model not found", message)
+        self.assertIn("check that the specified model exists", message)
+
+    def test_unknown_error_factory(self):
+        """Test AIError.unknown_error factory method."""
+        error = AIError.unknown_error("Unknown issue")
+        self.assertEqual(error.message, "Unknown issue")
+        self.assertEqual(error.error_type, "unknown")
+        self.assertEqual(error.error_code, 500)
+
 
 if __name__ == "__main__":
     unittest.main()

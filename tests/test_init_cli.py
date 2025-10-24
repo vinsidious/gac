@@ -142,3 +142,111 @@ def test_init_cli_lmstudio_optional_api_key_and_url(monkeypatch):
                 assert "GAC_MODEL='lm-studio:deepseek-r1-distill-qwen-7b'" in env_text
                 assert "LMSTUDIO_API_URL='http://localhost:1234'" in env_text
                 assert "LMSTUDIO_API_KEY" not in env_text
+
+
+def test_init_cli_provider_selection_cancelled():
+    """Test behavior when user cancels provider selection."""
+    runner = CliRunner()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        env_path = _setup_env_file(tmpdir)
+        with mock.patch("gac.init_cli.GAC_ENV_PATH", env_path):
+            with mock.patch("questionary.select") as mselect:
+                mselect.return_value.ask.return_value = None
+
+                result = runner.invoke(init)
+                assert result.exit_code == 0
+                assert "Provider selection cancelled" in result.output
+
+
+def test_init_cli_streamlake_endpoint_cancelled():
+    """Test behavior when user cancels Streamlake endpoint entry."""
+    runner = CliRunner()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        env_path = _setup_env_file(tmpdir)
+        with mock.patch("gac.init_cli.GAC_ENV_PATH", env_path):
+            with (
+                mock.patch("questionary.select") as mselect,
+                mock.patch("questionary.text") as mtext,
+            ):
+                mselect.return_value.ask.return_value = "Streamlake"
+                mtext.return_value.ask.return_value = None
+
+                result = runner.invoke(init)
+                assert result.exit_code == 0
+                assert "Streamlake configuration cancelled" in result.output
+
+
+def test_init_cli_model_entry_cancelled():
+    """Test behavior when user cancels model entry."""
+    runner = CliRunner()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        env_path = _setup_env_file(tmpdir)
+        with mock.patch("gac.init_cli.GAC_ENV_PATH", env_path):
+            with (
+                mock.patch("questionary.select") as mselect,
+                mock.patch("questionary.text") as mtext,
+            ):
+                mselect.return_value.ask.return_value = "OpenAI"
+                mtext.return_value.ask.return_value = None
+
+                result = runner.invoke(init)
+                assert result.exit_code == 0
+                assert "Model entry cancelled" in result.output
+
+
+def test_init_cli_ollama_url_cancelled():
+    """Test behavior when user cancels Ollama URL entry."""
+    runner = CliRunner()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        env_path = _setup_env_file(tmpdir)
+        with mock.patch("gac.init_cli.GAC_ENV_PATH", env_path):
+            with (
+                mock.patch("questionary.select") as mselect,
+                mock.patch("questionary.text") as mtext,
+            ):
+                mselect.return_value.ask.return_value = "Ollama"
+                mtext.return_value.ask.side_effect = ["gemma3", None]
+
+                result = runner.invoke(init)
+                assert result.exit_code == 0
+                assert "Ollama URL entry cancelled" in result.output
+
+
+def test_init_cli_lmstudio_url_cancelled():
+    """Test behavior when user cancels LM Studio URL entry."""
+    runner = CliRunner()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        env_path = _setup_env_file(tmpdir)
+        with mock.patch("gac.init_cli.GAC_ENV_PATH", env_path):
+            with (
+                mock.patch("questionary.select") as mselect,
+                mock.patch("questionary.text") as mtext,
+            ):
+                mselect.return_value.ask.return_value = "LM Studio"
+                mtext.return_value.ask.side_effect = ["gemma3", None]
+
+                result = runner.invoke(init)
+                assert result.exit_code == 0
+                assert "LM Studio URL entry cancelled" in result.output
+
+
+def test_prompt_required_text_retry_on_empty():
+    """Test _prompt_required_text retries on empty input and handles cancellation."""
+    from gac.init_cli import _prompt_required_text
+
+    with mock.patch("questionary.text") as mtext:
+        # Simulate: empty string, whitespace, then valid value
+        mtext.return_value.ask.side_effect = ["", "  ", "valid-value"]
+        with mock.patch("click.echo"):
+            result = _prompt_required_text("Enter value:")
+            assert result == "valid-value"
+
+
+def test_prompt_required_text_cancelled():
+    """Test _prompt_required_text returns None when user cancels."""
+    from gac.init_cli import _prompt_required_text
+
+    with mock.patch("questionary.text") as mtext:
+        mtext.return_value.ask.return_value = None
+        result = _prompt_required_text("Enter value:")
+        assert result is None
