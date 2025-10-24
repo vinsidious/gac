@@ -15,6 +15,7 @@ This document describes all available flags and options for the `gac` CLI tool.
   - [Advanced](#advanced)
     - [Skipping Pre-commit and Lefthook Hooks](#skipping-pre-commit-and-lefthook-hooks)
   - [Configuration Notes](#configuration-notes)
+    - [Advanced Configuration Options](#advanced-configuration-options)
     - [Configuration Subcommands](#configuration-subcommands)
   - [Getting Help](#getting-help)
 
@@ -26,7 +27,7 @@ gac init
 gac
 ```
 
-Generates an AI-powered commit message for staged changes and prompts for confirmation. The confirmation prompt accepts:
+Generates an LLM-powered commit message for staged changes and prompts for confirmation. The confirmation prompt accepts:
 
 - `y` or `yes` - Proceed with the commit
 - `n` or `no` - Cancel the commit
@@ -51,7 +52,7 @@ Generates an AI-powered commit message for staged changes and prompts for confir
 | ----------------- | ----- | ------------------------------------------------------------------------- |
 | `--one-liner`     | `-o`  | Generate a single-line commit message                                     |
 | `--verbose`       | `-v`  | Generate detailed commit messages with motivation, architecture, & impact |
-| `--hint <text>`   | `-h`  | Add a hint to guide the AI                                                |
+| `--hint <text>`   | `-h`  | Add a hint to guide the LLM                                               |
 | `--model <model>` | `-m`  | Specify the model to use for this commit                                  |
 | `--scope`         | `-s`  | Infer an appropriate scope for the commit                                 |
 
@@ -59,12 +60,12 @@ Generates an AI-powered commit message for staged changes and prompts for confir
 
 ## Output and Verbosity
 
-| Flag / Option         | Short | Description                                            |
-| --------------------- | ----- | ------------------------------------------------------ |
-| `--quiet`             | `-q`  | Suppress all output except errors                      |
-| `--log-level <level>` |       | Set log level (DEBUG, INFO, WARNING, ERROR)            |
-| `--show-prompt`       |       | Print the AI prompt used for commit message generation |
-| `--verbose`           | `-v`  | Increase output verbosity to INFO                      |
+| Flag / Option         | Short | Description                                             |
+| --------------------- | ----- | ------------------------------------------------------- |
+| `--quiet`             | `-q`  | Suppress all output except errors                       |
+| `--log-level <level>` |       | Set log level (DEBUG, INFO, WARNING, ERROR)             |
+| `--show-prompt`       |       | Print the LLM prompt used for commit message generation |
+| `--verbose`           | `-v`  | Increase output verbosity to INFO                       |
 
 ## Help and Version
 
@@ -101,7 +102,7 @@ Generates an AI-powered commit message for staged changes and prompts for confir
   gac -v
   ```
 
-- **Add a hint for the AI:**
+- **Add a hint for the LLM:**
 
   ```sh
   gac -h "Refactor authentication logic"
@@ -128,7 +129,7 @@ Generates an AI-powered commit message for staged changes and prompts for confir
 ## Advanced
 
 - Combine flags for more powerful workflows (e.g., `gac -ayp` to stage, auto-confirm, and push)
-- Use `--show-prompt` to debug or review the prompt sent to the AI
+- Use `--show-prompt` to debug or review the prompt sent to the LLM
 - Adjust verbosity with `--log-level` or `--quiet`
 
 ### Skipping Pre-commit and Lefthook Hooks
@@ -162,7 +163,7 @@ You can customize gac's behavior with these optional environment variables:
 
 - `GAC_ALWAYS_INCLUDE_SCOPE=true` - Automatically infer and include scope in commit messages (e.g., `feat(auth):` vs `feat:`)
 - `GAC_VERBOSE=true` - Generate detailed commit messages with motivation, architecture, and impact sections
-- `GAC_TEMPERATURE=0.7` - Control AI creativity (0.0-1.0, lower = more focused)
+- `GAC_TEMPERATURE=0.7` - Control LLM creativity (0.0-1.0, lower = more focused)
 - `GAC_MAX_OUTPUT_TOKENS=512` - Maximum tokens for generated messages
 - `GAC_WARNING_LIMIT_TOKENS=4096` - Warn when prompts exceed this token count
 

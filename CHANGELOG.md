@@ -59,7 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Security
 
-- Enhance staged file security scanning with AI-powered secret detection
+- Enhance staged file security scanning with secret detection
 - Expand false positive filtering to include example environment files and documentation
 - Add configurable blocking or warning options for secret detection
 - Implement interactive remediation choices when secrets are detected
