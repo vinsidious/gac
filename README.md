@@ -50,8 +50,8 @@ gac
 
 ### 🌐 **Supported Providers**
 
-- **Anthropic** • **Cerebras** • **Chutes.ai** • **Gemini** • **Groq**
-- **LM Studio** • **Ollama** • **OpenAI** • **OpenRouter**
+- **Anthropic** • **Cerebras** • **Chutes.ai** • **Fireworks** • **Gemini**
+- **Groq** • **LM Studio** • **Ollama** • **OpenAI** • **OpenRouter**
 - **Streamlake** • **Synthetic.new** • **Z.AI** • **Z.AI Coding**
 
 ### 🧠 **Smart LLM Analysis**

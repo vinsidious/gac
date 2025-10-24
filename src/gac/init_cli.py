@@ -35,6 +35,7 @@ def init() -> None:
         ("Anthropic", "claude-haiku-4-5"),
         ("Cerebras", "qwen-3-coder-480b"),
         ("Chutes", "zai-org/GLM-4.6-FP8"),
+        ("Fireworks", "accounts/fireworks/models/gpt-oss-20b"),
         ("Gemini", "gemini-2.5-flash"),
         ("Groq", "meta-llama/llama-4-maverick-17b-128e-instruct"),
         ("LM Studio", "gemma3"),

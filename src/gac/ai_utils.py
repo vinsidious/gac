@@ -97,6 +97,7 @@ def generate_with_retries(
         "anthropic",
         "cerebras",
         "chutes",
+        "fireworks",
         "gemini",
         "groq",
         "lm-studio",
