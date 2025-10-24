@@ -120,8 +120,8 @@ def run_pre_commit_hooks() -> bool:
     # Check if pre-commit is installed and configured
     try:
         # First check if pre-commit is installed
-        result = run_subprocess(["pre-commit", "--version"], silent=True, raise_on_error=False)
-        if not result:
+        version_check = run_subprocess(["pre-commit", "--version"], silent=True, raise_on_error=False)
+        if not version_check:
             logger.debug("pre-commit not installed, skipping hooks")
             return True
 
@@ -170,8 +170,8 @@ def run_lefthook_hooks() -> bool:
     # Check if lefthook is installed and configured
     try:
         # First check if lefthook is installed
-        result = run_subprocess(["lefthook", "--version"], silent=True, raise_on_error=False)
-        if not result:
+        version_check = run_subprocess(["lefthook", "--version"], silent=True, raise_on_error=False)
+        if not version_check:
             logger.debug("Lefthook not installed, skipping hooks")
             return True
 

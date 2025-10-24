@@ -17,7 +17,7 @@ def _prompt_required_text(prompt: str) -> str | None:
             return None
         value = response.strip()
         if value:
-            return value
+            return value  # type: ignore[no-any-return]
         click.echo("A value is required. Please try again.")
 
 

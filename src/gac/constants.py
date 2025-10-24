@@ -2,7 +2,6 @@
 
 import os
 from enum import Enum
-from re import Pattern
 
 
 class FileStatus(Enum):
@@ -48,7 +47,7 @@ class FilePatterns:
     """Patterns for identifying special file types."""
 
     # Regex patterns to detect binary file changes in git diffs (e.g., images or other non-text files)
-    BINARY: list[Pattern[str]] = [
+    BINARY: list[str] = [
         r"Binary files .* differ",
         r"GIT binary patch",
     ]
@@ -129,7 +128,7 @@ class CodePatternImportance:
 
     # Regex patterns to detect code structure changes in git diffs (e.g., class, function, import)
     # Note: The patterns are prefixed with "+" to match only added and modified lines
-    PATTERNS: dict[Pattern[str], float] = {
+    PATTERNS: dict[str, float] = {
         # Structure changes
         r"\+\s*(class|interface|enum)\s+\w+": 1.8,  # Class/interface/enum definitions
         r"\+\s*(def|function|func)\s+\w+\s*\(": 1.5,  # Function definitions

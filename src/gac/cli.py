@@ -66,7 +66,7 @@ logger = logging.getLogger(__name__)
 def cli(
     ctx: click.Context,
     add_all: bool = False,
-    log_level: str = config["log_level"],
+    log_level: str = str(config["log_level"]),
     one_liner: bool = False,
     push: bool = False,
     show_prompt: bool = False,
@@ -74,7 +74,7 @@ def cli(
     quiet: bool = False,
     yes: bool = False,
     hint: str = "",
-    model: str = None,
+    model: str | None = None,
     version: bool = False,
     dry_run: bool = False,
     verbose: bool = False,

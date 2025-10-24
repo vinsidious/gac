@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from gac.constants import EnvDefaults, Logging
 
 
-def load_config() -> dict[str, str | int | float | bool]:
+def load_config() -> dict[str, str | int | float | bool | None]:
     """Load configuration from $HOME/.gac.env, then ./.gac.env or ./.env, then environment variables."""
     user_config = Path.home() / ".gac.env"
     if user_config.exists():

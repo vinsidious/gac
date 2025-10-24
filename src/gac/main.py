@@ -57,18 +57,27 @@ def main(
         handle_error(GitError("Not in a git repository"), exit_program=True)
 
     if model is None:
-        model = config["model"]
-        if model is None:
+        model_from_config = config["model"]
+        if model_from_config is None:
             handle_error(
                 AIError.model_error(
                     "gac init hasn't been run yet. Please run 'gac init' to set up your configuration, then try again."
                 ),
                 exit_program=True,
             )
+        model = str(model_from_config)
 
-    temperature = config["temperature"]
-    max_output_tokens = config["max_output_tokens"]
-    max_retries = config["max_retries"]
+    temperature_val = config["temperature"]
+    assert temperature_val is not None
+    temperature = float(temperature_val)
+
+    max_tokens_val = config["max_output_tokens"]
+    assert max_tokens_val is not None
+    max_output_tokens = int(max_tokens_val)
+
+    max_retries_val = config["max_retries"]
+    assert max_retries_val is not None
+    max_retries = int(max_retries_val)
 
     if stage_all and (not dry_run):
         logger.info("Staging all changes")
@@ -168,8 +177,8 @@ def main(
 
     # Preprocess the diff before passing to build_prompt
     logger.debug(f"Preprocessing diff ({len(diff)} characters)")
-    model_id = model or config["model"]
-    processed_diff = preprocess_diff(diff, token_limit=Utility.DEFAULT_DIFF_TOKEN_LIMIT, model=model_id)
+    assert model is not None
+    processed_diff = preprocess_diff(diff, token_limit=Utility.DEFAULT_DIFF_TOKEN_LIMIT, model=model)
     logger.debug(f"Processed diff ({len(processed_diff)} characters)")
 
     system_prompt, user_prompt = build_prompt(
@@ -197,7 +206,9 @@ def main(
         # Count tokens for both prompts
         prompt_tokens = count_tokens(system_prompt, model) + count_tokens(user_prompt, model)
 
-        warning_limit = config.get("warning_limit_tokens", EnvDefaults.WARNING_LIMIT_TOKENS)
+        warning_limit_val = config.get("warning_limit_tokens", EnvDefaults.WARNING_LIMIT_TOKENS)
+        assert warning_limit_val is not None
+        warning_limit = int(warning_limit_val)
         if warning_limit and prompt_tokens > warning_limit:
             console.print(
                 f"[yellow]⚠️  WARNING: Prompt contains {prompt_tokens} tokens, which exceeds the warning limit of "

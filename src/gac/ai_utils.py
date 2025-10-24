@@ -38,7 +38,7 @@ def extract_text_content(content: str | list[dict[str, str]] | dict[str, Any]) -
     elif isinstance(content, list):
         return "\n".join(msg["content"] for msg in content if isinstance(msg, dict) and "content" in msg)
     elif isinstance(content, dict) and "content" in content:
-        return content["content"]
+        return content["content"]  # type: ignore[no-any-return]
     return ""
 
 
@@ -144,7 +144,7 @@ def generate_with_retries(
                 spinner.succeed(f"Generated commit message with {provider} {model_name}")
 
             if content is not None and content.strip():
-                return content.strip()
+                return content.strip()  # type: ignore[no-any-return]
             else:
                 logger.warning(f"Empty or None content received from {provider} {model_name}: {repr(content)}")
                 raise AIError.model_error("Empty response from AI model")

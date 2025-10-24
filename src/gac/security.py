@@ -179,7 +179,7 @@ def scan_diff_section(section: str) -> list[DetectedSecret]:
     Returns:
         List of detected secrets
     """
-    secrets = []
+    secrets: list[DetectedSecret] = []
     file_path = extract_file_path_from_diff_section(section)
 
     if not file_path:

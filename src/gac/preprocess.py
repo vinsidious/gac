@@ -143,7 +143,7 @@ def extract_binary_file_summary(section: str) -> str:
     return extract_filtered_file_summary(section, "[Binary file change]")
 
 
-def extract_filtered_file_summary(section: str, change_type: str = None) -> str:
+def extract_filtered_file_summary(section: str, change_type: str | None = None) -> str:
     """Extract a summary of filtered file changes from a diff section.
 
     Args:

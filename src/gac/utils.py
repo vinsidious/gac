@@ -36,7 +36,7 @@ def setup_logging(
         level=log_level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
-        **kwargs,
+        **kwargs,  # type: ignore[arg-type]
     )
 
     if suppress_noisy:
