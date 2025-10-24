@@ -72,6 +72,11 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "**/pyproject.toml"
 
+      - name: Install dependencies for mypy
+        run: |
+          uv pip install --system mypy
+          uv pip install --system .
+
       - name: Lint with ruff
         run: uvx ruff check .
 
@@ -79,7 +84,7 @@ jobs:
         run: uvx ruff format --check .
 
       - name: Type check with mypy
-        run: uvx mypy src/gac
+        run: mypy src/gac
 
   test:
     runs-on: ${{ matrix.os }}
