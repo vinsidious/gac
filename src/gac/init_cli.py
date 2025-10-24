@@ -51,7 +51,7 @@ def init() -> None:
     if not provider:
         click.echo("Provider selection cancelled. Exiting.")
         return
-    provider_key = provider.lower().replace(".", "").replace(" ", "-").replace("syntheticnew", "synthetic")
+    provider_key = provider.lower().replace(".", "").replace(" ", "-")
 
     is_ollama = provider_key == "ollama"
     is_lmstudio = provider_key == "lm-studio"
@@ -104,7 +104,9 @@ def init() -> None:
 
     api_key = questionary.password(api_key_prompt).ask()
     if api_key:
-        if is_zai:
+        if is_lmstudio:
+            api_key_name = "LMSTUDIO_API_KEY"
+        elif is_zai:
             api_key_name = "ZAI_API_KEY"
         else:
             api_key_name = f"{provider_key.upper()}_API_KEY"
