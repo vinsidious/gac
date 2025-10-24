@@ -27,27 +27,21 @@ Instead of generic messages like `"update stuff"`, `"fix bug"`, or `"add feature
 
 ## Quick Start
 
-### Install & Use
+### Use without installing
 
 ```bash
-# 1. Install globally
-uv tool install gac
-
-# 2. Configure your LLM provider
-gac init
-
-# 3. Use on your staged changes
-git add .
-gac
+uvx gac init  # Configure your LLM provider
+uvx gac  # Generate and commit with LLM
 ```
 
 That's it! Review the generated message and confirm with `y`.
 
-### Use without installing
+### Install gac globally
 
 ```bash
-uvx gac init
-uvx gac
+uv tool install gac
+gac init
+gac
 ```
 
 ---
