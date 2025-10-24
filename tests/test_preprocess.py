@@ -23,6 +23,53 @@ from gac.preprocess import (
 class TestPreprocessModule:
     """Test suite for the preprocess module."""
 
+    def test_process_sections_parallel_small_count(self):
+        """Test that small section counts are processed sequentially."""
+        sections = [
+            "diff --git a/file1.py b/file1.py\n+line1",
+            "diff --git a/file2.py b/file2.py\n+line2",
+            "diff --git a/file3.py b/file3.py\n+line3",
+        ]
+
+        result = process_sections_parallel(sections)
+
+        # All sections should be returned (none filtered in this simple case)
+        assert len(result) == 3
+        assert any("file1.py" in s for s in result)
+        assert any("file2.py" in s for s in result)
+        assert any("file3.py" in s for s in result)
+
+    def test_process_sections_parallel_large_count(self):
+        """Test that large section counts trigger parallel processing."""
+        # Create more than 3 sections to trigger parallel path
+        sections = [
+            "diff --git a/file1.py b/file1.py\n+line1",
+            "diff --git a/file2.py b/file2.py\n+line2",
+            "diff --git a/file3.py b/file3.py\n+line3",
+            "diff --git a/file4.py b/file4.py\n+line4",
+            "diff --git a/file5.py b/file5.py\n+line5",
+        ]
+
+        result = process_sections_parallel(sections)
+
+        # All sections should be returned
+        assert len(result) == 5
+        assert any("file1.py" in s for s in result)
+        assert any("file4.py" in s for s in result)
+        assert any("file5.py" in s for s in result)
+
+    def test_process_section_filters_binary(self):
+        """Test that binary files are filtered but summarized."""
+        section = """diff --git a/image.png b/image.png
+Binary files a/image.png and b/image.png differ
+"""
+        result = process_section(section)
+
+        # Binary files should return a summary, not None
+        assert result is not None
+        assert "image.png" in result
+        assert "Binary file" in result or "[Binary" in result
+
     def test_split_diff_into_sections(self):
         """Test splitting a diff into file sections."""
         # Sample diff with multiple files

@@ -378,3 +378,44 @@ class TestGenerateCommitMessage:
 
         # Verify spinner showed failure
         mock_spinner.fail.assert_called_once_with("Failed to generate commit message with openai gpt-4.1-mini")
+
+    @patch("gac.ai.call_anthropic_api")
+    def test_generate_commit_message_list_prompt(self, mock_anthropic_api):
+        """Test generate_commit_message with list of messages prompt format."""
+        # Setup mock
+        mock_anthropic_api.return_value = "feat: Add conversation support"
+
+        # Test with list prompt format (conversation messages)
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "Generate a commit message"},
+            {"role": "assistant", "content": "What changes were made?"},
+            {"role": "user", "content": "Added conversation support"},
+        ]
+        result = generate_commit_message(model="anthropic:claude-3", prompt=messages, quiet=True)
+
+        assert result == "feat: Add conversation support"
+
+        # Verify the messages were passed through correctly
+        call_args = mock_anthropic_api.call_args
+        passed_messages = call_args[1]["messages"]
+        assert len(passed_messages) == 4
+        assert passed_messages[0]["role"] == "system"
+        assert passed_messages[1]["role"] == "user"
+        assert passed_messages[2]["role"] == "assistant"
+        assert passed_messages[3]["role"] == "user"
+
+    @patch("gac.ai.generate_with_retries")
+    def test_generate_commit_message_generic_exception_handling(self, mock_generate):
+        """Test that non-AIError exceptions are converted to AIError.model_error."""
+        # Simulate a truly unexpected exception (e.g., TypeError from internal logic)
+        mock_generate.side_effect = TypeError("Unexpected internal error")
+
+        # Test that the exception is caught and converted to AIError
+        with pytest.raises(AIError) as exc_info:
+            generate_commit_message(model="openai:gpt-4", prompt="test", quiet=True)
+
+        # Verify it was converted to a model error
+        assert exc_info.value.error_type == "model"
+        assert "Failed to generate commit message" in str(exc_info.value)
+        assert "Unexpected internal error" in str(exc_info.value)

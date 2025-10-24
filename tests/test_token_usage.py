@@ -1,5 +1,7 @@
 """Test module for token usage display functionality."""
 
+import copy
+
 import pytest
 from click.testing import CliRunner
 
@@ -70,10 +72,10 @@ class TestTokenUsageDisplay:
 
         # Mock count_tokens to return predictable values
         def mock_count_tokens(content, model):
-            if len(content) > 100:  # Assume it's the prompt
-                return 150
-            else:  # It's the commit message
-                return 10
+            if isinstance(content, list):  # Conversation prompt
+                return 300
+            # Commit message
+            return 10
 
         monkeypatch.setattr("gac.main.count_tokens", mock_count_tokens)
 
@@ -136,19 +138,25 @@ class TestTokenUsageDisplay:
         monkeypatch.setattr("gac.main.build_prompt", fake_build_prompt)
 
         # Capture count_tokens inputs to verify recomputation happens for reroll prompts
-        counted_inputs: list[str] = []
+        counted_inputs: list[object] = []
 
         def fake_count_tokens(content, model):
+            if isinstance(content, list):
+                counted_inputs.append(copy.deepcopy(content))
+                return 200
             counted_inputs.append(content)
-            # Return deterministic counts; exact values don't matter for this test
-            return 100 if content.startswith("system") else 110 if content.startswith("user") else 10
+            return 10
 
         monkeypatch.setattr("gac.main.count_tokens", fake_count_tokens)
 
         # Provide two commit messages, one for the initial generation and one for the reroll
         commit_messages = iter(["feat: initial", "feat: rerolled"])
 
+        conversation_history: list[list[dict[str, str]]] = []
+
         def fake_generate_commit_message(**kwargs):
+            prompt_messages = kwargs["prompt"]
+            conversation_history.append(copy.deepcopy(prompt_messages))
             return next(commit_messages)
 
         monkeypatch.setattr("gac.main.generate_commit_message", fake_generate_commit_message)
@@ -160,8 +168,31 @@ class TestTokenUsageDisplay:
         result = runner.invoke(cli, ["--no-verify"])
 
         assert result.exit_code == 0
-        # We should have built two distinct prompts (initial + reroll)
-        assert prompt_history == [("system-prompt-0", "user-prompt-0"), ("system-prompt-1", "user-prompt-1")]
-        # count_tokens should have been called for the reroll prompts
-        assert "system-prompt-1" in counted_inputs
-        assert "user-prompt-1" in counted_inputs
+
+        # Prompt should only be built once; rerolls reuse the conversation
+        assert prompt_history == [("system-prompt-0", "user-prompt-0")]
+
+        # count_tokens should have been called with the conversation before each generation
+        assert len(counted_inputs) == 4
+        assert isinstance(counted_inputs[0], list)
+        assert len(counted_inputs[0]) == 2  # system + user
+        assert counted_inputs[1] == "feat: initial"
+        assert isinstance(counted_inputs[2], list)
+        assert len(counted_inputs[2]) == 4  # includes assistant reply + feedback message
+        assert counted_inputs[3] == "feat: rerolled"
+
+        # Verify conversation history sent to generate_commit_message follows message chain pattern
+        assert len(conversation_history) == 2
+        assert conversation_history[0] == [
+            {"role": "system", "content": "system-prompt-0"},
+            {"role": "user", "content": "user-prompt-0"},
+        ]
+        assert conversation_history[1] == [
+            {"role": "system", "content": "system-prompt-0"},
+            {"role": "user", "content": "user-prompt-0"},
+            {"role": "assistant", "content": "feat: initial"},
+            {
+                "role": "user",
+                "content": "Please revise the commit message based on this feedback: needs more detail",
+            },
+        ]

@@ -214,12 +214,13 @@ class TestScopeIntegration:
 
         def mock_generate(**kwargs):
             prompt = kwargs.get("prompt", "")
-            # Handle both string and tuple prompt formats
             if isinstance(prompt, tuple):
                 system_prompt, user_prompt = prompt
-                prompt_text = system_prompt + " " + user_prompt
+                prompt_text = f"{system_prompt} {user_prompt}"
+            elif isinstance(prompt, list):
+                prompt_text = " ".join(message.get("content", "") for message in prompt)
             else:
-                prompt_text = prompt
+                prompt_text = str(prompt)
 
             nonlocal call_count
             call_count += 1
