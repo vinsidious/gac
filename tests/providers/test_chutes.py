@@ -31,7 +31,7 @@ class TestChutesAPIKeyValidation:
         """Test that Chutes.ai raises error when API key is missing."""
         with temporarily_remove_env_var("CHUTES_API_KEY"):
             with pytest.raises(AIError) as exc_info:
-                call_chutes_api("deepseek-ai/DeepSeek-V3-0324", [], 0.7, 1000)
+                call_chutes_api("zai-org/GLM-4.5-Air", [], 0.7, 1000)
 
             assert_missing_api_key_error(exc_info, "chutes", "CHUTES_API_KEY")
 
@@ -57,7 +57,7 @@ class TestChutesProviderMocked(BaseProviderTest):
 
     @property
     def model_name(self) -> str:
-        return "deepseek-ai/DeepSeek-V3-0324"
+        return "zai-org/GLM-4.5-Air"
 
     @property
     def success_response(self) -> dict[str, Any]:
@@ -81,7 +81,10 @@ class TestChutesIntegration:
         messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
         try:
             response = call_chutes_api(
-                model="deepseek-ai/DeepSeek-V3-0324", messages=messages, temperature=1.0, max_tokens=50
+                model="zai-org/GLM-4.5-Air",
+                messages=messages,
+                temperature=1.0,
+                max_tokens=1024,  # glm-4.5-air needs extra tokens for reasoning
             )
 
             assert response is not None

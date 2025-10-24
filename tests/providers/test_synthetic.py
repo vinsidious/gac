@@ -116,7 +116,7 @@ class TestSyntheticIntegration:
                 model="hf:zai-org/GLM-4.6",
                 messages=messages,
                 temperature=1.0,
-                max_tokens=512,  # glm-4.6 needs extra tokens for reasoning
+                max_tokens=1024,  # glm-4.6 needs extra tokens for reasoning
             )
 
             assert response is not None
