@@ -48,31 +48,31 @@ gac
 
 ## Key Features
 
-### **Supported Providers**
+### 🌐 **Supported Providers**
 
 - **Anthropic** • **Cerebras** • **Chutes.ai** • **Gemini** • **Groq**
 - **LM Studio** • **Ollama** • **OpenAI** • **OpenRouter**
 - **Streamlake** • **Synthetic.new** • **Z.AI** • **Z.AI Coding**
 
-### **Smart LLM Analysis**
+### 🧠 **Smart LLM Analysis**
 
 - **Understands intent**: Analyzes code structure, logic, and patterns to understand the "why" behind your changes, not just what changed
 - **Semantic awareness**: Recognizes refactoring, bug fixes, features, and breaking changes to generate contextually appropriate messages
 - **Intelligent filtering**: Prioritizes meaningful changes while ignoring generated files, dependencies, and artifacts
 
-### **Multiple Message Formats**
+### 📝 **Multiple Message Formats**
 
 - **One-liner** (-o flag): Single-line commit message following conventional commit format
 - **Standard** (default): Summary with bullet points explaining implementation details
 - **Verbose** (-v flag): Comprehensive explanations including motivation, technical approach, and impact analysis
 
-### **Developer Experience**
+### 💻 **Developer Experience**
 
 - **Interactive feedback**: Regenerate messages with specific requests like `r "make it shorter"` or `r "focus on the bug fix"`
 - **One-command workflows**: Complete workflows with flags like `gac -ayp` (stage all, auto-confirm, push)
 - **Git integration**: Respects pre-commit and lefthook hooks, running them before expensive LLM operations
 
-### **Built-in Security**
+### 🛡️ **Built-in Security**
 
 - **Automatic secret detection**: Scans for API keys, passwords, and tokens before committing
 - **Interactive protection**: Prompts before committing potentially sensitive data with clear remediation options
