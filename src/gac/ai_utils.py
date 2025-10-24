@@ -78,8 +78,7 @@ def _classify_error(error_str: str) -> str:
 def generate_with_retries(
     provider_funcs: dict,
     model: str,
-    system_prompt: str,
-    user_prompt: str,
+    messages: list[dict[str, str]],
     temperature: float,
     max_tokens: int,
     max_retries: int,
@@ -112,10 +111,8 @@ def generate_with_retries(
     if provider not in supported_providers:
         raise AIError.model_error(f"Unsupported provider: {provider}. Supported providers: {supported_providers}")
 
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt},
-    ]
+    if not messages:
+        raise AIError.model_error("No messages provided for AI generation")
 
     # Set up spinner
     if quiet:

@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 def generate_commit_message(
     model: str,
-    prompt: str | tuple[str, str],
+    prompt: str | tuple[str, str] | list[dict[str, str]],
     temperature: float = EnvDefaults.TEMPERATURE,
     max_tokens: int = EnvDefaults.MAX_OUTPUT_TOKENS,
     max_retries: int = EnvDefaults.MAX_RETRIES,
@@ -60,12 +60,21 @@ def generate_commit_message(
         'docs: Update README with installation instructions'
     """
     # Handle both old (string) and new (tuple) prompt formats
-    if isinstance(prompt, tuple):
+    if isinstance(prompt, list):
+        messages = [{**msg} for msg in prompt]
+    elif isinstance(prompt, tuple):
         system_prompt, user_prompt = prompt
+        messages = [
+            {"role": "system", "content": system_prompt or ""},
+            {"role": "user", "content": user_prompt},
+        ]
     else:
-        # Backward compatibility: treat string as user prompt with no system prompt
-        system_prompt = ""
-        user_prompt = prompt
+        # Backward compatibility: treat string as user prompt with empty system prompt
+        user_prompt = str(prompt)
+        messages = [
+            {"role": "system", "content": ""},
+            {"role": "user", "content": user_prompt},
+        ]
 
     # Provider functions mapping
     provider_funcs = {
@@ -90,8 +99,7 @@ def generate_commit_message(
         return generate_with_retries(
             provider_funcs=provider_funcs,
             model=model,
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
+            messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
             max_retries=max_retries,

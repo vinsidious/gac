@@ -202,39 +202,49 @@ def main(
             )
         )
 
+    conversation_messages: list[dict[str, str]] = []
+    if system_prompt:
+        conversation_messages.append({"role": "system", "content": system_prompt})
+    conversation_messages.append({"role": "user", "content": user_prompt})
+
     try:
-        # Count tokens for both prompts
-        prompt_tokens = count_tokens(system_prompt, model) + count_tokens(user_prompt, model)
+        first_iteration = True
 
-        warning_limit_val = config.get("warning_limit_tokens", EnvDefaults.WARNING_LIMIT_TOKENS)
-        assert warning_limit_val is not None
-        warning_limit = int(warning_limit_val)
-        if warning_limit and prompt_tokens > warning_limit:
-            console.print(
-                f"[yellow]⚠️  WARNING: Prompt contains {prompt_tokens} tokens, which exceeds the warning limit of "
-                f"{warning_limit} tokens.[/yellow]"
-            )
-            if require_confirmation:
-                proceed = click.confirm("Do you want to continue anyway?", default=True)
-                if not proceed:
-                    console.print("[yellow]Aborted due to token limit.[/yellow]")
-                    sys.exit(0)
-
-        commit_message = generate_commit_message(
-            model=model,
-            prompt=(system_prompt, user_prompt),
-            temperature=temperature,
-            max_tokens=max_output_tokens,
-            max_retries=max_retries,
-            quiet=quiet,
-        )
-        commit_message = clean_commit_message(commit_message)
-
-        logger.info("Generated commit message:")
-        logger.info(commit_message)
-
-        # Reroll loop
         while True:
+            prompt_tokens = count_tokens(conversation_messages, model)
+
+            if first_iteration:
+                warning_limit_val = config.get("warning_limit_tokens", EnvDefaults.WARNING_LIMIT_TOKENS)
+                assert warning_limit_val is not None
+                warning_limit = int(warning_limit_val)
+                if warning_limit and prompt_tokens > warning_limit:
+                    console.print(
+                        f"[yellow]⚠️  WARNING: Prompt contains {prompt_tokens} tokens, which exceeds the warning limit of "
+                        f"{warning_limit} tokens.[/yellow]"
+                    )
+                    if require_confirmation:
+                        proceed = click.confirm("Do you want to continue anyway?", default=True)
+                        if not proceed:
+                            console.print("[yellow]Aborted due to token limit.[/yellow]")
+                            sys.exit(0)
+
+            first_iteration = False
+
+            raw_commit_message = generate_commit_message(
+                model=model,
+                prompt=conversation_messages,
+                temperature=temperature,
+                max_tokens=max_output_tokens,
+                max_retries=max_retries,
+                quiet=quiet,
+            )
+            commit_message = clean_commit_message(raw_commit_message)
+
+            logger.info("Generated commit message:")
+            logger.info(commit_message)
+
+            conversation_messages.append({"role": "assistant", "content": commit_message})
+
             console.print("[bold green]Generated commit message:[/bold green]")
             console.print(Panel(commit_message, title="Commit Message", border_style="cyan"))
 
@@ -252,76 +262,38 @@ def main(
                     response = click.prompt(
                         "Proceed with commit above? [y/n/r <feedback>]", type=str, show_default=False
                     ).strip()
+                    response_lower = response.lower()
 
-                    if response.lower() in ["y", "yes"]:
-                        break  # Exit both loops and proceed with commit
-                    elif response.lower() in ["n", "no"]:
+                    if response_lower in ["y", "yes"]:
+                        break
+                    if response_lower in ["n", "no"]:
                         console.print("[yellow]Prompt not accepted. Exiting...[/yellow]")
                         sys.exit(0)
-                    elif response.lower() == "r" or response.lower().startswith("r ") or response.lower() == "reroll":
-                        # Parse the reroll command for optional feedback
-                        if response.lower() == "r" or response.lower() == "reroll":
-                            # Simple reroll without feedback
-                            reroll_feedback = ""
+                    if response_lower == "r" or response_lower == "reroll" or response_lower.startswith("r "):
+                        if response_lower == "r" or response_lower == "reroll":
+                            feedback_message = (
+                                "Please provide an alternative commit message using the same repository context."
+                            )
                             console.print("[cyan]Regenerating commit message...[/cyan]")
                         else:
-                            # Extract feedback from "r <feedback>"
-                            reroll_feedback = response[2:].strip()  # Remove "r " prefix
+                            reroll_feedback = response[2:].strip()
+                            feedback_message = (
+                                f"Please revise the commit message based on this feedback: {reroll_feedback}"
+                            )
                             console.print(f"[cyan]Regenerating commit message with feedback: {reroll_feedback}[/cyan]")
 
-                        # Combine hints if reroll feedback provided
-                        combined_hint = hint
-                        if reroll_feedback:
-                            # Create conversational prompt with previous attempt and feedback
-                            conversational_hint = f"Previous attempt: '{commit_message}'. User feedback: {reroll_feedback}. Please revise accordingly."
-
-                            if hint:
-                                combined_hint = f"{hint}. {conversational_hint}"
-                            else:
-                                combined_hint = conversational_hint
-
-                            # Regenerate prompt with conversational feedback
-                            reroll_system_prompt, reroll_user_prompt = build_prompt(
-                                status=status,
-                                processed_diff=processed_diff,
-                                diff_stat=diff_stat,
-                                one_liner=one_liner,
-                                hint=combined_hint,
-                                infer_scope=infer_scope,
-                                verbose=verbose,
-                            )
-                        else:
-                            # No hint given, just reroll with same prompts
-                            reroll_system_prompt, reroll_user_prompt = system_prompt, user_prompt
-
-                        # Update prompts and recalculate token count for the next generation
-                        system_prompt = reroll_system_prompt
-                        user_prompt = reroll_user_prompt
-                        prompt_tokens = count_tokens(system_prompt, model) + count_tokens(user_prompt, model)
+                        conversation_messages.append({"role": "user", "content": feedback_message})
 
                         console.print()  # Add blank line for readability
+                        break
 
-                        # Generate new message
-                        commit_message = generate_commit_message(
-                            model=model,
-                            prompt=(system_prompt, user_prompt),
-                            temperature=temperature,
-                            max_tokens=max_output_tokens,
-                            max_retries=max_retries,
-                            quiet=quiet,
-                        )
-                        commit_message = clean_commit_message(commit_message)
-                        break  # Exit inner loop, continue outer loop
-                    else:
-                        console.print(
-                            "[red]Invalid response. Please enter y (yes), n (no), r (reroll), or r <feedback>.[/red]"
-                        )
+                    console.print(
+                        "[red]Invalid response. Please enter y (yes), n (no), r (reroll), or r <feedback>.[/red]"
+                    )
 
-                # If we got here with 'y', break the outer loop
-                if response.lower() in ["y", "yes"]:
+                if response_lower in ["y", "yes"]:
                     break
             else:
-                # No confirmation required, exit loop
                 break
 
         if dry_run:
