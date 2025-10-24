@@ -1,4 +1,4 @@
-.PHONY: setup install install-dev dev test test-integration test-all lint format clean bump bump-patch bump-minor bump-major coverage
+.PHONY: setup install install-dev dev test test-integration test-all test-cov type-check lint format clean bump bump-patch bump-minor bump-major coverage
 
 PRETTIER_VERSION := npx prettier@3.1.0
 
@@ -36,6 +36,9 @@ test-all:
 
 test-cov:
 	uv run -- python -m pytest --cov=src --cov-report=term --cov-report=html
+
+type-check:
+	uv run -- mypy src/gac
 
 lint:
 	uv run -- ruff check src/ tests/
