@@ -177,7 +177,7 @@ See `.gac.env.example` for all available options.
 
 Made with ❤️ for developers who want better commit messages
 
-[Star us on GitHub](https://github.com/cellwebb/gac) • [Report issues](https://github.com/cellwebb/gac/issues) • [Full docs](USAGE.md)
+[⭐ Star us on GitHub](https://github.com/cellwebb/gac) • [🐛 Report issues](https://github.com/cellwebb/gac/issues) • [📖 Full docs](USAGE.md)
 
 </div>
 
