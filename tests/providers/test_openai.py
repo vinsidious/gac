@@ -79,7 +79,12 @@ class TestOpenAIIntegration:
             pytest.skip("OPENAI_API_KEY not set - skipping real API test")
 
         messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
-        response = call_openai_api(model="gpt-5-nano", messages=messages, temperature=1.0, max_tokens=250)
+        response = call_openai_api(
+            model="gpt-5-nano",
+            messages=messages,
+            temperature=1.0,
+            max_tokens=512,  # gpt-5-nano needs extra tokens for reasoning
+        )
 
         assert response is not None
         assert isinstance(response, str)
