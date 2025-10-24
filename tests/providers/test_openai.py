@@ -31,7 +31,7 @@ class TestOpenAIAPIKeyValidation:
         """Test that OpenAI raises error when API key is missing."""
         with temporarily_remove_env_var("OPENAI_API_KEY"):
             with pytest.raises(AIError) as exc_info:
-                call_openai_api("gpt-4", [], 0.7, 1000)
+                call_openai_api("gpt-5-nano", [], 0.7, 1000)
 
             assert_missing_api_key_error(exc_info, "openai", "OPENAI_API_KEY")
 
@@ -79,7 +79,7 @@ class TestOpenAIIntegration:
             pytest.skip("OPENAI_API_KEY not set - skipping real API test")
 
         messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
-        response = call_openai_api(model="gpt-4.1-nano", messages=messages, temperature=1.0, max_tokens=50)
+        response = call_openai_api(model="gpt-5-nano", messages=messages, temperature=1.0, max_tokens=250)
 
         assert response is not None
         assert isinstance(response, str)
