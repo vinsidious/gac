@@ -84,6 +84,17 @@ class TestGroqEdgeCases:
             result = call_groq_api("llama-3.1-70b", [], 0.7, 1000)
             assert result == ""
 
+    def test_groq_text_field_with_content(self):
+        """Test handling of valid content in choice.text field."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": [{"text": "test content from text field"}]}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            result = call_groq_api("llama-3.1-70b", [], 0.7, 1000)
+            assert result == "test content from text field"
+
     def test_groq_unexpected_choice_structure(self):
         """Test handling of unexpected choice structure without message or text."""
         with patch("httpx.post") as mock_post:
@@ -122,6 +133,19 @@ class TestGroqEdgeCases:
                 call_groq_api("llama-3.1-70b", [], 0.7, 1000)
 
             assert "Unexpected response format" in str(exc_info.value)
+
+    def test_groq_null_content_in_message(self):
+        """Test handling of null content in message.content field."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": [{"message": {"content": None}}]}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            with pytest.raises(AIError) as exc_info:
+                call_groq_api("llama-3.1-70b", [], 0.7, 1000)
+
+            assert "null content" in str(exc_info.value).lower()
 
 
 @pytest.mark.integration

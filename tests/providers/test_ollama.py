@@ -3,6 +3,7 @@
 import os
 from collections.abc import Callable
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
@@ -57,6 +58,102 @@ class TestOllamaProviderMocked(BaseProviderTest):
     @property
     def empty_content_response(self) -> dict[str, Any]:
         return {"response": ""}
+
+
+class TestOllamaEdgeCases:
+    """Test edge cases for Ollama provider."""
+
+    def test_ollama_message_content_format(self):
+        """Test response with message.content format."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"message": {"content": "test response"}}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            result = call_ollama_api("llama2", [], 0.7, 1000)
+            assert result == "test response"
+
+    def test_ollama_response_format(self):
+        """Test response with response field format."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"response": "test response"}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            result = call_ollama_api("llama2", [], 0.7, 1000)
+            assert result == "test response"
+
+    def test_ollama_fallback_string_format(self):
+        """Test fallback to string conversion for unexpected format."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"other_field": "some value"}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            result = call_ollama_api("llama2", [], 0.7, 1000)
+            assert "other_field" in result
+
+    def test_ollama_null_content(self):
+        """Test handling of null content in message."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"message": {"content": None}}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            with pytest.raises(AIError) as exc_info:
+                call_ollama_api("llama2", [], 0.7, 1000)
+
+            assert "null content" in str(exc_info.value).lower()
+
+    def test_ollama_custom_api_url(self):
+        """Test custom OLLAMA_API_URL environment variable."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"response": "test response"}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            with patch.dict(os.environ, {"OLLAMA_API_URL": "http://custom:8080"}):
+                result = call_ollama_api("llama2", [], 0.7, 1000)
+
+            # Verify custom URL was used
+            call_args = mock_post.call_args
+            assert "http://custom:8080/api/chat" in call_args[0][0]
+            assert result == "test response"
+
+    def test_ollama_with_api_key(self):
+        """Test that API key is included in headers when provided."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"response": "test response"}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            with patch.dict(os.environ, {"OLLAMA_API_KEY": "test-key"}):
+                result = call_ollama_api("llama2", [], 0.7, 1000)
+
+            # Verify Authorization header was included
+            call_args = mock_post.call_args
+            headers = call_args.kwargs["headers"]
+            assert "Authorization" in headers
+            assert headers["Authorization"] == "Bearer test-key"
+            assert result == "test response"
+
+    def test_ollama_connection_error(self):
+        """Test handling of connection error when Ollama is not running."""
+        with patch("httpx.post") as mock_post:
+            mock_post.side_effect = httpx.ConnectError("Connection refused")
+
+            with pytest.raises(AIError) as exc_info:
+                call_ollama_api("llama2", [], 0.7, 1000)
+
+            error_msg = str(exc_info.value).lower()
+            assert "connection failed" in error_msg
+            assert "make sure ollama is running" in error_msg
 
 
 @pytest.mark.integration

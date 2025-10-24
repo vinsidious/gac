@@ -3,7 +3,7 @@
 import os
 from collections.abc import Callable
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -79,6 +79,90 @@ class TestStreamLakeProviderMocked(BaseProviderTest):
         assert result == "feat: Add new feature"
         headers = mock_post.call_args.kwargs.get("headers", {})
         assert headers.get("Authorization") == "Bearer alias-key"
+
+
+class TestStreamLakeEdgeCases:
+    """Test edge cases for StreamLake provider."""
+
+    def test_streamlake_missing_choices(self):
+        """Test handling of response without choices field."""
+        with patch.dict("os.environ", {"STREAMLAKE_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"some_other_field": "value"}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_streamlake_api("test-model", [], 0.7, 1000)
+
+                assert "no choices" in str(exc_info.value).lower()
+
+    def test_streamlake_empty_choices(self):
+        """Test handling of empty choices array."""
+        with patch.dict("os.environ", {"STREAMLAKE_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"choices": []}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_streamlake_api("test-model", [], 0.7, 1000)
+
+                assert "no choices" in str(exc_info.value).lower()
+
+    def test_streamlake_missing_message(self):
+        """Test handling of choice without message field."""
+        with patch.dict("os.environ", {"STREAMLAKE_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"choices": [{"no_message": "here"}]}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_streamlake_api("test-model", [], 0.7, 1000)
+
+                assert "null content" in str(exc_info.value).lower()
+
+    def test_streamlake_null_content(self):
+        """Test handling of null content."""
+        with patch.dict("os.environ", {"STREAMLAKE_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"choices": [{"message": {"content": None}}]}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_streamlake_api("test-model", [], 0.7, 1000)
+
+                assert "null content" in str(exc_info.value).lower()
+
+    def test_streamlake_vc_api_key_alias(self):
+        """Test VC_API_KEY alias when STREAMLAKE_API_KEY not set."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": [{"message": {"content": "test response"}}]}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            # Remove STREAMLAKE_API_KEY if it exists
+            env_vars = {}
+            if "STREAMLAKE_API_KEY" in os.environ:
+                env_vars = dict(os.environ)
+                del env_vars["STREAMLAKE_API_KEY"]
+            env_vars["VC_API_KEY"] = "vc-test-key"
+
+            with patch.dict(os.environ, env_vars, clear=True):
+                result = call_streamlake_api("test-model", [], 0.7, 1000)
+
+            # Verify VC_API_KEY was used
+            call_args = mock_post.call_args
+            headers = call_args.kwargs["headers"]
+            assert headers["Authorization"] == "Bearer vc-test-key"
+            assert result == "test response"
 
 
 @pytest.mark.integration

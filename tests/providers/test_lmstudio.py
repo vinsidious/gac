@@ -1,7 +1,9 @@
 """Tests for LM Studio provider."""
 
+import os
 from collections.abc import Callable
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -55,6 +57,114 @@ class TestLMStudioProviderMocked(BaseProviderTest):
     @property
     def empty_content_response(self) -> dict[str, Any]:
         return {"choices": [{"message": {"content": ""}}]}
+
+
+class TestLMStudioEdgeCases:
+    """Test edge cases for LM Studio provider."""
+
+    def test_lmstudio_missing_choices(self):
+        """Test handling of response without choices field."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"some_other_field": "value"}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            with pytest.raises(AIError) as exc_info:
+                call_lmstudio_api("local-model", [], 0.7, 1000)
+
+            assert "missing choices" in str(exc_info.value).lower()
+
+    def test_lmstudio_empty_choices(self):
+        """Test handling of empty choices array."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": []}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            with pytest.raises(AIError) as exc_info:
+                call_lmstudio_api("local-model", [], 0.7, 1000)
+
+            assert "missing choices" in str(exc_info.value).lower()
+
+    def test_lmstudio_missing_message_and_text(self):
+        """Test handling of choice without message or text field."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": [{"other_field": "value"}]}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            with pytest.raises(AIError) as exc_info:
+                call_lmstudio_api("local-model", [], 0.7, 1000)
+
+            assert "missing content" in str(exc_info.value).lower()
+
+    def test_lmstudio_text_field_fallback(self):
+        """Test fallback to text field when message.content not present."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": [{"text": "test response"}]}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            result = call_lmstudio_api("local-model", [], 0.7, 1000)
+            assert result == "test response"
+
+    def test_lmstudio_custom_api_url(self):
+        """Test custom LMSTUDIO_API_URL environment variable."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": [{"message": {"content": "test response"}}]}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            with patch.dict(os.environ, {"LMSTUDIO_API_URL": "http://custom:8080"}):
+                result = call_lmstudio_api("local-model", [], 0.7, 1000)
+
+            # Verify custom URL was used
+            call_args = mock_post.call_args
+            assert "http://custom:8080/v1/chat/completions" in call_args[0][0]
+            assert result == "test response"
+
+    def test_lmstudio_with_api_key(self):
+        """Test that API key is included in headers when provided."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": [{"message": {"content": "test response"}}]}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            with patch.dict(os.environ, {"LMSTUDIO_API_KEY": "test-key"}):
+                result = call_lmstudio_api("local-model", [], 0.7, 1000)
+
+            # Verify Authorization header was included
+            call_args = mock_post.call_args
+            headers = call_args.kwargs["headers"]
+            assert "Authorization" in headers
+            assert headers["Authorization"] == "Bearer test-key"
+            assert result == "test response"
+
+    def test_lmstudio_without_api_key(self):
+        """Test that Authorization header is not included when no API key."""
+        with patch("httpx.post") as mock_post:
+            mock_response = MagicMock()
+            mock_response.json.return_value = {"choices": [{"message": {"content": "test response"}}]}
+            mock_response.raise_for_status = MagicMock()
+            mock_post.return_value = mock_response
+
+            # Ensure LMSTUDIO_API_KEY is not set
+            with patch.dict(os.environ, {}, clear=False):
+                if "LMSTUDIO_API_KEY" in os.environ:
+                    del os.environ["LMSTUDIO_API_KEY"]
+                result = call_lmstudio_api("local-model", [], 0.7, 1000)
+
+            # Verify Authorization header was not included
+            call_args = mock_post.call_args
+            headers = call_args.kwargs["headers"]
+            assert "Authorization" not in headers
+            assert result == "test response"
 
 
 @pytest.mark.integration

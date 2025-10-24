@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -65,3 +66,141 @@ class TestGeminiProviderMocked(BaseProviderTest):
     @property
     def empty_content_response(self) -> dict[str, Any]:
         return {"candidates": [{"content": {"parts": [{"text": ""}]}}]}
+
+
+class TestGeminiEdgeCases:
+    """Test edge cases for Gemini provider."""
+
+    def test_gemini_missing_candidates(self):
+        """Test handling of response without candidates field."""
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"some_other_field": "value"}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_gemini_api("gemini-1.5-pro", [], 0.7, 1000)
+
+                assert "missing candidates" in str(exc_info.value).lower()
+
+    def test_gemini_empty_candidates(self):
+        """Test handling of empty candidates array."""
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"candidates": []}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_gemini_api("gemini-1.5-pro", [], 0.7, 1000)
+
+                assert "missing candidates" in str(exc_info.value).lower()
+
+    def test_gemini_missing_content(self):
+        """Test handling of candidate without content field."""
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"candidates": [{"no_content": "here"}]}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_gemini_api("gemini-1.5-pro", [], 0.7, 1000)
+
+                assert "invalid content structure" in str(exc_info.value).lower()
+
+    def test_gemini_missing_parts(self):
+        """Test handling of content without parts field."""
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"candidates": [{"content": {"no_parts": []}}]}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_gemini_api("gemini-1.5-pro", [], 0.7, 1000)
+
+                assert "invalid content structure" in str(exc_info.value).lower()
+
+    def test_gemini_empty_parts(self):
+        """Test handling of empty parts array."""
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"candidates": [{"content": {"parts": []}}]}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_gemini_api("gemini-1.5-pro", [], 0.7, 1000)
+
+                assert "invalid content structure" in str(exc_info.value).lower()
+
+    def test_gemini_null_text_content(self):
+        """Test handling of null text in parts."""
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"candidates": [{"content": {"parts": [{"text": None}]}}]}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_gemini_api("gemini-1.5-pro", [], 0.7, 1000)
+
+                assert "missing text content" in str(exc_info.value).lower()
+
+    def test_gemini_system_message_handling(self):
+        """Test system message conversion to Gemini format."""
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"candidates": [{"content": {"parts": [{"text": "test response"}]}}]}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                messages = [
+                    {"role": "system", "content": "System instruction"},
+                    {"role": "user", "content": "User message"},
+                ]
+
+                result = call_gemini_api("gemini-1.5-pro", messages, 0.7, 1000)
+
+                # Verify the payload structure
+                call_args = mock_post.call_args
+                payload = call_args.kwargs["json"]
+                assert len(payload["contents"]) == 2
+                assert payload["contents"][0]["role"] == "system"
+                assert payload["contents"][1]["role"] == "user"
+                assert result == "test response"
+
+    def test_gemini_assistant_message_conversion(self):
+        """Test assistant message converted to model role."""
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"candidates": [{"content": {"parts": [{"text": "test response"}]}}]}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                messages = [
+                    {"role": "user", "content": "First message"},
+                    {"role": "assistant", "content": "Assistant reply"},
+                    {"role": "user", "content": "Second message"},
+                ]
+
+                result = call_gemini_api("gemini-1.5-pro", messages, 0.7, 1000)
+
+                # Verify the payload structure
+                call_args = mock_post.call_args
+                payload = call_args.kwargs["json"]
+                assert len(payload["contents"]) == 3
+                assert payload["contents"][0]["role"] == "user"
+                assert payload["contents"][1]["role"] == "model"  # assistant -> model
+                assert payload["contents"][2]["role"] == "user"
+                assert result == "test response"

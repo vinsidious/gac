@@ -3,6 +3,7 @@
 import os
 from collections.abc import Callable
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -66,6 +67,24 @@ class TestOpenAIProviderMocked(BaseProviderTest):
     @property
     def empty_content_response(self) -> dict[str, Any]:
         return {"choices": [{"message": {"content": ""}}]}
+
+
+class TestOpenAIEdgeCases:
+    """Test edge cases for OpenAI provider."""
+
+    def test_openai_null_content(self):
+        """Test handling of null content."""
+        with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"choices": [{"message": {"content": None}}]}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_openai_api("gpt-5-nano", [], 0.7, 1000)
+
+                assert "null content" in str(exc_info.value).lower()
 
 
 @pytest.mark.integration

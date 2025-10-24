@@ -3,6 +3,7 @@
 import os
 from collections.abc import Callable
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -66,6 +67,117 @@ class TestAnthropicProviderMocked(BaseProviderTest):
     @property
     def empty_content_response(self) -> dict[str, Any]:
         return {"content": [{"text": ""}]}
+
+
+class TestAnthropicEdgeCases:
+    """Test edge cases for Anthropic provider."""
+
+    def test_anthropic_missing_content(self):
+        """Test handling of response without content field."""
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"some_other_field": "value"}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_anthropic_api("claude-3-haiku-20240307", [], 0.7, 1000)
+
+                # Should raise a model error for missing content
+                assert exc_info.value.error_type == "model"
+
+    def test_anthropic_empty_content_array(self):
+        """Test handling of empty content array."""
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"content": []}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_anthropic_api("claude-3-haiku-20240307", [], 0.7, 1000)
+
+                # Should raise an error for empty content array
+                assert exc_info.value.error_type == "model"
+
+    def test_anthropic_missing_text_field(self):
+        """Test handling of content without text field."""
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"content": [{"no_text": "here"}]}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_anthropic_api("claude-3-haiku-20240307", [], 0.7, 1000)
+
+                # Should raise an error for missing text field
+                assert exc_info.value.error_type == "model"
+
+    def test_anthropic_null_text_content(self):
+        """Test handling of null text in content."""
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"content": [{"text": None}]}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_anthropic_api("claude-3-haiku-20240307", [], 0.7, 1000)
+
+                assert "null content" in str(exc_info.value).lower()
+
+    def test_anthropic_system_message_handling(self):
+        """Test system message extraction and formatting."""
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"content": [{"text": "test response"}]}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                messages = [
+                    {"role": "system", "content": "System instruction"},
+                    {"role": "user", "content": "User message"},
+                ]
+
+                result = call_anthropic_api("claude-3-haiku-20240307", messages, 0.7, 1000)
+
+                # Verify the payload structure
+                call_args = mock_post.call_args
+                payload = call_args.kwargs["json"]
+                # System message should be extracted to separate field
+                assert "system" in payload
+                assert payload["system"] == "System instruction"
+                # Messages should only contain non-system messages
+                assert len(payload["messages"]) == 1
+                assert payload["messages"][0]["role"] == "user"
+                assert result == "test response"
+
+    def test_anthropic_no_system_message(self):
+        """Test that system field is not included when no system message."""
+        with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"content": [{"text": "test response"}]}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                messages = [{"role": "user", "content": "User message"}]
+
+                result = call_anthropic_api("claude-3-haiku-20240307", messages, 0.7, 1000)
+
+                # Verify the payload structure
+                call_args = mock_post.call_args
+                payload = call_args.kwargs["json"]
+                # System field should not be present
+                assert "system" not in payload
+                assert len(payload["messages"]) == 1
+                assert result == "test response"
 
 
 @pytest.mark.integration

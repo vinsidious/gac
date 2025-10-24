@@ -3,7 +3,7 @@
 import os
 from collections.abc import Callable
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -98,6 +98,24 @@ class TestSyntheticProviderMocked(BaseProviderTest):
         payload = mock_post.call_args.kwargs.get("json", {})
         assert payload.get("model") == "hf:zai-org/GLM-4.6"
         assert payload.get("max_completion_tokens") == 256
+
+
+class TestSyntheticEdgeCases:
+    """Test edge cases for Synthetic provider."""
+
+    def test_synthetic_null_content(self):
+        """Test handling of null content."""
+        with patch.dict("os.environ", {"SYNTHETIC_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"choices": [{"message": {"content": None}}]}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                with pytest.raises(AIError) as exc_info:
+                    call_synthetic_api("hf:zai-org/GLM-4.6", [], 0.7, 1000)
+
+                assert "null content" in str(exc_info.value).lower()
 
 
 @pytest.mark.integration
