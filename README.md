@@ -96,16 +96,16 @@ gac
 
 ### Common Commands
 
-| Command         | Description                                    |
-| --------------- | ---------------------------------------------- |
-| `gac`           | Generate commit message                        |
-| `gac -y`        | Auto-confirm (no review needed)                |
-| `gac -a`        | Stage all + commit                             |
-| `gac -o`        | One-line message only                          |
-| `gac -v`        | Detailed verbose format                        |
-| `gac -h "hint"` | Add context for LLM (e.g., `gac -h "bug fix"`) |
-| `gac -s`        | Include scope (e.g., feat(auth):)              |
-| `gac -p`        | Commit and push                                |
+| Command         | Description                                                             |
+| --------------- | ----------------------------------------------------------------------- |
+| `gac`           | Generate commit message                                                 |
+| `gac -y`        | Auto-confirm (no review needed)                                         |
+| `gac -a`        | Stage all before generating commit message                              |
+| `gac -o`        | One-line message for trivial changes                                    |
+| `gac -v`        | Verbose format with Motivation, Technical Approach, and Impact Analysis |
+| `gac -h "hint"` | Add context for LLM (e.g., `gac -h "bug fix"`)                          |
+| `gac -s`        | Include scope (e.g., feat(auth):)                                       |
+| `gac -p`        | Commit and push                                                         |
 
 ### Power User Examples
 
@@ -131,7 +131,7 @@ gac --skip-secret-scan
 Not happy with the result? Use the reroll feature for intelligent regeneration:
 
 ```bash
-# Simple regeneration (uses previous context)
+# Simple reroll
 r
 
 # With specific feedback
