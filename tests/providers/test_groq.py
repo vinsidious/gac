@@ -9,7 +9,11 @@ import pytest
 
 from gac.errors import AIError
 from gac.providers.groq import call_groq_api
-from tests.provider_test_utils import assert_missing_api_key_error, temporarily_remove_env_var
+from tests.provider_test_utils import (
+    assert_missing_api_key_error,
+    temporarily_remove_env_var,
+    temporarily_set_env_var,
+)
 from tests.providers.conftest import BaseProviderTest
 
 
@@ -71,6 +75,12 @@ class TestGroqProviderMocked(BaseProviderTest):
 
 class TestGroqEdgeCases:
     """Test edge cases for Groq provider."""
+
+    @pytest.fixture(autouse=True)
+    def _set_api_key(self):
+        """Ensure Groq API key is present for edge case tests."""
+        with temporarily_set_env_var("GROQ_API_KEY", "test-key"):
+            yield
 
     def test_groq_null_content_in_choice_text(self):
         """Test handling of null content in choice.text field."""

@@ -9,7 +9,11 @@ import pytest
 
 from gac.errors import AIError
 from gac.providers.zai import call_zai_api, call_zai_coding_api
-from tests.provider_test_utils import assert_missing_api_key_error, temporarily_remove_env_var
+from tests.provider_test_utils import (
+    assert_missing_api_key_error,
+    temporarily_remove_env_var,
+    temporarily_set_env_var,
+)
 from tests.providers.conftest import BaseProviderTest
 
 
@@ -111,6 +115,12 @@ class TestZAICodingProviderMocked(BaseProviderTest):
 
 class TestZAIEdgeCases:
     """Test edge cases for ZAI provider."""
+
+    @pytest.fixture(autouse=True)
+    def _set_api_key(self):
+        """Ensure ZAI API key is present for edge case tests."""
+        with temporarily_set_env_var("ZAI_API_KEY", "test-key"):
+            yield
 
     def test_zai_missing_choices(self):
         """Test handling of response without choices field."""
