@@ -19,7 +19,7 @@
 
 ## What You Get
 
-Instead of generic messages like `"update stuff"`, `"fix bug"`, or `"add feature"`, you get intelligent, contextual messages that explain the **why** behind your changes:
+Intelligent, contextual messages that explain the **why** behind your changes:
 
 ![GAC generating a contextual commit message](assets/gac-simple-usage.png)
 
