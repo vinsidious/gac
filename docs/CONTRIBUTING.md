@@ -16,9 +16,9 @@ make the process smooth for everyone.
     - [Release Process](#release-process)
     - [Using bump-my-version (optional)](#using-bump-my-version-optional)
   - [Coding Standards](#coding-standards)
-  - [Pre-commit Hooks](#pre-commit-hooks)
+  - [Git Hooks (Lefthook)](#git-hooks-lefthook)
     - [Setup](#setup)
-    - [Skipping Pre-commit Hooks](#skipping-pre-commit-hooks)
+    - [Skipping Git Hooks](#skipping-git-hooks)
   - [Testing Guidelines](#testing-guidelines)
     - [Running Tests](#running-tests)
       - [Provider Integration Tests](#provider-integration-tests)
@@ -33,7 +33,7 @@ This project uses `uv` for dependency management and provides a Makefile for com
 ### Quick Setup
 
 ```bash
-# One command to set up everything including pre-commit hooks
+# One command to set up everything including Lefthook hooks
 make dev
 ```
 
@@ -41,7 +41,7 @@ This command will:
 
 - Install development dependencies
 - Install git hooks
-- Run pre-commit against all files to fix any existing issues
+- Run Lefthook hooks across all files to fix any existing issues
 
 ### Alternative Setup (if you prefer step-by-step)
 
@@ -52,16 +52,16 @@ make setup
 # Install development dependencies
 make dev
 
-# Install pre-commit hooks
-pip install pre-commit
-pre-commit install
-pre-commit run --all-files
+# Install Lefthook hooks
+brew install lefthook  # or see docs below for alternatives
+lefthook install
+lefthook run pre-commit --all
 ```
 
 ### Available Commands
 
 - `make setup` - Create virtual environment and install all dependencies
-- `make dev` - **Complete development setup** - includes pre-commit hooks
+- `make dev` - **Complete development setup** - includes Lefthook hooks
 - `make test` - Run standard tests (excludes integration tests)
 - `make test-integration` - Run only integration tests (requires API keys)
 - `make test-all` - Run all tests
@@ -122,9 +122,9 @@ bump-my-version bump major
 - Formatting is handled by `ruff` (linting, formatting, and import sorting in one tool; max line length: 120)
 - Write minimal, effective tests with `pytest`
 
-## Pre-commit Hooks
+## Git Hooks (Lefthook)
 
-This project uses pre-commit to ensure code quality and consistency. The following hooks are configured:
+This project uses [Lefthook](https://github.com/evilmartians/lefthook) to keep code quality checks fast and consistent. The configured hooks mirror our previous pre-commit setup:
 
 - `ruff` - Python linting and formatting (replaces black, isort, and flake8)
 - `markdownlint-cli2` - Markdown linting
@@ -141,31 +141,33 @@ make dev
 
 **Manual setup (if you prefer step-by-step):**
 
-1. Install pre-commit (if not already available):
+1. Install Lefthook (choose the option that matches your setup):
 
    ```sh
-   pip install pre-commit
-   # or if using uv:
-   uv add --dev pre-commit
+   brew install lefthook          # macOS (Homebrew)
+   # or
+   cargo install lefthook         # Rust toolchain
+   # or
+   asdf plugin add lefthook && asdf install lefthook latest
    ```
 
 2. Install the git hooks:
 
    ```sh
-   pre-commit install
+   lefthook install
    ```
 
 3. (Optional) Run against all files:
 
    ```sh
-   pre-commit run --all-files
+   lefthook run pre-commit --all
    ```
 
 The hooks will now run automatically on each commit. If any checks fail, you'll need to fix the issues before committing.
 
-### Skipping Pre-commit Hooks
+### Skipping Git Hooks
 
-If you need to skip the pre-commit hooks temporarily, use the `--no-verify` flag:
+If you need to skip the Lefthook checks temporarily, use the `--no-verify` flag:
 
 ```sh
 git commit --no-verify -m "Your commit message"

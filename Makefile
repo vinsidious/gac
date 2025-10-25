@@ -21,8 +21,13 @@ dev:
 	@echo "Installing development dependencies..."
 	uv venv
 	uv pip install -e ".[dev]"
-	@echo "Installing git hooks..."
-	pre-commit install
+	@echo "Setting up Lefthook git hooks..."
+	@if command -v lefthook >/dev/null 2>&1; then \
+		lefthook install; \
+		lefthook run pre-commit --all || true; \
+	else \
+		echo "⚠️  Lefthook not found. Install it with 'brew install lefthook' or see docs/CONTRIBUTING.md."; \
+	fi
 	@echo "✅ Development environment ready!"
 
 test:
