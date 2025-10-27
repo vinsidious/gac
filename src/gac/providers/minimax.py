@@ -1,4 +1,4 @@
-"""Minimax API provider for gac."""
+"""MiniMax API provider for gac."""
 
 import os
 
@@ -8,7 +8,7 @@ from gac.errors import AIError
 
 
 def call_minimax_api(model: str, messages: list[dict], temperature: float, max_tokens: int) -> str:
-    """Call Minimax API directly."""
+    """Call MiniMax API directly."""
     api_key = os.getenv("MINIMAX_API_KEY")
     if not api_key:
         raise AIError.authentication_error("MINIMAX_API_KEY not found in environment variables")
@@ -24,15 +24,15 @@ def call_minimax_api(model: str, messages: list[dict], temperature: float, max_t
         response_data = response.json()
         content = response_data["choices"][0]["message"]["content"]
         if content is None:
-            raise AIError.model_error("Minimax API returned null content")
+            raise AIError.model_error("MiniMax API returned null content")
         if content == "":
-            raise AIError.model_error("Minimax API returned empty content")
+            raise AIError.model_error("MiniMax API returned empty content")
         return content
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 429:
-            raise AIError.rate_limit_error(f"Minimax API rate limit exceeded: {e.response.text}") from e
-        raise AIError.model_error(f"Minimax API error: {e.response.status_code} - {e.response.text}") from e
+            raise AIError.rate_limit_error(f"MiniMax API rate limit exceeded: {e.response.text}") from e
+        raise AIError.model_error(f"MiniMax API error: {e.response.status_code} - {e.response.text}") from e
     except httpx.TimeoutException as e:
-        raise AIError.timeout_error(f"Minimax API request timed out: {str(e)}") from e
+        raise AIError.timeout_error(f"MiniMax API request timed out: {str(e)}") from e
     except Exception as e:
-        raise AIError.model_error(f"Error calling Minimax API: {str(e)}") from e
+        raise AIError.model_error(f"Error calling MiniMax API: {str(e)}") from e

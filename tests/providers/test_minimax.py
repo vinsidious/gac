@@ -1,4 +1,4 @@
-"""Tests for Minimax provider."""
+"""Tests for MiniMax provider."""
 
 import os
 from collections.abc import Callable
@@ -13,23 +13,23 @@ from tests.provider_test_utils import assert_missing_api_key_error, temporarily_
 from tests.providers.conftest import BaseProviderTest
 
 
-class TestMinimaxImports:
-    """Test that Minimax provider can be imported."""
+class TestMiniMaxImports:
+    """Test that MiniMax provider can be imported."""
 
     def test_import_provider(self):
-        """Test that Minimax provider module can be imported."""
+        """Test that MiniMax provider module can be imported."""
         from gac.providers import minimax  # noqa: F401
 
     def test_import_api_function(self):
-        """Test that Minimax API function can be imported."""
+        """Test that MiniMax API function can be imported."""
         from gac.providers.minimax import call_minimax_api  # noqa: F401
 
 
-class TestMinimaxAPIKeyValidation:
-    """Test Minimax API key validation."""
+class TestMiniMaxAPIKeyValidation:
+    """Test MiniMax API key validation."""
 
     def test_missing_api_key_error(self):
-        """Test that Minimax raises error when API key is missing."""
+        """Test that MiniMax raises error when API key is missing."""
         with temporarily_remove_env_var("MINIMAX_API_KEY"):
             with pytest.raises(AIError) as exc_info:
                 call_minimax_api("MiniMax-M2", [], 0.7, 1000)
@@ -37,8 +37,8 @@ class TestMinimaxAPIKeyValidation:
             assert_missing_api_key_error(exc_info, "minimax", "MINIMAX_API_KEY")
 
 
-class TestMinimaxProviderMocked(BaseProviderTest):
-    """Mocked tests for Minimax provider."""
+class TestMiniMaxProviderMocked(BaseProviderTest):
+    """Mocked tests for MiniMax provider."""
 
     @property
     def provider_name(self) -> str:
@@ -69,8 +69,8 @@ class TestMinimaxProviderMocked(BaseProviderTest):
         return {"choices": [{"message": {"content": ""}}]}
 
 
-class TestMinimaxEdgeCases:
-    """Test edge cases for Minimax provider."""
+class TestMiniMaxEdgeCases:
+    """Test edge cases for MiniMax provider."""
 
     def test_minimax_null_content(self):
         """Test handling of null content."""
@@ -88,11 +88,11 @@ class TestMinimaxEdgeCases:
 
 
 @pytest.mark.integration
-class TestMinimaxIntegration:
-    """Integration tests for Minimax provider."""
+class TestMiniMaxIntegration:
+    """Integration tests for MiniMax provider."""
 
     def test_real_api_call(self):
-        """Test actual Minimax API call with valid credentials."""
+        """Test actual MiniMax API call with valid credentials."""
         api_key = os.getenv("MINIMAX_API_KEY")
         if not api_key:
             pytest.skip("MINIMAX_API_KEY not set - skipping real API test")

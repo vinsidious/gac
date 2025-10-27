@@ -193,7 +193,7 @@ When adding a new AI provider, you need to update multiple files across the code
 
 ### Example Implementation
 
-See the Minimax provider implementation as a reference:
+See the MiniMax provider implementation as a reference:
 
 - Provider: `src/gac/providers/minimax.py`
 - Tests: `tests/providers/test_minimax.py`
