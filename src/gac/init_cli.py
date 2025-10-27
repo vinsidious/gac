@@ -39,6 +39,7 @@ def init() -> None:
         ("Gemini", "gemini-2.5-flash"),
         ("Groq", "meta-llama/llama-4-maverick-17b-128e-instruct"),
         ("LM Studio", "gemma3"),
+        ("Minimax", "MiniMax-M2"),
         ("Ollama", "gemma3"),
         ("OpenAI", "gpt-4.1-mini"),
         ("OpenRouter", "openrouter/auto"),

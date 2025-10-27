@@ -100,6 +100,7 @@ def generate_with_retries(
         "gemini",
         "groq",
         "lm-studio",
+        "minimax",
         "ollama",
         "openai",
         "openrouter",
