@@ -45,6 +45,7 @@ def init() -> None:
         ("OpenRouter", "openrouter/auto"),
         ("Streamlake", ""),
         ("Synthetic", "hf:zai-org/GLM-4.6"),
+        ("Together AI", "openai/gpt-oss-20B"),
         ("Z.AI", "glm-4.5-air"),
         ("Z.AI Coding", "glm-4.6"),
     ]

@@ -32,7 +32,7 @@ class TestTogetherAIAPIKeyValidation:
         """Test that Together AI raises error when API key is missing."""
         with temporarily_remove_env_var("TOGETHER_API_KEY"):
             with pytest.raises(AIError) as exc_info:
-                call_together_api("meta-llama/Llama-3.2-3B-Instruct-Turbo", [], 0.7, 1000)
+                call_together_api("openai/gpt-oss-20B", [], 0.7, 1000)
 
             assert_missing_api_key_error(exc_info, "together", "TOGETHER_API_KEY")
 
@@ -58,7 +58,7 @@ class TestTogetherAIProviderMocked(BaseProviderTest):
 
     @property
     def model_name(self) -> str:
-        return "meta-llama/Llama-3.2-3B-Instruct-Turbo"
+        return "openai/gpt-oss-20B"
 
     @property
     def success_response(self) -> dict[str, Any]:
@@ -82,7 +82,7 @@ class TestTogetherAIEdgeCases:
                 mock_post.return_value = mock_response
 
                 with pytest.raises(AIError) as exc_info:
-                    call_together_api("meta-llama/Llama-3.2-3B-Instruct-Turbo", [], 0.7, 1000)
+                    call_together_api("openai/gpt-oss-20B", [], 0.7, 1000)
 
                 assert "null content" in str(exc_info.value).lower()
 
@@ -99,7 +99,7 @@ class TestTogetherAIIntegration:
 
         messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
         response = call_together_api(
-            model="meta-llama/Llama-3.2-3B-Instruct-Turbo",
+            model="openai/gpt-oss-20B",
             messages=messages,
             temperature=1.0,
             max_tokens=512,
