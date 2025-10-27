@@ -22,6 +22,7 @@ from gac.providers import (
     call_openrouter_api,
     call_streamlake_api,
     call_synthetic_api,
+    call_together_api,
     call_zai_api,
     call_zai_coding_api,
 )
@@ -90,6 +91,7 @@ def generate_commit_message(
         "openrouter": call_openrouter_api,
         "streamlake": call_streamlake_api,
         "synthetic": call_synthetic_api,
+        "together": call_together_api,
         "zai": call_zai_api,
         "zai-coding": call_zai_coding_api,
     }

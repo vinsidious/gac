@@ -105,6 +105,7 @@ def generate_with_retries(
         "openrouter",
         "streamlake",
         "synthetic",
+        "together",
         "zai",
         "zai-coding",
     ]

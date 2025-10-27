@@ -12,6 +12,7 @@ from .openai import call_openai_api
 from .openrouter import call_openrouter_api
 from .streamlake import call_streamlake_api
 from .synthetic import call_synthetic_api
+from .together import call_together_api
 from .zai import call_zai_api, call_zai_coding_api
 
 __all__ = [
@@ -27,6 +28,7 @@ __all__ = [
     "call_openrouter_api",
     "call_streamlake_api",
     "call_synthetic_api",
+    "call_together_api",
     "call_zai_api",
     "call_zai_coding_api",
 ]
