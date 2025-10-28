@@ -64,11 +64,17 @@ def call_gemini_api(model: str, messages: list[dict[str, Any]], temperature: flo
             raise AIError.model_error("Gemini API response has invalid content structure")
 
         parts = candidate["content"]["parts"]
-        content = next((part.get("text") for part in parts if isinstance(part, dict) and part.get("text")), None)
-        if content is None:
+        content_text: str | None = None
+        for part in parts:
+            if isinstance(part, dict):
+                part_text = part.get("text")
+                if isinstance(part_text, str) and part_text:
+                    content_text = part_text
+                    break
+        if content_text is None:
             raise AIError.model_error("Gemini API response missing text content")
 
-        return content
+        return content_text
     except AIError:
         raise
     except httpx.HTTPStatusError as e:
