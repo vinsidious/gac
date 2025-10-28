@@ -174,10 +174,32 @@ class TestGeminiEdgeCases:
                 # Verify the payload structure
                 call_args = mock_post.call_args
                 payload = call_args.kwargs["json"]
-                assert len(payload["contents"]) == 2
-                assert payload["contents"][0]["role"] == "system"
-                assert payload["contents"][1]["role"] == "user"
+                assert len(payload["contents"]) == 1
+                assert payload["contents"][0]["role"] == "user"
+                assert payload["systemInstruction"]["role"] == "system"
+                assert payload["systemInstruction"]["parts"][0]["text"] == "System instruction"
                 assert result == "test response"
+
+    def test_gemini_blank_system_message_ignored(self):
+        """Ensure blank system instructions are omitted from payload."""
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {"candidates": [{"content": {"parts": [{"text": "ok"}]}}]}
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                messages = [
+                    {"role": "system", "content": "   "},
+                    {"role": "user", "content": "User message"},
+                ]
+
+                call_gemini_api("gemini-1.5-pro", messages, 0.7, 1000)
+
+                payload = mock_post.call_args.kwargs["json"]
+                assert "systemInstruction" not in payload
+                assert len(payload["contents"]) == 1
+                assert payload["contents"][0]["role"] == "user"
 
     def test_gemini_assistant_message_conversion(self):
         """Test assistant message converted to model role."""
@@ -204,3 +226,32 @@ class TestGeminiEdgeCases:
                 assert payload["contents"][1]["role"] == "model"  # assistant -> model
                 assert payload["contents"][2]["role"] == "user"
                 assert result == "test response"
+
+    def test_gemini_ignores_empty_text_parts(self):
+        """Ensure empty parts are skipped when extracting model text."""
+        with patch.dict("os.environ", {"GEMINI_API_KEY": "test-key"}):
+            with patch("httpx.post") as mock_post:
+                mock_response = MagicMock()
+                mock_response.json.return_value = {
+                    "candidates": [
+                        {
+                            "content": {
+                                "parts": [
+                                    {"text": ""},
+                                    {"text": "final answer"},
+                                ]
+                            }
+                        }
+                    ]
+                }
+                mock_response.raise_for_status = MagicMock()
+                mock_post.return_value = mock_response
+
+                result = call_gemini_api(
+                    "gemini-1.5-pro",
+                    [{"role": "user", "content": "hi"}],
+                    temperature=0.7,
+                    max_tokens=1000,
+                )
+
+                assert result == "final answer"
