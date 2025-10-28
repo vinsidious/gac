@@ -110,6 +110,8 @@ def generate_with_retries(
         "together",
         "zai",
         "zai-coding",
+        "custom-anthropic",
+        "custom-openai",
     ]
     if provider not in supported_providers:
         raise AIError.model_error(f"Unsupported provider: {provider}. Supported providers: {supported_providers}")

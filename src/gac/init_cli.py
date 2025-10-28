@@ -35,6 +35,8 @@ def init() -> None:
         ("Anthropic", "claude-haiku-4-5"),
         ("Cerebras", "qwen-3-coder-480b"),
         ("Chutes", "zai-org/GLM-4.6-FP8"),
+        ("Custom (Anthropic)", ""),
+        ("Custom (OpenAI)", ""),
         ("DeepSeek", "deepseek-chat"),
         ("Fireworks", "accounts/fireworks/models/gpt-oss-20b"),
         ("Gemini", "gemini-2.5-flash"),
@@ -55,12 +57,14 @@ def init() -> None:
     if not provider:
         click.echo("Provider selection cancelled. Exiting.")
         return
-    provider_key = provider.lower().replace(".", "").replace(" ", "-")
+    provider_key = provider.lower().replace(".", "").replace(" ", "-").replace("(", "").replace(")", "")
 
     is_ollama = provider_key == "ollama"
     is_lmstudio = provider_key == "lm-studio"
     is_streamlake = provider_key == "streamlake"
     is_zai = provider_key in ("zai", "zai-coding")
+    is_custom_anthropic = provider_key == "custom-anthropic"
+    is_custom_openai = provider_key == "custom-openai"
 
     if is_streamlake:
         endpoint_id = _prompt_required_text("Enter the Streamlake inference endpoint ID (required):")
@@ -70,7 +74,10 @@ def init() -> None:
         model_to_save = endpoint_id
     else:
         model_suggestion = dict(providers)[provider]
-        model_prompt = f"Enter the model (default: {model_suggestion}):"
+        if model_suggestion == "":
+            model_prompt = "Enter the model (required):"
+        else:
+            model_prompt = f"Enter the model (default: {model_suggestion}):"
         model = questionary.text(model_prompt, default=model_suggestion).ask()
         if model is None:
             click.echo("Model entry cancelled. Exiting.")
@@ -80,7 +87,28 @@ def init() -> None:
     set_key(str(GAC_ENV_PATH), "GAC_MODEL", f"{provider_key}:{model_to_save}")
     click.echo(f"Set GAC_MODEL={provider_key}:{model_to_save}")
 
-    if is_ollama:
+    if is_custom_anthropic:
+        base_url = _prompt_required_text("Enter the custom Anthropic-compatible base URL (required):")
+        if base_url is None:
+            click.echo("Custom Anthropic base URL entry cancelled. Exiting.")
+            return
+        set_key(str(GAC_ENV_PATH), "CUSTOM_ANTHROPIC_BASE_URL", base_url)
+        click.echo(f"Set CUSTOM_ANTHROPIC_BASE_URL={base_url}")
+
+        api_version = questionary.text(
+            "Enter the API version (optional, press Enter for default: 2023-06-01):", default="2023-06-01"
+        ).ask()
+        if api_version and api_version != "2023-06-01":
+            set_key(str(GAC_ENV_PATH), "CUSTOM_ANTHROPIC_VERSION", api_version)
+            click.echo(f"Set CUSTOM_ANTHROPIC_VERSION={api_version}")
+    elif is_custom_openai:
+        base_url = _prompt_required_text("Enter the custom OpenAI-compatible base URL (required):")
+        if base_url is None:
+            click.echo("Custom OpenAI base URL entry cancelled. Exiting.")
+            return
+        set_key(str(GAC_ENV_PATH), "CUSTOM_OPENAI_BASE_URL", base_url)
+        click.echo(f"Set CUSTOM_OPENAI_BASE_URL={base_url}")
+    elif is_ollama:
         url_default = "http://localhost:11434"
         url = questionary.text(f"Enter the Ollama API URL (default: {url_default}):", default=url_default).ask()
         if url is None:
@@ -112,6 +140,10 @@ def init() -> None:
             api_key_name = "LMSTUDIO_API_KEY"
         elif is_zai:
             api_key_name = "ZAI_API_KEY"
+        elif is_custom_anthropic:
+            api_key_name = "CUSTOM_ANTHROPIC_API_KEY"
+        elif is_custom_openai:
+            api_key_name = "CUSTOM_OPENAI_API_KEY"
         else:
             api_key_name = f"{provider_key.upper()}_API_KEY"
         set_key(str(GAC_ENV_PATH), api_key_name, api_key)
