@@ -31,7 +31,7 @@ class TestGeminiAPIKeyValidation:
         """Test that Gemini raises error when API key is missing."""
         with temporarily_remove_env_var("GEMINI_API_KEY"):
             with pytest.raises(AIError) as exc_info:
-                call_gemini_api("gemini-1.5-pro", [], 0.7, 1000)
+                call_gemini_api("gemini-2.5-flash-lite", [], 0.7, 1000)
 
             assert_missing_api_key_error(exc_info, "gemini", "GEMINI_API_KEY")
 
@@ -57,7 +57,7 @@ class TestGeminiProviderMocked(BaseProviderTest):
 
     @property
     def model_name(self) -> str:
-        return "gemini-1.5-pro"
+        return "gemini-2.5-flash-lite"
 
     @property
     def success_response(self) -> dict[str, Any]:
@@ -81,7 +81,7 @@ class TestGeminiEdgeCases:
                 mock_post.return_value = mock_response
 
                 with pytest.raises(AIError) as exc_info:
-                    call_gemini_api("gemini-1.5-pro", [], 0.7, 1000)
+                    call_gemini_api("gemini-2.5-flash-lite", [], 0.7, 1000)
 
                 assert "missing candidates" in str(exc_info.value).lower()
 
@@ -95,7 +95,7 @@ class TestGeminiEdgeCases:
                 mock_post.return_value = mock_response
 
                 with pytest.raises(AIError) as exc_info:
-                    call_gemini_api("gemini-1.5-pro", [], 0.7, 1000)
+                    call_gemini_api("gemini-2.5-flash-lite", [], 0.7, 1000)
 
                 assert "missing candidates" in str(exc_info.value).lower()
 
@@ -109,7 +109,7 @@ class TestGeminiEdgeCases:
                 mock_post.return_value = mock_response
 
                 with pytest.raises(AIError) as exc_info:
-                    call_gemini_api("gemini-1.5-pro", [], 0.7, 1000)
+                    call_gemini_api("gemini-2.5-flash-lite", [], 0.7, 1000)
 
                 assert "invalid content structure" in str(exc_info.value).lower()
 
@@ -123,7 +123,7 @@ class TestGeminiEdgeCases:
                 mock_post.return_value = mock_response
 
                 with pytest.raises(AIError) as exc_info:
-                    call_gemini_api("gemini-1.5-pro", [], 0.7, 1000)
+                    call_gemini_api("gemini-2.5-flash-lite", [], 0.7, 1000)
 
                 assert "invalid content structure" in str(exc_info.value).lower()
 
@@ -137,7 +137,7 @@ class TestGeminiEdgeCases:
                 mock_post.return_value = mock_response
 
                 with pytest.raises(AIError) as exc_info:
-                    call_gemini_api("gemini-1.5-pro", [], 0.7, 1000)
+                    call_gemini_api("gemini-2.5-flash-lite", [], 0.7, 1000)
 
                 assert "invalid content structure" in str(exc_info.value).lower()
 
@@ -151,7 +151,7 @@ class TestGeminiEdgeCases:
                 mock_post.return_value = mock_response
 
                 with pytest.raises(AIError) as exc_info:
-                    call_gemini_api("gemini-1.5-pro", [], 0.7, 1000)
+                    call_gemini_api("gemini-2.5-flash-lite", [], 0.7, 1000)
 
                 assert "missing text content" in str(exc_info.value).lower()
 
@@ -169,7 +169,7 @@ class TestGeminiEdgeCases:
                     {"role": "user", "content": "User message"},
                 ]
 
-                result = call_gemini_api("gemini-1.5-pro", messages, 0.7, 1000)
+                result = call_gemini_api("gemini-2.5-flash-lite", messages, 0.7, 1000)
 
                 # Verify the payload structure
                 call_args = mock_post.call_args
@@ -194,7 +194,7 @@ class TestGeminiEdgeCases:
                     {"role": "user", "content": "User message"},
                 ]
 
-                call_gemini_api("gemini-1.5-pro", messages, 0.7, 1000)
+                call_gemini_api("gemini-2.5-flash-lite", messages, 0.7, 1000)
 
                 payload = mock_post.call_args.kwargs["json"]
                 assert "systemInstruction" not in payload
@@ -216,7 +216,7 @@ class TestGeminiEdgeCases:
                     {"role": "user", "content": "Second message"},
                 ]
 
-                result = call_gemini_api("gemini-1.5-pro", messages, 0.7, 1000)
+                result = call_gemini_api("gemini-2.5-flash-lite", messages, 0.7, 1000)
 
                 # Verify the payload structure
                 call_args = mock_post.call_args
@@ -248,10 +248,35 @@ class TestGeminiEdgeCases:
                 mock_post.return_value = mock_response
 
                 result = call_gemini_api(
-                    "gemini-1.5-pro",
+                    "gemini-2.5-flash-lite",
                     [{"role": "user", "content": "hi"}],
                     temperature=0.7,
                     max_tokens=1000,
                 )
 
                 assert result == "final answer"
+
+
+@pytest.mark.integration
+class TestGeminiIntegration:
+    """Integration tests for Gemini provider."""
+
+    def test_real_api_call(self):
+        """Test actual Gemini API call with valid credentials."""
+        import os
+
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            pytest.skip("GEMINI_API_KEY not set - skipping real API test")
+
+        messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
+        response = call_gemini_api(
+            model="gemini-2.5-flash-lite",
+            messages=messages,
+            temperature=1.0,
+            max_tokens=50,
+        )
+
+        assert response is not None
+        assert isinstance(response, str)
+        assert len(response) > 0
