@@ -16,31 +16,36 @@ def call_gemini_api(model: str, messages: list[dict[str, Any]], temperature: flo
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
-    # Build contents array following 2025 Gemini API format
-    contents = []
+    # Build Gemini request payload, converting roles to supported values.
+    contents: list[dict[str, Any]] = []
+    system_instruction_parts: list[dict[str, str]] = []
 
-    # Add system instruction as first content with role "system" (2025 format)
     for msg in messages:
-        if msg["role"] == "system":
-            contents.append({"role": "system", "parts": [{"text": msg["content"]}]})
-            break
+        role = msg.get("role")
+        content_value = msg.get("content")
+        content = "" if content_value is None else str(content_value)
 
-    # Add user and assistant messages
-    for msg in messages:
-        if msg["role"] == "user":
-            contents.append({"role": "user", "parts": [{"text": msg["content"]}]})
-        elif msg["role"] == "assistant":
-            contents.append(
-                {
-                    "role": "model",  # Gemini uses "model" instead of "assistant"
-                    "parts": [{"text": msg["content"]}],
-                }
-            )
+        if role == "system":
+            if content.strip():
+                system_instruction_parts.append({"text": content})
+            continue
+
+        if role == "assistant":
+            gemini_role = "model"
+        elif role == "user":
+            gemini_role = "user"
+        else:
+            raise AIError.model_error(f"Unsupported message role for Gemini API: {role}")
+
+        contents.append({"role": gemini_role, "parts": [{"text": content}]})
 
     payload: dict[str, Any] = {
         "contents": contents,
         "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
     }
+
+    if system_instruction_parts:
+        payload["systemInstruction"] = {"role": "system", "parts": system_instruction_parts}
 
     headers = {"x-goog-api-key": api_key, "Content-Type": "application/json"}
 
@@ -50,15 +55,17 @@ def call_gemini_api(model: str, messages: list[dict[str, Any]], temperature: flo
         response_data = response.json()
 
         # Check for candidates and proper response structure
-        if not response_data.get("candidates"):
+        candidates = response_data.get("candidates")
+        if not candidates:
             raise AIError.model_error("Gemini API response missing candidates")
 
-        candidate = response_data["candidates"][0]
+        candidate = candidates[0]
         if "content" not in candidate or "parts" not in candidate["content"] or not candidate["content"]["parts"]:
             raise AIError.model_error("Gemini API response has invalid content structure")
 
-        content = candidate["content"]["parts"][0].get("text")
-        if content is None or content == "":
+        parts = candidate["content"]["parts"]
+        content = next((part.get("text") for part in parts if isinstance(part, dict) and part.get("text")), None)
+        if content is None:
             raise AIError.model_error("Gemini API response missing text content")
 
         return content
