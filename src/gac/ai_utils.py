@@ -96,6 +96,7 @@ def generate_with_retries(
         "anthropic",
         "cerebras",
         "chutes",
+        "deepseek",
         "fireworks",
         "gemini",
         "groq",
