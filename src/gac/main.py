@@ -46,6 +46,7 @@ def main(
     verbose: bool = False,
     no_verify: bool = False,
     skip_secret_scan: bool = False,
+    language: str | None = None,
 ) -> None:
     """Main application logic for gac."""
     try:
@@ -186,8 +187,10 @@ def main(
         system_template_path_value if isinstance(system_template_path_value, str) else None
     )
 
-    language_value = config.get("language")
-    language: str | None = language_value if isinstance(language_value, str) else None
+    # Use language parameter if provided, otherwise fall back to config
+    if language is None:
+        language_value = config.get("language")
+        language = language_value if isinstance(language_value, str) else None
 
     translate_prefixes_value = config.get("translate_prefixes")
     translate_prefixes: bool = bool(translate_prefixes_value) if isinstance(translate_prefixes_value, bool) else False
@@ -252,10 +255,8 @@ def main(
                 max_retries=max_retries,
                 quiet=quiet,
             )
-            # Don't enforce conventional commits when using custom system prompts
-            commit_message = clean_commit_message(
-                raw_commit_message, enforce_conventional_commits=(system_template_path is None)
-            )
+            # Clean the commit message (no automatic prefix enforcement)
+            commit_message = clean_commit_message(raw_commit_message)
 
             logger.info("Generated commit message:")
             logger.info(commit_message)

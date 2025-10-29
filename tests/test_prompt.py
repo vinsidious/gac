@@ -181,7 +181,8 @@ class TestPrompts:
         )
         result = system_prompt + "\n" + user_prompt
         assert "Spanish" in result
-        assert "Translate the entire message including the conventional commit prefix into Spanish" in result
+        assert "CRITICAL: You MUST translate the conventional commit prefix into Spanish" in result
+        assert "DO NOT use English prefixes like 'feat:', 'fix:', 'docs:'" in result
         assert "should remain in English" not in result
 
         # Test with translate_prefixes=True but no language (should not affect anything)
@@ -193,10 +194,10 @@ class TestPrompts:
 
     def test_clean_commit_message(self):
         """Test cleaning up generated commit messages."""
-        # Test basic message
+        # Test basic message - no automatic prefix enforcement
         message = "This is a test message"
         result = clean_commit_message(message)
-        assert result == "chore: This is a test message"
+        assert result == "This is a test message"
 
         # Test message with conventional prefix
         message = "feat: Add new feature"
@@ -327,30 +328,29 @@ class TestPrompts:
         assert "</think>" in result
         assert "remove <think> and </think> tags" in result
 
-    def test_clean_commit_message_custom_system_prompt(self):
-        """Test that enforce_conventional_commits parameter works correctly."""
-        # Test with enforce_conventional_commits=True (default)
+    def test_clean_commit_message_no_prefix_enforcement(self):
+        """Test that clean_commit_message doesn't automatically add prefixes."""
+        # Test message without conventional prefix - should not add "chore:"
         message = "🎉 add dark mode support"
-        result = clean_commit_message(message, enforce_conventional_commits=True)
-        assert result.startswith("chore: ")
-        assert "🎉" in result
-
-        # Test with enforce_conventional_commits=False (custom system prompts)
-        message = "🎉 add dark mode support"
-        result = clean_commit_message(message, enforce_conventional_commits=False)
+        result = clean_commit_message(message)
         assert result == "🎉 add dark mode support"
         assert not result.startswith("chore:")
 
-        # Test with conventional prefix and enforce_conventional_commits=False
+        # Test message with conventional prefix - should preserve it
         message = "feat: add new feature"
-        result = clean_commit_message(message, enforce_conventional_commits=False)
+        result = clean_commit_message(message)
         assert result == "feat: add new feature"
 
-        # Test that other cleaning still happens with enforce_conventional_commits=False
+        # Test that other cleaning still happens
         message = "```\n♻️ refactor database layer\n```"
-        result = clean_commit_message(message, enforce_conventional_commits=False)
+        result = clean_commit_message(message)
         assert result == "♻️ refactor database layer"
         assert "```" not in result
+
+        # Test translated prefix is preserved
+        message = "功能: 新增深色模式支援"
+        result = clean_commit_message(message)
+        assert result == "功能: 新增深色模式支援"
 
 
 if __name__ == "__main__":

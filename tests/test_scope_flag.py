@@ -49,7 +49,7 @@ class TestScopeFlag:
 
         # Mock both generate_commit_message and clean_commit_message to handle the new flow
         monkeypatch.setattr("gac.main.generate_commit_message", lambda **kwargs: "feat(test): mock commit")
-        monkeypatch.setattr("gac.main.clean_commit_message", lambda msg, enforce_conventional_commits=True: msg)
+        monkeypatch.setattr("gac.main.clean_commit_message", lambda msg: msg)
         monkeypatch.setattr("gac.main.count_tokens", lambda content, model: 10)
         monkeypatch.setattr("click.confirm", lambda *args, **kwargs: True)
         # Mock click.prompt to return 'y' for the new confirmation prompt
@@ -242,7 +242,7 @@ class TestScopeIntegration:
         monkeypatch.setattr("gac.main.count_tokens", lambda content, model: 10)
 
         # Don't clean the commit message (this happens after commit in the real code)
-        monkeypatch.setattr("gac.main.clean_commit_message", lambda msg, enforce_conventional_commits=True: msg)
+        monkeypatch.setattr("gac.main.clean_commit_message", lambda msg: msg)
 
         # Silence console output
         monkeypatch.setattr("rich.console.Console.print", lambda self, *a, **kw: None)
@@ -266,8 +266,8 @@ class TestScopeIntegration:
 
             original_clean = clean_commit_message
 
-            def spy_clean_commit_message(message, enforce_conventional_commits=True):
-                result = original_clean(message, enforce_conventional_commits)
+            def spy_clean_commit_message(message):
+                result = original_clean(message)
                 git_spy.commit_message = result
                 return result
 

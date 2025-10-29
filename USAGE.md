@@ -48,13 +48,14 @@ Generates an LLM-powered commit message for staged changes and prompts for confi
 
 ## Message Customization
 
-| Flag / Option     | Short | Description                                                               |
-| ----------------- | ----- | ------------------------------------------------------------------------- |
-| `--one-liner`     | `-o`  | Generate a single-line commit message                                     |
-| `--verbose`       | `-v`  | Generate detailed commit messages with motivation, architecture, & impact |
-| `--hint <text>`   | `-h`  | Add a hint to guide the LLM                                               |
-| `--model <model>` | `-m`  | Specify the model to use for this commit                                  |
-| `--scope`         | `-s`  | Infer an appropriate scope for the commit                                 |
+| Flag / Option       | Short | Description                                                               |
+| ------------------- | ----- | ------------------------------------------------------------------------- |
+| `--one-liner`       | `-o`  | Generate a single-line commit message                                     |
+| `--verbose`         | `-v`  | Generate detailed commit messages with motivation, architecture, & impact |
+| `--hint <text>`     | `-h`  | Add a hint to guide the LLM                                               |
+| `--model <model>`   | `-m`  | Specify the model to use for this commit                                  |
+| `--language <lang>` | `-l`  | Override the language for commit messages (e.g., 'Spanish', 'Japanese')   |
+| `--scope`           | `-s`  | Infer an appropriate scope for the commit                                 |
 
 **Note:** You can also provide feedback interactively during the reroll process by typing `r <feedback>` at the prompt.
 
@@ -118,6 +119,14 @@ Generates an LLM-powered commit message for staged changes and prompts for confi
 
   ```sh
   gac -m anthropic:claude-3-5-haiku-latest
+  ```
+
+- **Generate commit message in a specific language:**
+
+  ```sh
+  gac -l "Simplified Chinese"
+  gac -l 日本語
+  gac -l Spanish
   ```
 
 - **Dry run (see what would happen):**

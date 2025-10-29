@@ -44,6 +44,7 @@ logger = logging.getLogger(__name__)
 @click.option("--hint", "-h", default="", help="Additional context to include in the prompt")
 # Model options
 @click.option("--model", "-m", help="Override the default model (format: 'provider:model_name')")
+@click.option("--language", "-l", help="Override the language for commit messages (e.g., 'Spanish', 'Japanese')")
 # Output options
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
 @click.option(
@@ -76,6 +77,7 @@ def cli(
     yes: bool = False,
     hint: str = "",
     model: str | None = None,
+    language: str | None = None,
     version: bool = False,
     dry_run: bool = False,
     verbose: bool = False,
@@ -114,6 +116,7 @@ def cli(
                 verbose=use_verbose,
                 no_verify=no_verify,
                 skip_secret_scan=skip_secret_scan or bool(config.get("skip_secret_scan", False)),
+                language=language,
             )
         except Exception as e:
             handle_error(e, exit_program=True)
@@ -132,6 +135,7 @@ def cli(
             "yes": yes,
             "hint": hint,
             "model": model,
+            "language": language,
             "version": version,
             "dry_run": dry_run,
             "verbose": verbose,
