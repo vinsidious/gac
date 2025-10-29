@@ -454,6 +454,39 @@ def clean_commit_message(message: str) -> str:
     """
     message = message.strip()
 
+    # Remove <think> tags and their content (some providers like MiniMax include reasoning)
+    # Only remove multi-line reasoning blocks, never single-line content that might be descriptions
+    # Strategy: Remove blocks that clearly contain internal newlines (multi-line reasoning)
+
+    # Step 1: Remove multi-line <think>...</think> blocks (those with newlines inside)
+    # Pattern: <think> followed by content that includes newlines, ending with </think>
+    # This safely distinguishes reasoning from inline mentions like "handle <think> tags"
+    # Use negative lookahead to prevent matching across multiple blocks
+    while re.search(r"<think>(?:(?!</think>)[^\n])*\n.*?</think>", message, flags=re.DOTALL | re.IGNORECASE):
+        message = re.sub(
+            r"<think>(?:(?!</think>)[^\n])*\n.*?</think>\s*", "", message, flags=re.DOTALL | re.IGNORECASE, count=1
+        )
+
+    # Step 2: Remove blocks separated by blank lines (before or after the message)
+    message = re.sub(r"\n\n+\s*<think>.*?</think>\s*", "", message, flags=re.DOTALL | re.IGNORECASE)
+    message = re.sub(r"<think>.*?</think>\s*\n\n+", "", message, flags=re.DOTALL | re.IGNORECASE)
+
+    # Step 3: Handle orphaned opening <think> tags followed by newline
+    message = re.sub(r"<think>\s*\n.*$", "", message, flags=re.DOTALL | re.IGNORECASE)
+
+    # Step 4: Handle orphaned closing </think> tags at the start (before any conventional prefix)
+    conventional_prefixes_pattern = r"(feat|fix|docs|style|refactor|perf|test|build|ci|chore)[\(:)]"
+    if re.search(r"^.*?</think>", message, flags=re.DOTALL | re.IGNORECASE):
+        prefix_match = re.search(conventional_prefixes_pattern, message, flags=re.IGNORECASE)
+        think_match = re.search(r"</think>", message, flags=re.IGNORECASE)
+
+        if not prefix_match or (think_match and think_match.start() < prefix_match.start()):
+            # No prefix or </think> comes before prefix - remove everything up to and including it
+            message = re.sub(r"^.*?</think>\s*", "", message, flags=re.DOTALL | re.IGNORECASE)
+
+    # Step 5: Remove orphaned closing </think> tags at the end (not part of inline mentions)
+    message = re.sub(r"</think>\s*$", "", message, flags=re.IGNORECASE)
+
     # Remove any markdown code blocks
     message = re.sub(r"```[\w]*\n|```", "", message)
 

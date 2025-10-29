@@ -209,6 +209,59 @@ class TestPrompts:
         result = clean_commit_message(message)
         assert result == "refactor: Simplify authentication logic"
 
+        # Test with <think> tags (used by some providers like MiniMax)
+        message = "chore: <think>\nLet me analyze the changes carefully.\nThis appears to be a feature addition.\n</think>\n\nfeat(providers): add custom endpoint support"
+        result = clean_commit_message(message)
+        assert result == "feat(providers): add custom endpoint support"
+        assert "<think>" not in result
+        assert "</think>" not in result
+        assert "analyze the changes" not in result
+
+        # Test with uppercase <THINK> tags (case-insensitive)
+        message = "fix: <THINK>Reasoning here</THINK>\n\nfix(auth): resolve session timeout bug"
+        result = clean_commit_message(message)
+        assert result == "fix(auth): resolve session timeout bug"
+        assert "<THINK>" not in result
+        assert "Reasoning here" not in result
+
+        # Test with multiple <think> tags (should remove all pairs)
+        message = "<think>First reasoning block</think>\n\nfeat(prompt): actual commit message\n\n<think>Second reasoning block</think>"
+        result = clean_commit_message(message)
+        assert result == "feat(prompt): actual commit message"
+        assert "<think>" not in result
+        assert "</think>" not in result
+        assert "First reasoning block" not in result
+        assert "Second reasoning block" not in result
+
+        # Test with orphaned opening <think> tag (no closing tag)
+        message = "feat(auth): add OAuth support\n\n<think>\nThis reasoning has no closing tag..."
+        result = clean_commit_message(message)
+        assert result == "feat(auth): add OAuth support"
+        assert "<think>" not in result
+        assert "reasoning has no closing" not in result
+
+        # Test with orphaned closing </think> tag after commit message (removes tag)
+        # Note: cleaning text after a valid commit is handled by double type prefix fixing and whitespace trimming
+        message = "feat(api): resolve endpoint timeout</think>"
+        result = clean_commit_message(message)
+        assert result == "feat(api): resolve endpoint timeout"
+        assert "</think>" not in result
+
+        # Test with orphaned closing </think> tag before commit message (removes everything up to tag)
+        message = "Some preamble reasoning\nabout the changes\n</think>\n\nfix(auth): correct authentication flow"
+        result = clean_commit_message(message)
+        assert result == "fix(auth): correct authentication flow"
+        assert "</think>" not in result
+        assert "preamble reasoning" not in result
+
+        # Test that inline mentions of <think> tags are preserved (not removed)
+        message = "feat(prompt): remove <think> and </think> tags from AI output\n\n- Add regex to strip reasoning blocks\n- Preserve inline mentions of the tags"
+        result = clean_commit_message(message)
+        assert result == message  # Should be unchanged
+        assert "<think>" in result
+        assert "</think>" in result
+        assert "remove <think> and </think> tags" in result
+
 
 if __name__ == "__main__":
     unittest.main()
