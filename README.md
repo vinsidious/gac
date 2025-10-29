@@ -67,6 +67,13 @@ gac
 - **Standard** (default): Summary with bullet points explaining implementation details
 - **Verbose** (-v flag): Comprehensive explanations including motivation, technical approach, and impact analysis
 
+### 🌍 **Multilingual Support**
+
+- **25+ languages**: Generate commit messages in English, Chinese, Japanese, Korean, Spanish, French, German, and 20+ more languages
+- **Flexible translation**: Choose to keep conventional commit prefixes in English for tool compatibility, or fully translate them
+- **Multiple workflows**: Set a default language with `gac language`, or use `-l <language>` flag for one-time overrides
+- **Native script support**: Full support for non-Latin scripts including CJK, Cyrillic, Arabic, and more
+
 ### 💻 **Developer Experience**
 
 - **Interactive feedback**: Regenerate messages with specific requests like `r "make it shorter"` or `r "focus on the bug fix"`
