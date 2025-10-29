@@ -151,4 +151,79 @@ def init() -> None:
     elif is_ollama or is_lmstudio:
         click.echo("Skipping API key. You can add one later if needed.")
 
+    # Language selection
+    click.echo("\n")
+    languages = [
+        ("English", "English"),
+        ("简体中文", "Simplified Chinese"),
+        ("繁體中文", "Traditional Chinese"),
+        ("日本語", "Japanese"),
+        ("한국어", "Korean"),
+        ("Español", "Spanish"),
+        ("Português", "Portuguese"),
+        ("Français", "French"),
+        ("Deutsch", "German"),
+        ("Русский", "Russian"),
+        ("हिन्दी", "Hindi"),
+        ("Italiano", "Italian"),
+        ("Polski", "Polish"),
+        ("Türkçe", "Turkish"),
+        ("Nederlands", "Dutch"),
+        ("Tiếng Việt", "Vietnamese"),
+        ("ไทย", "Thai"),
+        ("Bahasa Indonesia", "Indonesian"),
+        ("Svenska", "Swedish"),
+        ("العربية", "Arabic"),
+        ("עברית", "Hebrew"),
+        ("Ελληνικά", "Greek"),
+        ("Dansk", "Danish"),
+        ("Norsk", "Norwegian"),
+        ("Suomi", "Finnish"),
+        ("Custom", "Custom"),
+    ]
+
+    display_names = [lang[0] for lang in languages]
+    language_selection = questionary.select(
+        "Select a language for commit messages:", choices=display_names, use_shortcuts=True, use_arrow_keys=True
+    ).ask()
+
+    if not language_selection:
+        click.echo("Language selection cancelled. Using English (default).")
+    elif language_selection == "English":
+        click.echo("Set language to English (default)")
+    else:
+        # Handle custom input
+        if language_selection == "Custom":
+            custom_language = questionary.text("Enter the language name (e.g., 'Spanish', 'Français', '日本語'):").ask()
+            if not custom_language or not custom_language.strip():
+                click.echo("No language entered. Using English (default).")
+                language_value = None
+            else:
+                language_value = custom_language.strip()
+        else:
+            # Find the English name for the selected language
+            language_value = next(lang[1] for lang in languages if lang[0] == language_selection)
+
+        if language_value:
+            # Ask about prefix translation
+            prefix_choice = questionary.select(
+                "How should conventional commit prefixes be handled?",
+                choices=[
+                    "Keep prefixes in English (feat:, fix:, etc.)",
+                    f"Translate prefixes into {language_value}",
+                ],
+            ).ask()
+
+            if not prefix_choice:
+                click.echo("Prefix translation selection cancelled. Using English prefixes.")
+                translate_prefixes = False
+            else:
+                translate_prefixes = prefix_choice.startswith("Translate prefixes")
+
+            # Set the language and prefix translation preference
+            set_key(str(GAC_ENV_PATH), "GAC_LANGUAGE", language_value)
+            set_key(str(GAC_ENV_PATH), "GAC_TRANSLATE_PREFIXES", "true" if translate_prefixes else "false")
+            click.echo(f"Set GAC_LANGUAGE={language_value}")
+            click.echo(f"Set GAC_TRANSLATE_PREFIXES={'true' if translate_prefixes else 'false'}")
+
     click.echo(f"\ngac environment setup complete. You can edit {GAC_ENV_PATH} to update values later.")
