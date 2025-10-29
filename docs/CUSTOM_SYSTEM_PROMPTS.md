@@ -284,7 +284,16 @@ Alternatively, you can manually set the language:
 GAC_LANGUAGE=Spanish
 ```
 
-The conventional commit prefix (feat:, fix:, etc.) will remain in English, but all other text will be in your specified language.
+By default, conventional commit prefixes (feat:, fix:, etc.) remain in English for compatibility with changelog tools and CI/CD pipelines, while all other text is in your specified language.
+
+**Want to translate prefixes too?** Set `GAC_TRANSLATE_PREFIXES=true` in your `.gac.env` for full localization:
+
+```bash
+GAC_LANGUAGE=Spanish
+GAC_TRANSLATE_PREFIXES=true
+```
+
+This will translate everything, including prefixes (e.g., `corrección:` instead of `fix:`).
 
 This is simpler than creating a custom system prompt if language is your only customization need.
 

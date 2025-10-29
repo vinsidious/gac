@@ -267,7 +267,7 @@ The entire response will be passed directly to 'git commit -m'.
 <language>
 IMPORTANT: You MUST write the entire commit message in <language_name></language_name>.
 All text in the commit message, including the summary line and body, must be in <language_name></language_name>.
-The conventional commit prefix (feat:, fix:, etc.) should remain in English, but everything after the prefix must be in <language_name></language_name>.
+<prefix_instruction></prefix_instruction>
 </language>
 </instructions>"""
 
@@ -456,6 +456,7 @@ def build_prompt(
     verbose: bool = False,
     system_template_path: str | None = None,
     language: str | None = None,
+    translate_prefixes: bool = False,
 ) -> tuple[str, str]:
     """Build system and user prompts for the AI model using the provided templates and git information.
 
@@ -469,6 +470,7 @@ def build_prompt(
         verbose: Whether to generate detailed commit messages with motivation, architecture, and impact sections
         system_template_path: Optional path to custom system template
         language: Optional language for commit messages (e.g., "Spanish", "French", "Japanese")
+        translate_prefixes: Whether to translate conventional commit prefixes (default: False keeps them in English)
 
     Returns:
         Tuple of (system_prompt, user_prompt) ready to be sent to an AI model
@@ -494,7 +496,22 @@ def build_prompt(
 
     if language:
         user_template = user_template.replace("<language_name></language_name>", language)
-        logger.debug(f"Set commit message language to: {language}")
+
+        # Set prefix instruction based on translate_prefixes setting
+        if translate_prefixes:
+            prefix_instruction = (
+                f"Translate the entire message including the conventional commit prefix into {language}."
+            )
+            logger.debug(f"Set commit message language to: {language} (with prefix translation)")
+        else:
+            prefix_instruction = (
+                "The conventional commit prefix (feat:, fix:, etc.) should remain in English, but everything after the prefix must be in "
+                + language
+                + "."
+            )
+            logger.debug(f"Set commit message language to: {language} (English prefixes)")
+
+        user_template = user_template.replace("<prefix_instruction></prefix_instruction>", prefix_instruction)
     else:
         user_template = _remove_template_section(user_template, "language")
         logger.debug("Using default language (English)")

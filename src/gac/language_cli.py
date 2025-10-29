@@ -14,32 +14,34 @@ def language() -> None:
     """Set the language for commit messages interactively."""
     click.echo("Select a language for your commit messages:\n")
 
-    # Languages in their native scripts
+    # Languages sorted by programmer population likelihood
+    # Based on GitHub statistics and global developer demographics
     languages = [
         ("English", "English"),
-        ("Español", "Spanish"),
-        ("Français", "French"),
-        ("Deutsch", "German"),
-        ("Italiano", "Italian"),
-        ("Português", "Portuguese"),
+        ("简体中文", "Simplified Chinese"),
+        ("繁體中文", "Traditional Chinese"),
         ("日本語", "Japanese"),
         ("한국어", "Korean"),
-        ("中文", "Chinese"),
+        ("Español", "Spanish"),
+        ("Português", "Portuguese"),
+        ("Français", "French"),
+        ("Deutsch", "German"),
         ("Русский", "Russian"),
-        ("العربية", "Arabic"),
         ("हिन्दी", "Hindi"),
-        ("Nederlands", "Dutch"),
+        ("Italiano", "Italian"),
         ("Polski", "Polish"),
         ("Türkçe", "Turkish"),
+        ("Nederlands", "Dutch"),
+        ("Tiếng Việt", "Vietnamese"),
+        ("ไทย", "Thai"),
+        ("Bahasa Indonesia", "Indonesian"),
         ("Svenska", "Swedish"),
+        ("العربية", "Arabic"),
+        ("עברית", "Hebrew"),
+        ("Ελληνικά", "Greek"),
+        ("Dansk", "Danish"),
         ("Norsk", "Norwegian"),
         ("Suomi", "Finnish"),
-        ("Dansk", "Danish"),
-        ("Ελληνικά", "Greek"),
-        ("עברית", "Hebrew"),
-        ("ไทย", "Thai"),
-        ("Tiếng Việt", "Vietnamese"),
-        ("Bahasa Indonesia", "Indonesian"),
         ("Custom", "Custom"),
     ]
 
@@ -83,3 +85,4 @@ def language() -> None:
     click.echo(f"✓ Set language to {selection}")
     click.echo(f"  GAC_LANGUAGE={language_value} in {GAC_ENV_PATH}")
     click.echo("\n  Note: Conventional commit prefixes (feat:, fix:, etc.) will remain in English.")
+    click.echo("  To translate prefixes too, set GAC_TRANSLATE_PREFIXES=true in your .gac.env file.")

@@ -164,6 +164,33 @@ class TestPrompts:
             assert f"You MUST write the entire commit message in {lang}" in result
             assert "<language_name>" not in result  # Placeholder should be replaced
 
+    def test_build_prompt_with_translate_prefixes(self):
+        """Test building a prompt with translate_prefixes option."""
+        # Test with translate_prefixes=False (default) - keeps prefixes in English
+        system_prompt, user_prompt = build_prompt(
+            "status text", processed_diff="diff text", language="Spanish", translate_prefixes=False
+        )
+        result = system_prompt + "\n" + user_prompt
+        assert "Spanish" in result
+        assert "should remain in English" in result
+        assert "Translate the entire message including" not in result
+
+        # Test with translate_prefixes=True - translates everything
+        system_prompt, user_prompt = build_prompt(
+            "status text", processed_diff="diff text", language="Spanish", translate_prefixes=True
+        )
+        result = system_prompt + "\n" + user_prompt
+        assert "Spanish" in result
+        assert "Translate the entire message including the conventional commit prefix into Spanish" in result
+        assert "should remain in English" not in result
+
+        # Test with translate_prefixes=True but no language (should not affect anything)
+        system_prompt, user_prompt = build_prompt(
+            "status text", processed_diff="diff text", language=None, translate_prefixes=True
+        )
+        result = system_prompt + "\n" + user_prompt
+        assert "<language>" not in result
+
     def test_clean_commit_message(self):
         """Test cleaning up generated commit messages."""
         # Test basic message

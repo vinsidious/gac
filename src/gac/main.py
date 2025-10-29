@@ -189,6 +189,9 @@ def main(
     language_value = config.get("language")
     language: str | None = language_value if isinstance(language_value, str) else None
 
+    translate_prefixes_value = config.get("translate_prefixes")
+    translate_prefixes: bool = bool(translate_prefixes_value) if isinstance(translate_prefixes_value, bool) else False
+
     system_prompt, user_prompt = build_prompt(
         status=status,
         processed_diff=processed_diff,
@@ -199,6 +202,7 @@ def main(
         verbose=verbose,
         system_template_path=system_template_path,
         language=language,
+        translate_prefixes=translate_prefixes,
     )
 
     if show_prompt:

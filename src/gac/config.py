@@ -40,6 +40,7 @@ def load_config() -> dict[str, str | int | float | bool | None]:
         "verbose": os.getenv("GAC_VERBOSE", str(EnvDefaults.VERBOSE)).lower() in ("true", "1", "yes", "on"),
         "system_prompt_path": os.getenv("GAC_SYSTEM_PROMPT_PATH"),
         "language": os.getenv("GAC_LANGUAGE"),
+        "translate_prefixes": os.getenv("GAC_TRANSLATE_PREFIXES", "false").lower() in ("true", "1", "yes", "on"),
     }
 
     return config
