@@ -132,6 +132,38 @@ class TestPrompts:
         assert "Create a single-line commit message (50-72 characters if possible)." not in result
         assert "Create a commit message with:" not in result or "Create a comprehensive" in result
 
+    def test_build_prompt_with_language(self):
+        """Test building a prompt with custom language specified."""
+        # Test with Spanish language
+        system_prompt, user_prompt = build_prompt(
+            "status text", processed_diff="diff text", one_liner=False, language="Spanish"
+        )
+        result = system_prompt + "\n" + user_prompt
+        assert "status text" in result
+        assert "diff text" in result
+        assert "Spanish" in result
+        assert "You MUST write the entire commit message in Spanish" in result
+        assert "<language_name>" not in result  # Placeholder should be replaced
+
+        # Test without language (should remove language section entirely)
+        system_prompt, user_prompt = build_prompt(
+            "status text", processed_diff="diff text", one_liner=False, language=None
+        )
+        result = system_prompt + "\n" + user_prompt
+        assert "status text" in result
+        assert "diff text" in result
+        assert "<language>" not in result  # Entire language section should be removed
+        assert "Spanish" not in result
+        assert "You MUST write the entire commit message in" not in result
+
+        # Test with different languages
+        for lang in ["French", "Japanese", "German", "Portuguese"]:
+            system_prompt, user_prompt = build_prompt("status text", processed_diff="diff text", language=lang)
+            result = system_prompt + "\n" + user_prompt
+            assert lang in result
+            assert f"You MUST write the entire commit message in {lang}" in result
+            assert "<language_name>" not in result  # Placeholder should be replaced
+
     def test_clean_commit_message(self):
         """Test cleaning up generated commit messages."""
         # Test basic message

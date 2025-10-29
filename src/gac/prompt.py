@@ -263,6 +263,12 @@ IMMEDIATELY AFTER ANALYZING THE CHANGES, RESPOND WITH ONLY THE COMMIT MESSAGE.
 DO NOT include any preamble, reasoning, explanations or anything other than the commit message itself.
 DO NOT use markdown formatting, headers, or code blocks.
 The entire response will be passed directly to 'git commit -m'.
+
+<language>
+IMPORTANT: You MUST write the entire commit message in <language_name></language_name>.
+All text in the commit message, including the summary line and body, must be in <language_name></language_name>.
+The conventional commit prefix (feat:, fix:, etc.) should remain in English, but everything after the prefix must be in <language_name></language_name>.
+</language>
 </instructions>"""
 
 
@@ -449,6 +455,7 @@ def build_prompt(
     hint: str = "",
     verbose: bool = False,
     system_template_path: str | None = None,
+    language: str | None = None,
 ) -> tuple[str, str]:
     """Build system and user prompts for the AI model using the provided templates and git information.
 
@@ -461,6 +468,7 @@ def build_prompt(
         hint: Optional hint to guide the AI
         verbose: Whether to generate detailed commit messages with motivation, architecture, and impact sections
         system_template_path: Optional path to custom system template
+        language: Optional language for commit messages (e.g., "Spanish", "French", "Japanese")
 
     Returns:
         Tuple of (system_prompt, user_prompt) ready to be sent to an AI model
@@ -483,6 +491,13 @@ def build_prompt(
     else:
         user_template = _remove_template_section(user_template, "hint")
         logger.debug("No hint provided")
+
+    if language:
+        user_template = user_template.replace("<language_name></language_name>", language)
+        logger.debug(f"Set commit message language to: {language}")
+    else:
+        user_template = _remove_template_section(user_template, "language")
+        logger.debug("Using default language (English)")
 
     user_template = re.sub(r"\n(?:[ \t]*\n){2,}", "\n\n", user_template)
 

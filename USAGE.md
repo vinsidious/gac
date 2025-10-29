@@ -167,6 +167,7 @@ You can customize gac's behavior with these optional environment variables:
 - `GAC_MAX_OUTPUT_TOKENS=512` - Maximum tokens for generated messages
 - `GAC_WARNING_LIMIT_TOKENS=4096` - Warn when prompts exceed this token count
 - `GAC_SYSTEM_PROMPT_PATH=/path/to/custom_prompt.txt` - Use a custom system prompt for commit message generation
+- `GAC_LANGUAGE=Portuguese` - Generate commit messages in a specific language (e.g., Simplified Chinese, Japanese, Spanish, French)
 
 See `.gac.env.example` for a complete configuration template.
 
@@ -176,10 +177,12 @@ For detailed guidance on creating custom system prompts, see [docs/CUSTOM_SYSTEM
 
 The following subcommands manage configuration of your `$HOME/.gac.env` file:
 
+- `gac init` — Interactive setup wizard for provider and model configuration
 - `gac config show` — Show current configuration
 - `gac config set KEY VALUE` — Set a config key (value is always stored as a string)
 - `gac config get KEY` — Get a config value
 - `gac config unset KEY` — Remove a config key
+- `gac language` — Interactive language selector for commit messages (sets GAC_LANGUAGE)
 
 ## Getting Help
 

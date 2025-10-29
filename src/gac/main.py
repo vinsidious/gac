@@ -186,6 +186,9 @@ def main(
         system_template_path_value if isinstance(system_template_path_value, str) else None
     )
 
+    language_value = config.get("language")
+    language: str | None = language_value if isinstance(language_value, str) else None
+
     system_prompt, user_prompt = build_prompt(
         status=status,
         processed_diff=processed_diff,
@@ -195,6 +198,7 @@ def main(
         infer_scope=infer_scope,
         verbose=verbose,
         system_template_path=system_template_path,
+        language=language,
     )
 
     if show_prompt:

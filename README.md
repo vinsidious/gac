@@ -156,6 +156,8 @@ ANTHROPIC_API_KEY=your_key_here
 
 See `.gac.env.example` for all available options.
 
+**Want commit messages in another language?** Run `gac language` to select from 25+ languages including Español, Français, 日本語, and more.
+
 **Want to customize commit message style?** See [docs/CUSTOM_SYSTEM_PROMPTS.md](docs/CUSTOM_SYSTEM_PROMPTS.md) for guidance on writing custom system prompts.
 
 ---

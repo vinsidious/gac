@@ -45,6 +45,7 @@ You might want a custom system prompt if:
 - You want more or less detail in commit messages
 - You have company-specific guidelines or templates
 - You want to match your team's voice and tone
+- You want commit messages in a different language (see Language Configuration below)
 
 ## Quick Start
 
@@ -263,6 +264,29 @@ routes/auth.ts, routes/api.ts, and routes/admin.ts.
    - Project level: `./.gac.env`
    - User level: `~/.gac.env`
 4. Try an absolute path instead of relative path
+
+### Language Configuration
+
+**Note:** You don't need a custom system prompt to change the commit message language!
+
+If you only want to change the language of your commit messages (while keeping the standard conventional commit format), use the interactive language selector:
+
+```bash
+gac language
+```
+
+This will present an interactive menu with 25+ languages in their native scripts (Español, Français, 日本語, etc.). Select your preferred language, and it will automatically set `GAC_LANGUAGE` in your `~/.gac.env` file.
+
+Alternatively, you can manually set the language:
+
+```bash
+# In ~/.gac.env or project-level .gac.env
+GAC_LANGUAGE=Spanish
+```
+
+The conventional commit prefix (feat:, fix:, etc.) will remain in English, but all other text will be in your specified language.
+
+This is simpler than creating a custom system prompt if language is your only customization need.
 
 ### Want to switch back to default
 
