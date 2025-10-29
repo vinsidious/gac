@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from gac.prompt import build_prompt, clean_commit_message
 
-TEST_TEMPLATE = """<role>
+TEST_SYSTEM_TEMPLATE = """<role>
 You are an expert git commit message generator. Your task is to analyze code changes and create a concise, meaningful git commit message. You will receive git status and diff information. Your entire response will be used directly as a git commit message.
 </role>
 
@@ -27,7 +27,7 @@ You are an expert git commit message generator. Your task is to analyze code cha
   </multi_line>
 </format>
 
-<conventions>
+<conventions_no_scope>
 You MUST start your commit message with the most appropriate conventional commit prefix:
 - feat: A new feature or functionality addition
 - fix: A bug fix or error correction
@@ -43,9 +43,13 @@ You MUST start your commit message with the most appropriate conventional commit
 Select the prefix that best matches the primary purpose of the changes.
 If multiple prefixes apply, choose the one that represents the most significant change.
 If you cannot confidently determine a type, use 'chore'.
-</conventions>
+</conventions_no_scope>
 
-<hint>
+<conventions_with_scope>
+You MUST start your commit message with a conventional commit prefix with scope.
+</conventions_with_scope>"""
+
+TEST_USER_TEMPLATE = """<hint>
 Additional context provided by the user: <hint_text></hint_text>
 </hint>
 
@@ -53,8 +57,8 @@ Additional context provided by the user: <hint_text></hint_text>
 <status></status>
 </git_status>
 
-<repository_context>
-</repository_context>
+<git_diff_stat>
+</git_diff_stat>
 
 <git_diff>
 <diff></diff>
@@ -71,11 +75,13 @@ The entire response will be passed directly to 'git commit -m'.
 class TestPrompts:
     """Tests for the prompt module."""
 
-    @patch("gac.prompt.load_prompt_template")
-    def test_build_prompt(self, mock_load_template):
+    @patch("gac.prompt.load_user_template")
+    @patch("gac.prompt.load_system_template")
+    def test_build_prompt(self, mock_load_system, mock_load_user):
         """Test building a prompt from a template."""
-        # Setup mock
-        mock_load_template.return_value = TEST_TEMPLATE
+        # Setup mocks
+        mock_load_system.return_value = TEST_SYSTEM_TEMPLATE
+        mock_load_user.return_value = TEST_USER_TEMPLATE
 
         # Test with one-liner format
         system_prompt, user_prompt = build_prompt(
@@ -261,6 +267,31 @@ class TestPrompts:
         assert "<think>" in result
         assert "</think>" in result
         assert "remove <think> and </think> tags" in result
+
+    def test_clean_commit_message_custom_system_prompt(self):
+        """Test that enforce_conventional_commits parameter works correctly."""
+        # Test with enforce_conventional_commits=True (default)
+        message = "🎉 add dark mode support"
+        result = clean_commit_message(message, enforce_conventional_commits=True)
+        assert result.startswith("chore: ")
+        assert "🎉" in result
+
+        # Test with enforce_conventional_commits=False (custom system prompts)
+        message = "🎉 add dark mode support"
+        result = clean_commit_message(message, enforce_conventional_commits=False)
+        assert result == "🎉 add dark mode support"
+        assert not result.startswith("chore:")
+
+        # Test with conventional prefix and enforce_conventional_commits=False
+        message = "feat: add new feature"
+        result = clean_commit_message(message, enforce_conventional_commits=False)
+        assert result == "feat: add new feature"
+
+        # Test that other cleaning still happens with enforce_conventional_commits=False
+        message = "```\n♻️ refactor database layer\n```"
+        result = clean_commit_message(message, enforce_conventional_commits=False)
+        assert result == "♻️ refactor database layer"
+        assert "```" not in result
 
 
 if __name__ == "__main__":

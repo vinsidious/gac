@@ -166,8 +166,11 @@ You can customize gac's behavior with these optional environment variables:
 - `GAC_TEMPERATURE=0.7` - Control LLM creativity (0.0-1.0, lower = more focused)
 - `GAC_MAX_OUTPUT_TOKENS=512` - Maximum tokens for generated messages
 - `GAC_WARNING_LIMIT_TOKENS=4096` - Warn when prompts exceed this token count
+- `GAC_SYSTEM_PROMPT_PATH=/path/to/custom_prompt.txt` - Use a custom system prompt for commit message generation
 
 See `.gac.env.example` for a complete configuration template.
+
+For detailed guidance on creating custom system prompts, see [docs/CUSTOM_SYSTEM_PROMPTS.md](docs/CUSTOM_SYSTEM_PROMPTS.md).
 
 ### Configuration Subcommands
 
@@ -180,6 +183,7 @@ The following subcommands manage configuration of your `$HOME/.gac.env` file:
 
 ## Getting Help
 
+- For custom system prompts, see [docs/CUSTOM_SYSTEM_PROMPTS.md](docs/CUSTOM_SYSTEM_PROMPTS.md)
 - For troubleshooting and advanced tips, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 - For installation and configuration, see [README.md#installation-and-configuration](README.md#installation-and-configuration)
 - To contribute, see [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)

@@ -57,7 +57,7 @@ class TestTokenUsageDisplay:
         monkeypatch.setattr("gac.git.get_staged_files", mock_get_staged_files)
 
         # Mock clean_commit_message to return the message as-is
-        monkeypatch.setattr("gac.main.clean_commit_message", lambda msg: msg)
+        monkeypatch.setattr("gac.main.clean_commit_message", lambda msg, enforce_conventional_commits=True: msg)
 
         # Mock confirm to always return True
         monkeypatch.setattr("click.confirm", lambda *args, **kwargs: True)

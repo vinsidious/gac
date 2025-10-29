@@ -49,7 +49,7 @@ class TestScopeFlag:
 
         # Mock both generate_commit_message and clean_commit_message to handle the new flow
         monkeypatch.setattr("gac.main.generate_commit_message", lambda **kwargs: "feat(test): mock commit")
-        monkeypatch.setattr("gac.main.clean_commit_message", lambda msg: msg)
+        monkeypatch.setattr("gac.main.clean_commit_message", lambda msg, enforce_conventional_commits=True: msg)
         monkeypatch.setattr("gac.main.count_tokens", lambda content, model: 10)
         monkeypatch.setattr("click.confirm", lambda *args, **kwargs: True)
         # Mock click.prompt to return 'y' for the new confirmation prompt
@@ -60,13 +60,15 @@ class TestScopeFlag:
         # Mock preprocess_diff to avoid any processing issues
         monkeypatch.setattr("gac.preprocess.preprocess_diff", lambda diff, token_limit=None, model=None: diff)
 
-        # Mock load_prompt_template to return a simpler template for testing that matches new structure
-        mock_template = """<conventions_no_scope>no scope</conventions_no_scope>
-<conventions_with_scope>inferred scope</conventions_with_scope>
-<git_status><status></status></git_status>
+        # Mock split templates for testing
+        mock_system_template = """<conventions_no_scope>no scope</conventions_no_scope>
+<conventions_with_scope>inferred scope</conventions_with_scope>"""
+        mock_user_template = """<git_status><status></status></git_status>
+<git_diff_stat></git_diff_stat>
 <git_diff><diff></diff></git_diff>"""
-        # Mock the load_prompt_template function to return our template
-        monkeypatch.setattr("gac.prompt.load_prompt_template", lambda: mock_template)
+        # Mock the template loading functions to return our templates
+        monkeypatch.setattr("gac.prompt.load_system_template", lambda custom_path=None: mock_system_template)
+        monkeypatch.setattr("gac.prompt.load_user_template", lambda: mock_user_template)
 
         # Mock process_scope_sections which is used in build_prompt
         monkeypatch.setattr("gac.prompt.re.sub", lambda pattern, repl, string, flags=0: string)
@@ -240,7 +242,7 @@ class TestScopeIntegration:
         monkeypatch.setattr("gac.main.count_tokens", lambda content, model: 10)
 
         # Don't clean the commit message (this happens after commit in the real code)
-        monkeypatch.setattr("gac.main.clean_commit_message", lambda msg: msg)
+        monkeypatch.setattr("gac.main.clean_commit_message", lambda msg, enforce_conventional_commits=True: msg)
 
         # Silence console output
         monkeypatch.setattr("rich.console.Console.print", lambda self, *a, **kw: None)
@@ -264,8 +266,8 @@ class TestScopeIntegration:
 
             original_clean = clean_commit_message
 
-            def spy_clean_commit_message(message):
-                result = original_clean(message)
+            def spy_clean_commit_message(message, enforce_conventional_commits=True):
+                result = original_clean(message, enforce_conventional_commits)
                 git_spy.commit_message = result
                 return result
 

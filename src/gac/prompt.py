@@ -8,10 +8,16 @@ formatting, and integration with diff preprocessing.
 import logging
 import re
 
+from gac.constants import CommitMessageConstants
+
 logger = logging.getLogger(__name__)
 
-# Default template to use when no template file is found
-DEFAULT_TEMPLATE = """<role>
+
+# ============================================================================
+# Prompt Templates
+# ============================================================================
+
+DEFAULT_SYSTEM_TEMPLATE = """<role>
 You are an expert git commit message generator. Your task is to analyze code changes and create a concise, meaningful git commit message. You will receive git status and diff information. Your entire response will be used directly as a git commit message.
 </role>
 
@@ -158,24 +164,6 @@ INCORRECT EXAMPLES (these formats are wrong and must NOT be used):
 You MUST NOT prefix the type(scope) with another type. Use EXACTLY ONE type, which MUST include the scope in parentheses.
 </conventions_with_scope>
 
-<hint>
-Additional context provided by the user: <hint_text></hint_text>
-</hint>
-
-<git_status>
-<status></status>
-</git_status>
-
-<git_diff_stat>
-<diff_stat></diff_stat>
-</git_diff_stat>
-
-<git_diff>
-<diff></diff>
-</git_diff>
-
-
-
 <examples_no_scope>
 Good commit messages (no scope):
 [OK] feat: add OAuth2 integration with Google and GitHub
@@ -252,7 +240,23 @@ Bad commit messages:
 [ERROR] WIP: still working on this
 [ERROR] Fixed bug
 [ERROR] Changes
-</examples_with_scope>
+</examples_with_scope>"""
+
+DEFAULT_USER_TEMPLATE = """<hint>
+Additional context provided by the user: <hint_text></hint_text>
+</hint>
+
+<git_status>
+<status></status>
+</git_status>
+
+<git_diff_stat>
+<diff_stat></diff_stat>
+</git_diff_stat>
+
+<git_diff>
+<diff></diff>
+</git_diff>
 
 <instructions>
 IMMEDIATELY AFTER ANALYZING THE CHANGES, RESPOND WITH ONLY THE COMMIT MESSAGE.
@@ -262,14 +266,178 @@ The entire response will be passed directly to 'git commit -m'.
 </instructions>"""
 
 
-def load_prompt_template() -> str:
-    """Load the prompt template from the embedded default template.
+# ============================================================================
+# Template Loading
+# ============================================================================
+
+
+def load_system_template(custom_path: str | None = None) -> str:
+    """Load the system prompt template.
+
+    Args:
+        custom_path: Optional path to a custom system template file
 
     Returns:
-        Template content as string
+        System template content as string
     """
-    logger.debug("Using default template")
-    return DEFAULT_TEMPLATE
+    if custom_path:
+        return load_custom_system_template(custom_path)
+
+    logger.debug("Using default system template")
+    return DEFAULT_SYSTEM_TEMPLATE
+
+
+def load_user_template() -> str:
+    """Load the user prompt template (contains git data sections and instructions).
+
+    Returns:
+        User template content as string
+    """
+    logger.debug("Using default user template")
+    return DEFAULT_USER_TEMPLATE
+
+
+def load_custom_system_template(path: str) -> str:
+    """Load a custom system template from a file.
+
+    Args:
+        path: Path to the custom system template file
+
+    Returns:
+        Custom system template content
+
+    Raises:
+        FileNotFoundError: If the template file doesn't exist
+        IOError: If there's an error reading the file
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            content = f.read()
+            logger.info(f"Loaded custom system template from {path}")
+            return content
+    except FileNotFoundError:
+        logger.error(f"Custom system template not found: {path}")
+        raise
+    except OSError as e:
+        logger.error(f"Error reading custom system template from {path}: {e}")
+        raise
+
+
+# ============================================================================
+# Template Processing Helpers
+# ============================================================================
+
+
+def _remove_template_section(template: str, section_name: str) -> str:
+    """Remove a tagged section from the template.
+
+    Args:
+        template: The template string
+        section_name: Name of the section to remove (without < > brackets)
+
+    Returns:
+        Template with the section removed
+    """
+    pattern = f"<{section_name}>.*?</{section_name}>\\n?"
+    return re.sub(pattern, "", template, flags=re.DOTALL)
+
+
+def _select_conventions_section(template: str, infer_scope: bool) -> str:
+    """Select and normalize the appropriate conventions section.
+
+    Args:
+        template: The template string
+        infer_scope: Whether to infer scope for commits
+
+    Returns:
+        Template with the appropriate conventions section selected
+    """
+    try:
+        logger.debug(f"Processing infer_scope parameter: {infer_scope}")
+        if infer_scope:
+            logger.debug("Using inferred-scope conventions")
+            template = _remove_template_section(template, "conventions_no_scope")
+            template = template.replace("<conventions_with_scope>", "<conventions>")
+            template = template.replace("</conventions_with_scope>", "</conventions>")
+        else:
+            logger.debug("Using no-scope conventions")
+            template = _remove_template_section(template, "conventions_with_scope")
+            template = template.replace("<conventions_no_scope>", "<conventions>")
+            template = template.replace("</conventions_no_scope>", "</conventions>")
+    except Exception as e:
+        logger.error(f"Error processing scope parameter: {e}")
+        template = _remove_template_section(template, "conventions_with_scope")
+        template = template.replace("<conventions_no_scope>", "<conventions>")
+        template = template.replace("</conventions_no_scope>", "</conventions>")
+    return template
+
+
+def _select_format_section(template: str, verbose: bool, one_liner: bool) -> str:
+    """Select the appropriate format section based on verbosity and one-liner settings.
+
+    Priority: verbose > one_liner > multi_line
+
+    Args:
+        template: The template string
+        verbose: Whether to use verbose format
+        one_liner: Whether to use one-liner format
+
+    Returns:
+        Template with the appropriate format section selected
+    """
+    if verbose:
+        template = _remove_template_section(template, "one_liner")
+        template = _remove_template_section(template, "multi_line")
+    elif one_liner:
+        template = _remove_template_section(template, "multi_line")
+        template = _remove_template_section(template, "verbose")
+    else:
+        template = _remove_template_section(template, "one_liner")
+        template = _remove_template_section(template, "verbose")
+    return template
+
+
+def _select_examples_section(template: str, verbose: bool, infer_scope: bool) -> str:
+    """Select the appropriate examples section based on verbosity and scope settings.
+
+    Args:
+        template: The template string
+        verbose: Whether verbose mode is enabled
+        infer_scope: Whether scope inference is enabled
+
+    Returns:
+        Template with the appropriate examples section selected
+    """
+    if verbose and infer_scope:
+        template = _remove_template_section(template, "examples_no_scope")
+        template = _remove_template_section(template, "examples_with_scope")
+        template = _remove_template_section(template, "examples_verbose_no_scope")
+        template = template.replace("<examples_verbose_with_scope>", "<examples>")
+        template = template.replace("</examples_verbose_with_scope>", "</examples>")
+    elif verbose:
+        template = _remove_template_section(template, "examples_no_scope")
+        template = _remove_template_section(template, "examples_with_scope")
+        template = _remove_template_section(template, "examples_verbose_with_scope")
+        template = template.replace("<examples_verbose_no_scope>", "<examples>")
+        template = template.replace("</examples_verbose_no_scope>", "</examples>")
+    elif infer_scope:
+        template = _remove_template_section(template, "examples_no_scope")
+        template = _remove_template_section(template, "examples_verbose_no_scope")
+        template = _remove_template_section(template, "examples_verbose_with_scope")
+        template = template.replace("<examples_with_scope>", "<examples>")
+        template = template.replace("</examples_with_scope>", "</examples>")
+    else:
+        template = _remove_template_section(template, "examples_with_scope")
+        template = _remove_template_section(template, "examples_verbose_no_scope")
+        template = _remove_template_section(template, "examples_verbose_with_scope")
+        template = template.replace("<examples_no_scope>", "<examples>")
+        template = template.replace("</examples_no_scope>", "</examples>")
+    return template
+
+
+# ============================================================================
+# Prompt Building
+# ============================================================================
 
 
 def build_prompt(
@@ -280,8 +448,9 @@ def build_prompt(
     infer_scope: bool = False,
     hint: str = "",
     verbose: bool = False,
+    system_template_path: str | None = None,
 ) -> tuple[str, str]:
-    """Build system and user prompts for the AI model using the provided template and git information.
+    """Build system and user prompts for the AI model using the provided templates and git information.
 
     Args:
         status: Git status output
@@ -291,291 +460,207 @@ def build_prompt(
         infer_scope: Whether to infer scope for the commit message
         hint: Optional hint to guide the AI
         verbose: Whether to generate detailed commit messages with motivation, architecture, and impact sections
+        system_template_path: Optional path to custom system template
 
     Returns:
         Tuple of (system_prompt, user_prompt) ready to be sent to an AI model
     """
-    template = load_prompt_template()
+    system_template = load_system_template(system_template_path)
+    user_template = load_user_template()
 
-    # Select the appropriate conventions section based on infer_scope parameter
-    try:
-        logger.debug(f"Processing infer_scope parameter: {infer_scope}")
-        if infer_scope:
-            # User wants to infer a scope from changes (any value other than None)
-            logger.debug("Using inferred-scope conventions")
-            template = re.sub(r"<conventions_no_scope>.*?</conventions_no_scope>\n", "", template, flags=re.DOTALL)
-            template = template.replace("<conventions_with_scope>", "<conventions>")
-            template = template.replace("</conventions_with_scope>", "</conventions>")
-        else:
-            # No scope - use the plain conventions section
-            logger.debug("Using no-scope conventions")
-            template = re.sub(r"<conventions_with_scope>.*?</conventions_with_scope>\n", "", template, flags=re.DOTALL)
-            template = template.replace("<conventions_no_scope>", "<conventions>")
-            template = template.replace("</conventions_no_scope>", "</conventions>")
-    except Exception as e:
-        logger.error(f"Error processing scope parameter: {e}")
-        # Fallback to no scope if there's an error
-        template = re.sub(r"<conventions_with_scope>.*?</conventions_with_scope>\n", "", template, flags=re.DOTALL)
-        template = template.replace("<conventions_no_scope>", "<conventions>")
-        template = template.replace("</conventions_no_scope>", "</conventions>")
+    system_template = _select_conventions_section(system_template, infer_scope)
+    system_template = _select_format_section(system_template, verbose, one_liner)
+    system_template = _select_examples_section(system_template, verbose, infer_scope)
+    system_template = re.sub(r"\n(?:[ \t]*\n){2,}", "\n\n", system_template)
 
-    template = template.replace("<status></status>", status)
-    template = template.replace("<diff_stat></diff_stat>", diff_stat)
-    template = template.replace("<diff></diff>", processed_diff)
+    user_template = user_template.replace("<status></status>", status)
+    user_template = user_template.replace("<diff_stat></diff_stat>", diff_stat)
+    user_template = user_template.replace("<diff></diff>", processed_diff)
 
-    # Add hint if present
     if hint:
-        template = template.replace("<hint_text></hint_text>", hint)
+        user_template = user_template.replace("<hint_text></hint_text>", hint)
         logger.debug(f"Added hint ({len(hint)} characters)")
     else:
-        template = re.sub(r"<hint>.*?</hint>", "", template, flags=re.DOTALL)
+        user_template = _remove_template_section(user_template, "hint")
         logger.debug("No hint provided")
 
-    # Process format options (verbose, one-liner, or multi-line)
-    # Priority: verbose > one_liner > multi_line
-    if verbose:
-        # Verbose mode: remove one_liner and multi_line, keep verbose
-        template = re.sub(r"<one_liner>.*?</one_liner>", "", template, flags=re.DOTALL)
-        template = re.sub(r"<multi_line>.*?</multi_line>", "", template, flags=re.DOTALL)
-    elif one_liner:
-        # One-liner mode: remove multi_line and verbose
-        template = re.sub(r"<multi_line>.*?</multi_line>", "", template, flags=re.DOTALL)
-        template = re.sub(r"<verbose>.*?</verbose>", "", template, flags=re.DOTALL)
-    else:
-        # Multi-line mode (default): remove one_liner and verbose
-        template = re.sub(r"<one_liner>.*?</one_liner>", "", template, flags=re.DOTALL)
-        template = re.sub(r"<verbose>.*?</verbose>", "", template, flags=re.DOTALL)
+    user_template = re.sub(r"\n(?:[ \t]*\n){2,}", "\n\n", user_template)
 
-    # Clean up examples sections based on verbose and infer_scope settings
-    if verbose and infer_scope:
-        # Verbose mode with scope - keep verbose_with_scope examples
-        template = re.sub(r"<examples_no_scope>.*?</examples_no_scope>\n?", "", template, flags=re.DOTALL)
-        template = re.sub(r"<examples_with_scope>.*?</examples_with_scope>\n?", "", template, flags=re.DOTALL)
-        template = re.sub(
-            r"<examples_verbose_no_scope>.*?</examples_verbose_no_scope>\n?", "", template, flags=re.DOTALL
+    return system_template.strip(), user_template.strip()
+
+
+# ============================================================================
+# Message Cleaning Helpers
+# ============================================================================
+
+
+def _remove_think_tags(message: str) -> str:
+    """Remove AI reasoning <think> tags and their content from the message.
+
+    Args:
+        message: The message to clean
+
+    Returns:
+        Message with <think> tags removed
+    """
+    while re.search(r"<think>(?:(?!</think>)[^\n])*\n.*?</think>", message, flags=re.DOTALL | re.IGNORECASE):
+        message = re.sub(
+            r"<think>(?:(?!</think>)[^\n])*\n.*?</think>\s*", "", message, flags=re.DOTALL | re.IGNORECASE, count=1
         )
-        template = template.replace("<examples_verbose_with_scope>", "<examples>")
-        template = template.replace("</examples_verbose_with_scope>", "</examples>")
-    elif verbose:
-        # Verbose mode without scope - keep verbose_no_scope examples
-        template = re.sub(r"<examples_no_scope>.*?</examples_no_scope>\n?", "", template, flags=re.DOTALL)
-        template = re.sub(r"<examples_with_scope>.*?</examples_with_scope>\n?", "", template, flags=re.DOTALL)
-        template = re.sub(
-            r"<examples_verbose_with_scope>.*?</examples_verbose_with_scope>\n?", "", template, flags=re.DOTALL
-        )
-        template = template.replace("<examples_verbose_no_scope>", "<examples>")
-        template = template.replace("</examples_verbose_no_scope>", "</examples>")
-    elif infer_scope:
-        # With scope (inferred) - keep scope examples, remove all others
-        template = re.sub(r"<examples_no_scope>.*?</examples_no_scope>\n?", "", template, flags=re.DOTALL)
-        template = re.sub(
-            r"<examples_verbose_no_scope>.*?</examples_verbose_no_scope>\n?", "", template, flags=re.DOTALL
-        )
-        template = re.sub(
-            r"<examples_verbose_with_scope>.*?</examples_verbose_with_scope>\n?", "", template, flags=re.DOTALL
-        )
-        template = template.replace("<examples_with_scope>", "<examples>")
-        template = template.replace("</examples_with_scope>", "</examples>")
-    else:
-        # No scope - keep no_scope examples, remove all others
-        template = re.sub(r"<examples_with_scope>.*?</examples_with_scope>\n?", "", template, flags=re.DOTALL)
-        template = re.sub(
-            r"<examples_verbose_no_scope>.*?</examples_verbose_no_scope>\n?", "", template, flags=re.DOTALL
-        )
-        template = re.sub(
-            r"<examples_verbose_with_scope>.*?</examples_verbose_with_scope>\n?", "", template, flags=re.DOTALL
-        )
-        template = template.replace("<examples_no_scope>", "<examples>")
-        template = template.replace("</examples_no_scope>", "</examples>")
 
-    # Clean up extra whitespace, collapsing blank lines that may contain spaces
-    template = re.sub(r"\n(?:[ \t]*\n){2,}", "\n\n", template)
+    message = re.sub(r"\n\n+\s*<think>.*?</think>\s*", "", message, flags=re.DOTALL | re.IGNORECASE)
+    message = re.sub(r"<think>.*?</think>\s*\n\n+", "", message, flags=re.DOTALL | re.IGNORECASE)
 
-    # Split the template into system and user prompts
-    # System prompt contains all instructions, role, conventions, examples
-    # User prompt contains the actual git data
+    message = re.sub(r"<think>\s*\n.*$", "", message, flags=re.DOTALL | re.IGNORECASE)
 
-    # Extract the git data sections for the user prompt
-    user_sections = []
+    conventional_prefixes_pattern = r"(" + "|".join(CommitMessageConstants.CONVENTIONAL_PREFIXES) + r")[\(:)]"
+    if re.search(r"^.*?</think>", message, flags=re.DOTALL | re.IGNORECASE):
+        prefix_match = re.search(conventional_prefixes_pattern, message, flags=re.IGNORECASE)
+        think_match = re.search(r"</think>", message, flags=re.IGNORECASE)
 
-    # Extract git status
-    status_match = re.search(r"<git_status>.*?</git_status>", template, re.DOTALL)
-    if status_match:
-        user_sections.append(status_match.group(0))
-        # Remove from system prompt
-        template = template.replace(status_match.group(0), "")
+        if not prefix_match or (think_match and think_match.start() < prefix_match.start()):
+            message = re.sub(r"^.*?</think>\s*", "", message, flags=re.DOTALL | re.IGNORECASE)
 
-    # Extract git diff stat
-    diff_stat_match = re.search(r"<git_diff_stat>.*?</git_diff_stat>", template, re.DOTALL)
-    if diff_stat_match:
-        user_sections.append(diff_stat_match.group(0))
-        # Remove from system prompt
-        template = template.replace(diff_stat_match.group(0), "")
+    message = re.sub(r"</think>\s*$", "", message, flags=re.IGNORECASE)
 
-    # Extract git diff
-    diff_match = re.search(r"<git_diff>.*?</git_diff>", template, re.DOTALL)
-    if diff_match:
-        user_sections.append(diff_match.group(0))
-        # Remove from system prompt
-        template = template.replace(diff_match.group(0), "")
-
-    # Extract hint if present
-    hint_match = re.search(r"<hint>.*?</hint>", template, re.DOTALL)
-    if hint_match and hint:  # Only include if hint was provided
-        user_sections.append(hint_match.group(0))
-        # Remove from system prompt
-        template = template.replace(hint_match.group(0), "")
-
-    # System prompt is everything else (role, conventions, examples, instructions)
-    system_prompt = template.strip()
-    system_prompt = re.sub(r"\n(?:[ \t]*\n){2,}", "\n\n", system_prompt)
-
-    # User prompt is the git data sections
-    user_prompt = "\n\n".join(user_sections).strip()
-
-    return system_prompt, user_prompt
+    return message
 
 
-def clean_commit_message(message: str) -> str:
+def _remove_code_blocks(message: str) -> str:
+    """Remove markdown code blocks from the message.
+
+    Args:
+        message: The message to clean
+
+    Returns:
+        Message with code blocks removed
+    """
+    return re.sub(r"```[\w]*\n|```", "", message)
+
+
+def _extract_commit_from_reasoning(message: str) -> str:
+    """Extract the actual commit message from reasoning/preamble text.
+
+    Args:
+        message: The message potentially containing reasoning
+
+    Returns:
+        Extracted commit message
+    """
+    for indicator in CommitMessageConstants.COMMIT_INDICATORS:
+        if indicator.lower() in message.lower():
+            message = message.split(indicator, 1)[1].strip()
+            break
+
+    lines = message.split("\n")
+    for i, line in enumerate(lines):
+        if any(line.strip().startswith(f"{prefix}:") for prefix in CommitMessageConstants.CONVENTIONAL_PREFIXES):
+            message = "\n".join(lines[i:])
+            break
+
+    return message
+
+
+def _remove_xml_tags(message: str) -> str:
+    """Remove XML tags that might have leaked into the message.
+
+    Args:
+        message: The message to clean
+
+    Returns:
+        Message with XML tags removed
+    """
+    for tag in CommitMessageConstants.XML_TAGS_TO_REMOVE:
+        message = message.replace(tag, "")
+    return message
+
+
+def _fix_double_prefix(message: str) -> str:
+    """Fix double type prefix issues like 'chore: feat(scope):' to 'feat(scope):'.
+
+    Args:
+        message: The message to fix
+
+    Returns:
+        Message with double prefix corrected
+    """
+    double_prefix_pattern = re.compile(
+        r"^("
+        + r"|\s*".join(CommitMessageConstants.CONVENTIONAL_PREFIXES)
+        + r"):\s*("
+        + r"|\s*".join(CommitMessageConstants.CONVENTIONAL_PREFIXES)
+        + r")\(([^)]+)\):"
+    )
+    match = double_prefix_pattern.match(message)
+
+    if match:
+        second_type = match.group(2)
+        scope = match.group(3)
+        description = message[match.end() :].strip()
+        message = f"{second_type}({scope}): {description}"
+
+    return message
+
+
+def _ensure_conventional_prefix(message: str) -> str:
+    """Ensure the message starts with a conventional commit prefix.
+
+    Args:
+        message: The message to check
+
+    Returns:
+        Message with conventional prefix ensured
+    """
+    if not any(
+        message.strip().startswith(prefix + ":") or message.strip().startswith(prefix + "(")
+        for prefix in CommitMessageConstants.CONVENTIONAL_PREFIXES
+    ):
+        message = f"chore: {message.strip()}"
+    return message
+
+
+def _normalize_whitespace(message: str) -> str:
+    """Normalize whitespace, ensuring no more than one blank line between paragraphs.
+
+    Args:
+        message: The message to normalize
+
+    Returns:
+        Message with normalized whitespace
+    """
+    return re.sub(r"\n(?:[ \t]*\n){2,}", "\n\n", message).strip()
+
+
+# ============================================================================
+# Message Cleaning
+# ============================================================================
+
+
+def clean_commit_message(message: str, enforce_conventional_commits: bool = True) -> str:
     """Clean up a commit message generated by an AI model.
 
     This function:
     1. Removes any preamble or reasoning text
     2. Removes code block markers and formatting
     3. Removes XML tags that might have leaked into the response
-    4. Ensures the message starts with a conventional commit prefix
+    4. Ensures the message starts with a conventional commit prefix (if enforce_conventional_commits is True)
     5. Fixes double type prefix issues (e.g., "chore: feat(scope):")
 
     Args:
         message: Raw commit message from AI
+        enforce_conventional_commits: If True, ensures message has conventional commit prefix.
+                                      Set to False when using custom system prompts.
 
     Returns:
         Cleaned commit message ready for use
     """
     message = message.strip()
-
-    # Remove <think> tags and their content (some providers like MiniMax include reasoning)
-    # Only remove multi-line reasoning blocks, never single-line content that might be descriptions
-    # Strategy: Remove blocks that clearly contain internal newlines (multi-line reasoning)
-
-    # Step 1: Remove multi-line <think>...</think> blocks (those with newlines inside)
-    # Pattern: <think> followed by content that includes newlines, ending with </think>
-    # This safely distinguishes reasoning from inline mentions like "handle <think> tags"
-    # Use negative lookahead to prevent matching across multiple blocks
-    while re.search(r"<think>(?:(?!</think>)[^\n])*\n.*?</think>", message, flags=re.DOTALL | re.IGNORECASE):
-        message = re.sub(
-            r"<think>(?:(?!</think>)[^\n])*\n.*?</think>\s*", "", message, flags=re.DOTALL | re.IGNORECASE, count=1
-        )
-
-    # Step 2: Remove blocks separated by blank lines (before or after the message)
-    message = re.sub(r"\n\n+\s*<think>.*?</think>\s*", "", message, flags=re.DOTALL | re.IGNORECASE)
-    message = re.sub(r"<think>.*?</think>\s*\n\n+", "", message, flags=re.DOTALL | re.IGNORECASE)
-
-    # Step 3: Handle orphaned opening <think> tags followed by newline
-    message = re.sub(r"<think>\s*\n.*$", "", message, flags=re.DOTALL | re.IGNORECASE)
-
-    # Step 4: Handle orphaned closing </think> tags at the start (before any conventional prefix)
-    conventional_prefixes_pattern = r"(feat|fix|docs|style|refactor|perf|test|build|ci|chore)[\(:)]"
-    if re.search(r"^.*?</think>", message, flags=re.DOTALL | re.IGNORECASE):
-        prefix_match = re.search(conventional_prefixes_pattern, message, flags=re.IGNORECASE)
-        think_match = re.search(r"</think>", message, flags=re.IGNORECASE)
-
-        if not prefix_match or (think_match and think_match.start() < prefix_match.start()):
-            # No prefix or </think> comes before prefix - remove everything up to and including it
-            message = re.sub(r"^.*?</think>\s*", "", message, flags=re.DOTALL | re.IGNORECASE)
-
-    # Step 5: Remove orphaned closing </think> tags at the end (not part of inline mentions)
-    message = re.sub(r"</think>\s*$", "", message, flags=re.IGNORECASE)
-
-    # Remove any markdown code blocks
-    message = re.sub(r"```[\w]*\n|```", "", message)
-
-    # Extract the actual commit message if it follows our reasoning pattern
-    # Look for different indicators of where the actual commit message starts
-    commit_indicators = [
-        "# Your commit message:",
-        "Your commit message:",
-        "The commit message is:",
-        "Here's the commit message:",
-        "Commit message:",
-        "Final commit message:",
-        "# Commit Message",
-    ]
-
-    for indicator in commit_indicators:
-        if indicator.lower() in message.lower():
-            # Extract everything after the indicator
-            message = message.split(indicator, 1)[1].strip()
-            break
-
-    # If message starts with any kind of explanation text, try to locate a conventional prefix
-    lines = message.split("\n")
-    for i, line in enumerate(lines):
-        if any(
-            line.strip().startswith(prefix)
-            for prefix in ["feat:", "fix:", "docs:", "style:", "refactor:", "perf:", "test:", "build:", "ci:", "chore:"]
-        ):
-            message = "\n".join(lines[i:])
-            break
-
-    # Remove any XML tags that might have leaked into the response
-    for tag in [
-        "<git-status>",
-        "</git-status>",
-        "<git_status>",
-        "</git_status>",
-        "<git-diff>",
-        "</git-diff>",
-        "<git_diff>",
-        "</git_diff>",
-        "<repository_context>",
-        "</repository_context>",
-        "<instructions>",
-        "</instructions>",
-        "<format>",
-        "</format>",
-        "<conventions>",
-        "</conventions>",
-    ]:
-        message = message.replace(tag, "")
-
-    # Fix double type prefix issues (e.g., "chore: feat(scope):") to just "feat(scope):")
-    conventional_prefixes = [
-        "feat",
-        "fix",
-        "docs",
-        "style",
-        "refactor",
-        "perf",
-        "test",
-        "build",
-        "ci",
-        "chore",
-    ]
-
-    # Look for double prefix pattern like "chore: feat(scope):" and fix it
-    # This regex looks for a conventional prefix followed by another conventional prefix with a scope
-    double_prefix_pattern = re.compile(
-        r"^(" + r"|\s*".join(conventional_prefixes) + r"):\s*(" + r"|\s*".join(conventional_prefixes) + r")\(([^)]+)\):"
-    )
-    match = double_prefix_pattern.match(message)
-
-    if match:
-        # Extract the second type and scope, which is what we want to keep
-        second_type = match.group(2)
-        scope = match.group(3)
-        description = message[match.end() :].strip()
-        message = f"{second_type}({scope}): {description}"
-
-    # Ensure message starts with a conventional commit prefix
-    if not any(
-        message.strip().startswith(prefix + ":") or message.strip().startswith(prefix + "(")
-        for prefix in conventional_prefixes
-    ):
-        message = f"chore: {message.strip()}"
-
-    # Final cleanup: trim extra whitespace and ensure no more than one blank line
-    # Handle blank lines that may include spaces or tabs
-    message = re.sub(r"\n(?:[ \t]*\n){2,}", "\n\n", message).strip()
-
+    message = _remove_think_tags(message)
+    message = _remove_code_blocks(message)
+    message = _extract_commit_from_reasoning(message)
+    message = _remove_xml_tags(message)
+    message = _fix_double_prefix(message)
+    if enforce_conventional_commits:
+        message = _ensure_conventional_prefix(message)
+    message = _normalize_whitespace(message)
     return message

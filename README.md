@@ -156,11 +156,14 @@ ANTHROPIC_API_KEY=your_key_here
 
 See `.gac.env.example` for all available options.
 
+**Want to customize commit message style?** See [docs/CUSTOM_SYSTEM_PROMPTS.md](docs/CUSTOM_SYSTEM_PROMPTS.md) for guidance on writing custom system prompts.
+
 ---
 
 ## Getting Help
 
 - **Full documentation**: [USAGE.md](USAGE.md) - Complete CLI reference
+- **Custom prompts**: [CUSTOM_SYSTEM_PROMPTS.md](docs/CUSTOM_SYSTEM_PROMPTS.md) - Customize commit message style
 - **Troubleshooting**: [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Common issues and solutions
 - **Contributing**: [CONTRIBUTING.md](docs/CONTRIBUTING.md) - Development setup and guidelines
 

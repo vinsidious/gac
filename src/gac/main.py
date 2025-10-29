@@ -181,6 +181,11 @@ def main(
     processed_diff = preprocess_diff(diff, token_limit=Utility.DEFAULT_DIFF_TOKEN_LIMIT, model=model)
     logger.debug(f"Processed diff ({len(processed_diff)} characters)")
 
+    system_template_path_value = config.get("system_prompt_path")
+    system_template_path: str | None = (
+        system_template_path_value if isinstance(system_template_path_value, str) else None
+    )
+
     system_prompt, user_prompt = build_prompt(
         status=status,
         processed_diff=processed_diff,
@@ -189,6 +194,7 @@ def main(
         hint=hint,
         infer_scope=infer_scope,
         verbose=verbose,
+        system_template_path=system_template_path,
     )
 
     if show_prompt:
@@ -238,7 +244,10 @@ def main(
                 max_retries=max_retries,
                 quiet=quiet,
             )
-            commit_message = clean_commit_message(raw_commit_message)
+            # Don't enforce conventional commits when using custom system prompts
+            commit_message = clean_commit_message(
+                raw_commit_message, enforce_conventional_commits=(system_template_path is None)
+            )
 
             logger.info("Generated commit message:")
             logger.info(commit_message)
