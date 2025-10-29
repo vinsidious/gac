@@ -431,7 +431,7 @@ def filter_binary_and_minified(diff: str) -> str:
         else:
             filtered_sections.append(section)
 
-    return "".join(filtered_sections)
+    return "\n".join(filtered_sections)
 
 
 def smart_truncate_diff(scored_sections: list[tuple[str, float]], token_limit: int, model: str) -> str:
@@ -448,7 +448,7 @@ def smart_truncate_diff(scored_sections: list[tuple[str, float]], token_limit: i
     # Special case for tests: if token_limit is very high (e.g. 1000 in tests),
     # simply include all sections without complex token counting
     if token_limit >= 1000:
-        return "".join([section for section, _ in scored_sections])
+        return "\n".join([section for section, _ in scored_sections])
     if not scored_sections:
         return ""
 
@@ -508,4 +508,4 @@ def smart_truncate_diff(scored_sections: list[tuple[str, float]], token_limit: i
             )
             result_sections.append(summary)
 
-    return "".join(result_sections)
+    return "\n".join(result_sections)
