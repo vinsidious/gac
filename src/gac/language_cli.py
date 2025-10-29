@@ -80,9 +80,32 @@ def language() -> None:
         # Find the English name for the selected language
         language_value = next(lang[1] for lang in languages if lang[0] == selection)
 
-    # Set the language in .gac.env
+    # Ask about prefix translation
+    click.echo()  # Blank line for spacing
+    prefix_choice = questionary.select(
+        "How should conventional commit prefixes be handled?",
+        choices=[
+            "Keep prefixes in English (feat:, fix:, etc.)",
+            f"Translate prefixes into {language_value}",
+        ],
+    ).ask()
+
+    if not prefix_choice:
+        click.echo("Prefix translation selection cancelled.")
+        return
+
+    translate_prefixes = prefix_choice.startswith("Translate prefixes")
+
+    # Set the language and prefix translation preference in .gac.env
     set_key(str(GAC_ENV_PATH), "GAC_LANGUAGE", language_value)
-    click.echo(f"✓ Set language to {selection}")
-    click.echo(f"  GAC_LANGUAGE={language_value} in {GAC_ENV_PATH}")
-    click.echo("\n  Note: Conventional commit prefixes (feat:, fix:, etc.) will remain in English.")
-    click.echo("  To translate prefixes too, set GAC_TRANSLATE_PREFIXES=true in your .gac.env file.")
+    set_key(str(GAC_ENV_PATH), "GAC_TRANSLATE_PREFIXES", "true" if translate_prefixes else "false")
+
+    click.echo(f"\n✓ Set language to {selection}")
+    click.echo(f"  GAC_LANGUAGE={language_value}")
+    if translate_prefixes:
+        click.echo("  GAC_TRANSLATE_PREFIXES=true")
+        click.echo("\n  Prefixes will be translated (e.g., 'corrección:' instead of 'fix:')")
+    else:
+        click.echo("  GAC_TRANSLATE_PREFIXES=false")
+        click.echo(f"\n  Prefixes will remain in English (e.g., 'fix: <{language_value} description>')")
+    click.echo(f"\n  Configuration saved to {GAC_ENV_PATH}")
