@@ -23,7 +23,8 @@ def test_init_cli_groq(monkeypatch):
                 mock.patch("questionary.text") as mtext,
                 mock.patch("questionary.password") as mpass,
             ):
-                mselect.return_value.ask.return_value = "Groq"
+                # Provider selection, then language selection (English = no prefix prompt)
+                mselect.return_value.ask.side_effect = ["Groq", "English"]
                 mtext.return_value.ask.side_effect = ["meta-llama/llama-4-scout-17b-16e-instruct"]
                 mpass.return_value.ask.side_effect = ["main-api-key"]
 
@@ -44,7 +45,8 @@ def test_init_cli_zai_regular_provider(monkeypatch):
                 mock.patch("questionary.text") as mtext,
                 mock.patch("questionary.password") as mpass,
             ):
-                mselect.return_value.ask.return_value = "Z.AI"
+                # Provider selection, then language selection
+                mselect.return_value.ask.side_effect = ["Z.AI", "English"]
                 mtext.return_value.ask.side_effect = ["glm-4.6"]
                 mpass.return_value.ask.side_effect = ["zai-api-key"]
 
@@ -65,7 +67,8 @@ def test_init_cli_zai_coding_provider(monkeypatch):
                 mock.patch("questionary.text") as mtext,
                 mock.patch("questionary.password") as mpass,
             ):
-                mselect.return_value.ask.return_value = "Z.AI Coding"
+                # Provider selection, then language selection
+                mselect.return_value.ask.side_effect = ["Z.AI Coding", "English"]
                 mtext.return_value.ask.side_effect = ["glm-4.6"]
                 mpass.return_value.ask.side_effect = ["zai-api-key"]
 
@@ -86,7 +89,8 @@ def test_init_cli_streamlake_requires_endpoint(monkeypatch):
                 mock.patch("questionary.text") as mtext,
                 mock.patch("questionary.password") as mpass,
             ):
-                mselect.return_value.ask.return_value = "Streamlake"
+                # Provider selection, then language selection
+                mselect.return_value.ask.side_effect = ["Streamlake", "English"]
                 # First text prompt is for the endpoint ID (required)
                 mtext.return_value.ask.side_effect = ["ep-custom-12345"]
                 mpass.return_value.ask.side_effect = ["streamlake-key"]
@@ -108,7 +112,8 @@ def test_init_cli_ollama_optional_api_key_and_url(monkeypatch):
                 mock.patch("questionary.text") as mtext,
                 mock.patch("questionary.password") as mpass,
             ):
-                mselect.return_value.ask.return_value = "Ollama"
+                # Provider selection, then language selection
+                mselect.return_value.ask.side_effect = ["Ollama", "English"]
                 # Text prompts: model, API URL
                 mtext.return_value.ask.side_effect = ["gemma3", "http://localhost:11434"]
                 mpass.return_value.ask.side_effect = [""]  # optional key skipped
@@ -131,7 +136,8 @@ def test_init_cli_lmstudio_optional_api_key_and_url(monkeypatch):
                 mock.patch("questionary.text") as mtext,
                 mock.patch("questionary.password") as mpass,
             ):
-                mselect.return_value.ask.return_value = "LM Studio"
+                # Provider selection, then language selection
+                mselect.return_value.ask.side_effect = ["LM Studio", "English"]
                 # Text prompts: model, API URL
                 mtext.return_value.ask.side_effect = ["deepseek-r1-distill-qwen-7b", "http://localhost:1234"]
                 mpass.return_value.ask.side_effect = [""]  # optional key skipped

@@ -54,7 +54,7 @@ Generates an LLM-powered commit message for staged changes and prompts for confi
 | `--verbose`         | `-v`  | Generate detailed commit messages with motivation, architecture, & impact |
 | `--hint <text>`     | `-h`  | Add a hint to guide the LLM                                               |
 | `--model <model>`   | `-m`  | Specify the model to use for this commit                                  |
-| `--language <lang>` | `-l`  | Override the language for commit messages (e.g., 'Spanish', 'Japanese')   |
+| `--language <lang>` | `-l`  | Override the language (name or code: 'Spanish', 'es', 'zh-CN', 'ja')      |
 | `--scope`           | `-s`  | Infer an appropriate scope for the commit                                 |
 
 **Note:** You can also provide feedback interactively during the reroll process by typing `r <feedback>` at the prompt.
@@ -124,8 +124,14 @@ Generates an LLM-powered commit message for staged changes and prompts for confi
 - **Generate commit message in a specific language:**
 
   ```sh
+  # Using language codes (shorter)
+  gac -l zh-CN
+  gac -l ja
+  gac -l es
+
+  # Using full names
   gac -l "Simplified Chinese"
-  gac -l 日本語
+  gac -l Japanese
   gac -l Spanish
   ```
 
@@ -176,7 +182,7 @@ You can customize gac's behavior with these optional environment variables:
 - `GAC_MAX_OUTPUT_TOKENS=512` - Maximum tokens for generated messages
 - `GAC_WARNING_LIMIT_TOKENS=4096` - Warn when prompts exceed this token count
 - `GAC_SYSTEM_PROMPT_PATH=/path/to/custom_prompt.txt` - Use a custom system prompt for commit message generation
-- `GAC_LANGUAGE=Spanish` - Generate commit messages in a specific language (e.g., Spanish, French, Japanese, German). Use `gac language` for interactive selection
+- `GAC_LANGUAGE=Spanish` - Generate commit messages in a specific language (e.g., Spanish, French, Japanese, German). Supports full names or ISO codes (es, fr, ja, de, zh-CN). Use `gac language` for interactive selection
 - `GAC_TRANSLATE_PREFIXES=true` - Translate conventional commit prefixes (feat, fix, etc.) into the target language (default: false, keeps prefixes in English)
 
 See `.gac.env.example` for a complete configuration template.

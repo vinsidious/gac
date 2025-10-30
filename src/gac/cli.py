@@ -13,7 +13,7 @@ import click
 from gac import __version__
 from gac.config import load_config
 from gac.config_cli import config as config_cli
-from gac.constants import Logging
+from gac.constants import Languages, Logging
 from gac.diff_cli import diff as diff_cli
 from gac.errors import handle_error
 from gac.init_cli import init as init_cli
@@ -44,7 +44,9 @@ logger = logging.getLogger(__name__)
 @click.option("--hint", "-h", default="", help="Additional context to include in the prompt")
 # Model options
 @click.option("--model", "-m", help="Override the default model (format: 'provider:model_name')")
-@click.option("--language", "-l", help="Override the language for commit messages (e.g., 'Spanish', 'Japanese')")
+@click.option(
+    "--language", "-l", help="Override the language for commit messages (e.g., 'Spanish', 'es', 'zh-CN', 'ja')"
+)
 # Output options
 @click.option("--quiet", "-q", is_flag=True, help="Suppress non-error output")
 @click.option(
@@ -101,6 +103,9 @@ def cli(
         # Determine if verbose mode should be enabled based on -v flag or verbose config setting
         use_verbose = bool(verbose or config.get("verbose", False))
 
+        # Resolve language code to full name if provided
+        resolved_language = Languages.resolve_code(language) if language else None
+
         try:
             main(
                 stage_all=add_all,
@@ -116,7 +121,7 @@ def cli(
                 verbose=use_verbose,
                 no_verify=no_verify,
                 skip_secret_scan=skip_secret_scan or bool(config.get("skip_secret_scan", False)),
-                language=language,
+                language=resolved_language,
             )
         except Exception as e:
             handle_error(e, exit_program=True)
