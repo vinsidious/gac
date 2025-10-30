@@ -39,12 +39,12 @@ When changes span multiple areas:
 
 <format>
   <one_liner>
-  Create a single-line commit message (50-72 characters if possible).
+  Create a single-line commit message.
   Your message should be clear, concise, and descriptive of the core change.
   Use present tense ("Add feature" not "Added feature").
   </one_liner><multi_line>
   Create a commit message with:
-  - First line: A concise summary (50-72 characters) that could stand alone
+  - First line: A concise summary that could stand alone
   - Blank line after the summary
   - Detailed body with multiple bullet points explaining the key changes
   - Focus on WHY changes were made, not just WHAT was changed
@@ -55,7 +55,7 @@ When changes span multiple areas:
 
   Your commit message MUST follow this structure:
 
-  Line 1: A concise summary (up to ~72 characters) with conventional commit prefix
+  Line 1: A concise summary (that could stand alone) with conventional commit prefix
   Line 2: BLANK LINE (required)
   Lines 3+: Detailed multi-paragraph body with the following sections:
 
