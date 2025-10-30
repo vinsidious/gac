@@ -277,7 +277,9 @@ def main(
             if require_confirmation:
                 while True:
                     response = click.prompt(
-                        "Proceed with commit above? [y/n/r or provide feedback]", type=str, show_default=False
+                        "Proceed with commit above? [y/n/r/<feedback>]",
+                        type=str,
+                        show_default=False,
                     ).strip()
                     response_lower = response.lower()
 
