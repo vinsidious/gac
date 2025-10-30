@@ -275,10 +275,9 @@ def main(
                 )
 
             if require_confirmation:
-                # Custom prompt that accepts y/n/r or "r <feedback (optional)>"
                 while True:
                     response = click.prompt(
-                        "Proceed with commit above? [y/n/r <feedback>]", type=str, show_default=False
+                        "Proceed with commit above? [y/n/r or provide feedback]", type=str, show_default=False
                     ).strip()
                     response_lower = response.lower()
 
@@ -287,27 +286,22 @@ def main(
                     if response_lower in ["n", "no"]:
                         console.print("[yellow]Prompt not accepted. Exiting...[/yellow]")
                         sys.exit(0)
-                    if response_lower == "r" or response_lower == "reroll" or response_lower.startswith("r "):
-                        if response_lower == "r" or response_lower == "reroll":
-                            feedback_message = (
-                                "Please provide an alternative commit message using the same repository context."
-                            )
-                            console.print("[cyan]Regenerating commit message...[/cyan]")
-                        else:
-                            reroll_feedback = response[2:].strip()
-                            feedback_message = (
-                                f"Please revise the commit message based on this feedback: {reroll_feedback}"
-                            )
-                            console.print(f"[cyan]Regenerating commit message with feedback: {reroll_feedback}[/cyan]")
-
+                    if response == "":
+                        continue
+                    if response_lower in ["r", "reroll"]:
+                        feedback_message = (
+                            "Please provide an alternative commit message using the same repository context."
+                        )
+                        console.print("[cyan]Regenerating commit message...[/cyan]")
                         conversation_messages.append({"role": "user", "content": feedback_message})
-
-                        console.print()  # Add blank line for readability
+                        console.print()
                         break
 
-                    console.print(
-                        "[red]Invalid response. Please enter y (yes), n (no), r (reroll), or r <feedback>.[/red]"
-                    )
+                    feedback_message = f"Please revise the commit message based on this feedback: {response}"
+                    console.print(f"[cyan]Regenerating commit message with feedback: {response}[/cyan]")
+                    conversation_messages.append({"role": "user", "content": feedback_message})
+                    console.print()
+                    break
 
                 if response_lower in ["y", "yes"]:
                     break

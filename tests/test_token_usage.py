@@ -161,8 +161,8 @@ class TestTokenUsageDisplay:
 
         monkeypatch.setattr("gac.main.generate_commit_message", fake_generate_commit_message)
 
-        # Simulate user reroll with feedback followed by acceptance
-        responses = iter(["r needs more detail", "y"])
+        # Simulate user providing feedback followed by acceptance
+        responses = iter(["needs more detail", "y"])
         monkeypatch.setattr("click.prompt", lambda *args, **kwargs: next(responses))
 
         result = runner.invoke(cli, ["--no-verify"])

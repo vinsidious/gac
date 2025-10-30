@@ -32,7 +32,8 @@ Generates an LLM-powered commit message for staged changes and prompts for confi
 - `y` or `yes` - Proceed with the commit
 - `n` or `no` - Cancel the commit
 - `r` or `reroll` - Regenerate the commit message with the same context
-- `r <feedback>` - Regenerate with specific feedback (e.g., `r make it shorter`, `r focus on performance`)
+- Any other text - Regenerate with that text as feedback (e.g., `make it shorter`, `focus on performance`)
+- Empty input (just Enter) - Show the prompt again
 
 ---
 
@@ -57,7 +58,7 @@ Generates an LLM-powered commit message for staged changes and prompts for confi
 | `--language <lang>` | `-l`  | Override the language (name or code: 'Spanish', 'es', 'zh-CN', 'ja')      |
 | `--scope`           | `-s`  | Infer an appropriate scope for the commit                                 |
 
-**Note:** You can also provide feedback interactively during the reroll process by typing `r <feedback>` at the prompt.
+**Note:** You can provide feedback interactively by simply typing it at the confirmation prompt - no need to prefix with 'r'. Just type `r` for a simple reroll, or type your feedback directly like `make it shorter`.
 
 ## Output and Verbosity
 

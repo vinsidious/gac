@@ -76,7 +76,7 @@ gac
 
 ### 💻 **Developer Experience**
 
-- **Interactive feedback**: Regenerate messages with specific requests like `r "make it shorter"` or `r "focus on the bug fix"`
+- **Interactive feedback**: Type `r` to reroll, or directly type your feedback like `make it shorter` or `focus on the bug fix`
 - **One-command workflows**: Complete workflows with flags like `gac -ayp` (stage all, auto-confirm, push)
 - **Git integration**: Respects pre-commit and lefthook hooks, running them before expensive LLM operations
 
@@ -99,7 +99,7 @@ git add .
 # Generate and commit with LLM
 gac
 
-# Review → y (commit) | n (cancel) | r (reroll)
+# Review → y (commit) | n (cancel) | r (reroll) | or type feedback
 ```
 
 ### Common Commands
@@ -134,18 +134,20 @@ gac --show-prompt
 gac --skip-secret-scan
 ```
 
-### Interactive Reroll System
+### Interactive Feedback System
 
-Not happy with the result? Use the reroll feature for intelligent regeneration:
+Not happy with the result? You have two options:
 
 ```bash
-# Simple reroll
+# Simple reroll (no feedback)
 r
 
-# With specific feedback
-r make it shorter and focus on the performance improvement
-r use conventional commit format with scope
-r explain the security implications
+# Or just type your feedback directly - no prefix needed!
+make it shorter and focus on the performance improvement
+use conventional commit format with scope
+explain the security implications
+
+# Press Enter on empty input to see the prompt again
 ```
 
 ---
