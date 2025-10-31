@@ -102,6 +102,7 @@ def generate_with_retries(
         "groq",
         "lm-studio",
         "minimax",
+        "mistral",
         "ollama",
         "openai",
         "openrouter",

@@ -11,6 +11,7 @@ from .gemini import call_gemini_api
 from .groq import call_groq_api
 from .lmstudio import call_lmstudio_api
 from .minimax import call_minimax_api
+from .mistral import call_mistral_api
 from .ollama import call_ollama_api
 from .openai import call_openai_api
 from .openrouter import call_openrouter_api
@@ -31,6 +32,7 @@ __all__ = [
     "call_groq_api",
     "call_lmstudio_api",
     "call_minimax_api",
+    "call_mistral_api",
     "call_ollama_api",
     "call_openai_api",
     "call_openrouter_api",
