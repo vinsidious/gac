@@ -6,6 +6,8 @@ import click
 import questionary
 from dotenv import set_key, unset_key
 
+from gac.constants import Languages
+
 GAC_ENV_PATH = Path.home() / ".gac.env"
 
 
@@ -14,38 +16,7 @@ def language() -> None:
     """Set the language for commit messages interactively."""
     click.echo("Select a language for your commit messages:\n")
 
-    # Languages sorted by programmer population likelihood
-    # Based on GitHub statistics and global developer demographics
-    languages = [
-        ("English", "English"),
-        ("简体中文", "Simplified Chinese"),
-        ("繁體中文", "Traditional Chinese"),
-        ("日本語", "Japanese"),
-        ("한국어", "Korean"),
-        ("Español", "Spanish"),
-        ("Português", "Portuguese"),
-        ("Français", "French"),
-        ("Deutsch", "German"),
-        ("Русский", "Russian"),
-        ("हिन्दी", "Hindi"),
-        ("Italiano", "Italian"),
-        ("Polski", "Polish"),
-        ("Türkçe", "Turkish"),
-        ("Nederlands", "Dutch"),
-        ("Tiếng Việt", "Vietnamese"),
-        ("ไทย", "Thai"),
-        ("Bahasa Indonesia", "Indonesian"),
-        ("Svenska", "Swedish"),
-        ("العربية", "Arabic"),
-        ("עברית", "Hebrew"),
-        ("Ελληνικά", "Greek"),
-        ("Dansk", "Danish"),
-        ("Norsk", "Norwegian"),
-        ("Suomi", "Finnish"),
-        ("Custom", "Custom"),
-    ]
-
-    display_names = [lang[0] for lang in languages]
+    display_names = [lang[0] for lang in Languages.LANGUAGES]
     selection = questionary.select(
         "Choose your language:", choices=display_names, use_shortcuts=True, use_arrow_keys=True
     ).ask()
@@ -78,7 +49,7 @@ def language() -> None:
         language_value = custom_language.strip()
     else:
         # Find the English name for the selected language
-        language_value = next(lang[1] for lang in languages if lang[0] == selection)
+        language_value = next(lang[1] for lang in Languages.LANGUAGES if lang[0] == selection)
 
     # Ask about prefix translation
     click.echo()  # Blank line for spacing

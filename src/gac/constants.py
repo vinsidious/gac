@@ -214,6 +214,37 @@ class Languages:
         "fi": "Finnish",
     }
 
+    # List of languages with display names and English names for CLI selection
+    # Format: (display_name, english_name)
+    LANGUAGES: list[tuple[str, str]] = [
+        ("English", "English"),
+        ("简体中文", "Simplified Chinese"),
+        ("繁體中文", "Traditional Chinese"),
+        ("日本語", "Japanese"),
+        ("한국어", "Korean"),
+        ("Español", "Spanish"),
+        ("Português", "Portuguese"),
+        ("Français", "French"),
+        ("Deutsch", "German"),
+        ("Русский", "Russian"),
+        ("हिन्दी", "Hindi"),
+        ("Italiano", "Italian"),
+        ("Polski", "Polish"),
+        ("Türkçe", "Turkish"),
+        ("Nederlands", "Dutch"),
+        ("Tiếng Việt", "Vietnamese"),
+        ("ไทย", "Thai"),
+        ("Bahasa Indonesia", "Indonesian"),
+        ("Svenska", "Swedish"),
+        ("العربية", "Arabic"),
+        ("עברית", "Hebrew"),
+        ("Ελληνικά", "Greek"),
+        ("Dansk", "Danish"),
+        ("Norsk", "Norwegian"),
+        ("Suomi", "Finnish"),
+        ("Custom", "Custom"),
+    ]
+
     @staticmethod
     def resolve_code(language: str) -> str:
         """Resolve a language code to its full name.
