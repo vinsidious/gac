@@ -32,7 +32,7 @@ class TestCerebrasAPIKeyValidation:
         """Test that Cerebras raises error when API key is missing."""
         with temporarily_remove_env_var("CEREBRAS_API_KEY"):
             with pytest.raises(AIError) as exc_info:
-                call_cerebras_api("llama3.1-8b", [], 0.7, 1000)
+                call_cerebras_api("zai-glm-4.6", [], 0.7, 1000)
 
             assert_missing_api_key_error(exc_info, "cerebras", "CEREBRAS_API_KEY")
 
@@ -58,7 +58,7 @@ class TestCerebrasProviderMocked(BaseProviderTest):
 
     @property
     def model_name(self) -> str:
-        return "llama3.1-8b"
+        return "zai-glm-4.6"
 
     @property
     def success_response(self) -> dict[str, Any]:
@@ -82,7 +82,7 @@ class TestCerebrasEdgeCases:
                 mock_post.return_value = mock_response
 
                 with pytest.raises(AIError) as exc_info:
-                    call_cerebras_api("qwen-3-coder-480b", [], 0.7, 1000)
+                    call_cerebras_api("zai-glm-4.6", [], 0.7, 1000)
 
                 assert "null content" in str(exc_info.value).lower()
 
@@ -99,7 +99,7 @@ class TestCerebrasIntegration:
 
         messages = [{"role": "user", "content": "Say 'test success' and nothing else."}]
         try:
-            response = call_cerebras_api(model="qwen-3-coder-480b", messages=messages, temperature=1.0, max_tokens=50)
+            response = call_cerebras_api(model="zai-glm-4.6", messages=messages, temperature=1.0, max_tokens=50)
 
             assert response is not None
             assert isinstance(response, str)

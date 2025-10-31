@@ -33,7 +33,7 @@ def init() -> None:
 
     providers = [
         ("Anthropic", "claude-haiku-4-5"),
-        ("Cerebras", "qwen-3-coder-480b"),
+        ("Cerebras", "zai-glm-4.6"),
         ("Chutes", "zai-org/GLM-4.6-FP8"),
         ("Custom (Anthropic)", ""),
         ("Custom (OpenAI)", ""),
