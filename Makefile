@@ -1,6 +1,6 @@
 .PHONY: setup install install-dev dev test test-integration test-all test-cov type-check lint format clean bump bump-patch bump-minor bump-major coverage
 
-PRETTIER_VERSION := npx prettier@3.1.0
+PRETTIER ?= npx prettier@3.1.0
 
 # Create virtual environment and install dependencies
 setup:
